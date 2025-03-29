@@ -1,0 +1,6 @@
+function factorial(n) => if (n <= 1) 1 else n * factorial(n - 1);
+
+let x = 5 in {
+    print(factorial(x));
+    x * 2
+}
