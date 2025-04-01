@@ -3,6 +3,7 @@
 #include <cmath>
 #include <stdexcept>
 
+
 // Tabla de símbolos
 std::unordered_map<std::string, ASTNode*> symbol_table;
 
