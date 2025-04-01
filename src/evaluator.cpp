@@ -2,7 +2,7 @@
 #include <unordered_map>
 #include <cmath>
 #include <stdexcept>
-#include <iostream>
+
 
 // Tabla de símbolos
 std::unordered_map<std::string, ASTNode*> symbol_table;
