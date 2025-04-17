@@ -3,6 +3,7 @@
 #include <llvm-c/ExecutionEngine.h>
 #include <llvm-c/Target.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 static LLVMModuleRef module;
 static LLVMBuilderRef builder;
@@ -48,8 +49,11 @@ LLVMValueRef codegen(ASTNode* node) {
    if (!node) return NULL;
 
     switch (node->type) {
-        case NODE_NUMBER:
-            return LLVMConstReal(LLVMDoubleType(), node->data.number_value);
+        case NODE_NUMBER: {
+            // Ensure we create a constant double
+            LLVMValueRef constant = LLVMConstReal(LLVMDoubleType(), node->data.number_value);
+            return constant;
+        }
 
         case NODE_VARIABLE: {
             LLVMValueRef alloca = lookup_symbol(node->data.variable_name);
@@ -109,6 +113,64 @@ LLVMValueRef codegen(ASTNode* node) {
             return value;
         }
 
+        case NODE_STRING: {
+            // Create a global string constant
+            LLVMValueRef str = LLVMBuildGlobalStringPtr(builder, node->data.string_value, "str");
+            return str;
+        }
+
+        case NODE_PRINT: {
+            LLVMValueRef expr = codegen(node->data.op_node.left);
+            if (!expr) return NULL;
+            
+            // Declarar printf como variádica
+            LLVMValueRef printf_func = LLVMGetNamedFunction(module, "printf");
+            if (!printf_func) {
+                LLVMTypeRef printf_type = LLVMFunctionType(LLVMInt32Type(),
+                    (LLVMTypeRef[]){LLVMPointerType(LLVMInt8Type(), 0)}, 1, 1);
+                printf_func = LLVMAddFunction(module, "printf", printf_type);
+            }
+            
+            // Verificar si estamos imprimiendo un string o un número
+            if (node->data.op_node.left->type == NODE_STRING) {
+                // Para strings, usar formato %s
+                const char* format = "%s\n";
+                LLVMValueRef format_str = LLVMBuildGlobalStringPtr(builder, format, "fmt");
+                
+                // Construir la llamada
+                LLVMValueRef args[] = {format_str, expr};
+                return LLVMBuildCall2(builder,
+                    LLVMFunctionType(LLVMInt32Type(), 
+                        (LLVMTypeRef[]){LLVMPointerType(LLVMInt8Type(), 0)}, 1, 1),
+                    printf_func,
+                    args,
+                    2,
+                    "printf_call");
+            } else {
+                // Para números, mantener el formato %.1f
+                const char* format = "%.1f\n";
+                LLVMValueRef format_str = LLVMBuildGlobalStringPtr(builder, format, "fmt");
+                
+                LLVMValueRef args[] = {format_str, expr};
+                return LLVMBuildCall2(builder,
+                    LLVMFunctionType(LLVMInt32Type(), 
+                        (LLVMTypeRef[]){LLVMPointerType(LLVMInt8Type(), 0)}, 1, 1),
+                    printf_func,
+                    args,
+                    2,
+                    "printf_call");
+            }
+        }
+
+        case NODE_PROGRAM: {
+            LLVMValueRef last = NULL;
+            // Generate code for each statement in sequence
+            for (int i = 0; i < node->data.program_node.count; i++) {
+                last = codegen(node->data.program_node.statements[i]);
+            }
+            return last; // Return the last evaluated expression
+        }
+
         default:
             fprintf(stderr, "Nodo AST no reconocido\n");
             exit(1);
@@ -117,6 +179,12 @@ LLVMValueRef codegen(ASTNode* node) {
 
 void generate_llvm_code(ASTNode* ast, const char* filename) {
     init_llvm();
+    
+    // Declarar printf como función externa
+    LLVMTypeRef printf_type = LLVMFunctionType(LLVMInt32Type(),
+        (LLVMTypeRef[]){LLVMPointerType(LLVMInt8Type(), 0)}, 1, 1);
+    LLVMValueRef printf_func = LLVMAddFunction(module, "printf", printf_type);
+    LLVMSetLinkage(printf_func, LLVMExternalLinkage);
     
     // Crear función main
     LLVMTypeRef main_type = LLVMFunctionType(LLVMInt32Type(), NULL, 0, 0);
@@ -127,20 +195,23 @@ void generate_llvm_code(ASTNode* ast, const char* filename) {
     LLVMPositionBuilderAtEnd(builder, entry);
     
     // Generar código para el AST
-    LLVMValueRef result = codegen(ast);
+    if (ast != NULL) {
+        // Verificar si es un nodo programa
+        if (ast->type == NODE_PROGRAM) {
+            // Generar código para cada statement en el programa
+            for (int i = 0; i < ast->data.program_node.count; i++) {
+                LLVMValueRef stmt = codegen(ast->data.program_node.statements[i]);
+                if (!stmt) {
+                    fprintf(stderr, "Error generando código para statement %d\n", i);
+                }
+            }
+        } else {
+            // Si no es un nodo programa, generar código directamente
+            codegen(ast);
+        }
+    }
     
-    // Configurar printf
-    LLVMTypeRef printf_type = LLVMFunctionType(LLVMInt32Type(), 
-        (LLVMTypeRef[]){LLVMPointerType(LLVMInt8Type(), 0)}, 1, 1);
-    LLVMValueRef printf_func = LLVMAddFunction(module, "printf", printf_type);
-    
-    // Imprimir resultado
-    char* format_str = "Resultado: %f\n";
-    LLVMValueRef format = LLVMBuildGlobalStringPtr(builder, format_str, "fmt");
-    LLVMBuildCall2(builder, printf_type, printf_func, 
-        (LLVMValueRef[]){format, result}, 2, "");
-    
-    // Retornar 0
+    // Retornar 0 de main
     LLVMBuildRet(builder, LLVMConstInt(LLVMInt32Type(), 0, 0));
     
     // Escribir a archivo
@@ -153,6 +224,7 @@ void generate_llvm_code(ASTNode* ast, const char* filename) {
     
     free_llvm_resources();
 }
+
 // Implementaciones de funciones auxiliares
 LLVMValueRef lookup_symbol(char name) {
     SymbolEntry* entry = symbol_table;

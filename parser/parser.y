@@ -5,8 +5,8 @@
 #include "ast/ast.h"
 
 int yylex(void);
-void yyerror(const char *s);
 int yyparse(void);
+void yyerror(const char *s);
 
 // Variables globales
 extern int line_num;
@@ -55,6 +55,17 @@ void add_statement(ASTNode* stmt) {
 %type <node> expression statement expr_list
 
 %%
+
+program:
+    input {
+        // Cuando el parsing termina exitosamente, crea el nodo programa
+        if (error_count == 0) {
+            root = create_program_node(statements, statement_count);
+        } else {
+            root = NULL;
+        }
+    }
+    ;
 
 input:
     /* empty */
