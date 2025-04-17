@@ -56,6 +56,6 @@ run: build
 
 clean:
 	@echo "🧹 Cleaning project..."
-	@rm -f *.o $(EXEC) y.tab.* lex.yy.c *.output y.* output.ll programa
+	@rm -f *.o $(EXEC) y.tab.* lex.yy.c *.output y.* output.ll program
 	@rm -f $(AST_DIR)/*.o
 	@rm -f $(CODE_GEN_DIR)/*.o
