@@ -2,13 +2,11 @@
 #include "./ast/ast.h"
 #include "./code_generation/llvm_gen.h"
 
-// Añade estas declaraciones externas
 extern int yyparse(void);
 extern FILE *yyin;
-extern ASTNode* root;  // Definido en parser.y
+extern ASTNode* root;
 
 int main() {
-    
     yyin = fopen("script.hulk", "r");
     if (!yyin) {
         perror("Error opening script.hulk");
@@ -17,8 +15,13 @@ int main() {
 
     if (yyparse() == 0) {
         fclose(yyin);
+        
+        // Añadir esta línea para imprimir el AST
+        printf("\n🌳 Abstract Syntax Tree:\n");
+        print_ast(root, 0);
+        
         printf("\nGenerando código LLVM...\n");
-        generate_llvm_code(root, "output.ll");  // Cambio aquí
+        generate_llvm_code(root, "output.ll");
         printf("✅ Código LLVM generado en output.ll\n");
         
         free_ast(root);
