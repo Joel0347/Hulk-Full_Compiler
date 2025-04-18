@@ -15,6 +15,7 @@ typedef struct {
 typedef void (*VisitProgram)(Visitor*, ASTNode*);
 typedef void (*VisitNumber)(Visitor*, ASTNode*);
 typedef void (*VisitString)(Visitor*, ASTNode*);
+typedef void (*VisitBoolean)(Visitor*, ASTNode*);
 typedef void (*VisitVariable)(Visitor*, ASTNode*);
 typedef void (*VisitBinaryOp)(Visitor*, ASTNode*);
 typedef void (*VisitUnaryOp)(Visitor*, ASTNode*);
@@ -28,6 +29,7 @@ struct Visitor {
     VisitProgram visit_program;
     VisitNumber visit_number;
     VisitString visit_string;
+    VisitBoolean visit_boolean;
     VisitVariable visit_variable;
     VisitBinaryOp visit_binary_op;
     VisitUnaryOp visit_unary_op;

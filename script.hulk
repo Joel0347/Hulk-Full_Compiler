@@ -1,1 +1,3 @@
-print("Tankemio se queda corta mi tanke");
+//print("result: "@@ -2^3 * (3 + 2));
+
+print(2 +(1>= 3^2));

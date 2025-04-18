@@ -15,7 +15,6 @@ int main() {
     }
 
     if (!yyparse() && !analyze_semantics(root)) {
-        print_ast(root, 0);
         fclose(yyin);
         
         // Añadir esta línea para imprimir el AST

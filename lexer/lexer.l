@@ -22,10 +22,26 @@ int line_num = 1;
 "-"             { return MINUS; }
 "*"             { return TIMES; }
 "/"             { return DIVIDE; }
+"%"             { return MOD; }
 "^"             { return POWER; }
 "("             { return LPAREN; }
 ")"             { return RPAREN; }
+"=="            { return EQUALSEQUALS; }
 "="             { return EQUALS; }
+"@@"            { return DCONCAT; }
+"@"             { return CONCAT; }
+"!="            { return NEQUALS; }
+"!"             { return NOT; }
+"&"             { return AND; }
+"|"             { return OR; }
+">="            { return EGREATER; }
+">"             { return GREATER; } 
+"<="            { return ELESS; }
+"<"             { return LESS; }          
+"PI"            { return PI; }
+"E"             { return E; }
+"true"          { yylval.var = strdup(yytext); return TRUE; }
+"false"         { yylval.var = strdup(yytext); return FALSE; }
 "print"         { return PRINT; }
 
 [a-zA-ZñÑ][a-zA-ZñÑ0-9_]*  { yylval.var = strdup(yytext); return VARIABLE; }

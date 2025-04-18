@@ -6,6 +6,7 @@
 typedef enum {
     TYPE_NUMBER,
     TYPE_STRING,
+    TYPE_BOOLEAN,
     TYPE_VOID,
     TYPE_UNKNOWN,
     TYPE_ERROR  // Para manejar errores de tipo
@@ -22,8 +23,20 @@ typedef enum {
     OP_SUB,
     OP_MUL,
     OP_DIV,
+    OP_MOD,
     OP_POW,
-    OP_NEGATE
+    OP_NEGATE,
+    OP_CONCAT,
+    OP_DCONCAT,
+    OP_AND,
+    OP_OR,
+    OP_NOT,
+    OP_EQ,
+    OP_NEQ,
+    OP_GRE,
+    OP_GR,
+    OP_LSE,
+    OP_LS
 } Operator;
 
 typedef struct OperatorTypeRule {
@@ -36,6 +49,7 @@ typedef struct OperatorTypeRule {
 // Variables globales para tipos básicos (añade estas declaraciones)
 extern Type TYPE_NUMBER_INST;
 extern Type TYPE_STRING_INST;
+extern Type TYPE_BOOLEAN_INST;
 extern Type TYPE_VOID_INST;
 extern Type TYPE_UNKNOWN_INST;
 extern Type TYPE_ERROR_INST;

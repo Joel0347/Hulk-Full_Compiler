@@ -16,6 +16,7 @@ int analyze_semantics(ASTNode* node) {
         .visit_number = visit_number,
         .visit_print = visit_print,
         .visit_string = visit_string,
+        .visit_boolean = visit_boolean,
         .visit_unary_op = visit_unary_op,
         .visit_variable = visit_variable,
         .error_count = 0,
@@ -129,6 +130,10 @@ static void visit_number(Visitor* v, ASTNode* node) {
 }
 
 static void visit_string(Visitor* v, ASTNode* node) {
+    return;
+}
+
+static void visit_boolean(Visitor* v, ASTNode* node) {
     return;
 }
 
