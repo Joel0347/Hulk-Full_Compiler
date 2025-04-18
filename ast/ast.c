@@ -35,6 +35,17 @@ ASTNode* create_string_node(char* value) {
     return node;
 }
 
+ASTNode* create_boolean_node(char* value) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->line = line_num;
+    node->type = NODE_BOOLEAN;
+    node->scope = create_scope(NULL);
+    node->return_type = &TYPE_BOOLEAN_INST;
+    node->data.string_value = value;
+    printf("%s\n", value);
+    return node;
+}
+
 ASTNode* create_variable_node(char* name) {
     ASTNode* node = malloc(sizeof(ASTNode));
     node->line = line_num;
@@ -94,7 +105,9 @@ ASTNode* create_print_node(ASTNode* expr) {
 }
 
 void free_ast(ASTNode* node) {
-    if (!node) return;
+    if (!node) {
+        return;
+    }
 
     switch (node->type) {
         case NODE_VARIABLE:
@@ -138,6 +151,9 @@ void print_ast(ASTNode* node, int indent) {
         case NODE_STRING:
             printf("String: %s\n", node->data.string_value);
             break;
+        case NODE_BOOLEAN:
+            printf("Boolean: %s\n", node->data.string_value);
+            break;
         case NODE_VARIABLE:
             printf("Variable: %s\n", node->data.variable_name);
             break;
@@ -148,7 +164,18 @@ void print_ast(ASTNode* node, int indent) {
                 case OP_SUB: op_str = "-"; break;
                 case OP_MUL: op_str = "*"; break;
                 case OP_DIV: op_str = "/"; break;
+                case OP_MOD: op_str = "%"; break;
                 case OP_POW: op_str = "^"; break;
+                case OP_AND: op_str = "&"; break;
+                case OP_OR: op_str = "|"; break;
+                case OP_CONCAT: op_str = "@"; break;
+                case OP_DCONCAT: op_str = "@@"; break;
+                case OP_EQ: op_str = "=="; break;
+                case OP_NEQ: op_str = "!="; break;
+                case OP_GRE: op_str = ">="; break;
+                case OP_GR: op_str = ">"; break;
+                case OP_LSE: op_str = "<="; break;
+                case OP_LS: op_str = "<"; break;
                 default: op_str = "?"; break;
             }
             printf("Binary Op: %s\n", op_str);
@@ -157,7 +184,7 @@ void print_ast(ASTNode* node, int indent) {
             break;
         }
         case NODE_UNARY_OP:
-            printf("Unary Op: negate\n");
+            printf("Unary Op: %s\n", node->data.op_node.op_name);
             print_ast(node->data.op_node.left, indent + 1);
             break;
         case NODE_ASSIGNMENT:

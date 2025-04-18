@@ -13,6 +13,7 @@ typedef enum {
     NODE_ASSIGNMENT,
     NODE_PRINT,
     NODE_STRING,
+    NODE_BOOLEAN,
     NODE_PROGRAM
 } NodeType;
 
@@ -41,6 +42,7 @@ typedef struct ASTNode {
 ASTNode* create_program_node(ASTNode** statements, int count);
 ASTNode* create_number_node(double value);
 ASTNode* create_string_node(char* value);
+ASTNode* create_boolean_node(char* value);
 ASTNode* create_variable_node(char* name);
 ASTNode* create_binary_op_node(Operator op, char* op_name, ASTNode* left, ASTNode* right, Type* return_type);
 ASTNode* create_unary_op_node(Operator op, char* op_name, ASTNode* operand, Type* return_type);
