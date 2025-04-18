@@ -9,7 +9,6 @@ int yyparse(void);
 void yyerror(const char *s);
 
 // Variables globales
-extern int line_num;
 ASTNode* root;
 int error_count = 0;
 int max_errors = 1;
@@ -45,14 +44,14 @@ void add_statement(ASTNode* stmt) {
 %token <str> STRING
 %token PRINT
 %token ERROR
-%token LPAREN RPAREN EQUALS SEMICOLON COMMA
+%token LPAREN RPAREN EQUALS SEMICOLON
 
 %left PLUS MINUS
 %left TIMES DIVIDE
 %left POWER
 %left UMINUS
 
-%type <node> expression statement expr_list
+%type <node> expression statement
 
 %%
 
@@ -84,19 +83,8 @@ input:
     ;
 
 statement:
-    expr_list SEMICOLON          { $$ = $1; }
-    | PRINT LPAREN expression RPAREN SEMICOLON { $$ = create_print_node($3); }
-    | VARIABLE EQUALS expression SEMICOLON { $$ = create_assignment_node($1, $3); }
+    expression SEMICOLON          { $$ = $1; }
     | ERROR SEMICOLON { // Maneja errores léxicos seguidos de ;
-        yyerrok;
-        YYABORT;
-      }
-    ;
-
-expr_list:
-    expression                  { $$ = $1; }
-    | expr_list COMMA expression { $$ = create_binary_op_node(OP_ADD, $1, $3); } // Simplificación
-    | ERROR COMMA expression { // Maneja errores en listas
         yyerrok;
         YYABORT;
       }
@@ -106,13 +94,15 @@ expression:
     NUMBER                      { $$ = create_number_node($1); }
     | STRING                    { $$ = create_string_node($1); }
     | VARIABLE                  { $$ = create_variable_node($1); }
-    | expression PLUS expression { $$ = create_binary_op_node(OP_ADD, $1, $3); }
-    | expression MINUS expression { $$ = create_binary_op_node(OP_SUB, $1, $3); }
-    | expression TIMES expression { $$ = create_binary_op_node(OP_MUL, $1, $3); }
-    | expression DIVIDE expression { $$ = create_binary_op_node(OP_DIV, $1, $3); }
-    | expression POWER expression { $$ = create_binary_op_node(OP_POW, $1, $3); }
-    | MINUS expression %prec UMINUS { $$ = create_unary_op_node(OP_NEGATE, $2); }
+    | expression PLUS expression { $$ = create_binary_op_node(OP_ADD, "+", $1, $3, &TYPE_NUMBER_INST)}
+    | expression MINUS expression { $$ = create_binary_op_node(OP_SUB, "-", $1, $3, &TYPE_NUMBER_INST); }
+    | expression TIMES expression { $$ = create_binary_op_node(OP_MUL, "*", $1, $3, &TYPE_NUMBER_INST); }
+    | expression DIVIDE expression { $$ = create_binary_op_node(OP_DIV, "/", $1, $3, &TYPE_NUMBER_INST); }
+    | expression POWER expression { $$ = create_binary_op_node(OP_POW, "^", $1, $3, &TYPE_NUMBER_INST); }
+    | MINUS expression %prec UMINUS { $$ = create_unary_op_node(OP_NEGATE, "-", $2, &TYPE_NUMBER_INST); }
     | LPAREN expression RPAREN  { $$ = $2; }
+    | PRINT LPAREN expression RPAREN { $$ = create_print_node($3); }
+    | VARIABLE EQUALS expression { $$ = create_assignment_node($1, $3); }
     | ERROR { // Maneja cualquier otro error en expresión
         yyerrok;
         YYABORT;
@@ -131,7 +121,6 @@ const char* token_to_str(int token) {
         case RPAREN: return "')'";
         case EQUALS: return "'='";
         case SEMICOLON: return "';'";
-        case COMMA: return "','";
         case PLUS: return "'+'";
         case MINUS: return "'-'";
         case TIMES: return "'*'";

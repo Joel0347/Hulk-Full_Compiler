@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "./ast/ast.h"
 #include "./code_generation/llvm_gen.h"
+#include "./semantic_check/semantic.h"
 
 extern int yyparse(void);
 extern FILE *yyin;
@@ -13,7 +14,8 @@ int main() {
         return 1;
     }
 
-    if (yyparse() == 0) {
+    if (!yyparse() && !analyze_semantics(root)) {
+        print_ast(root, 0);
         fclose(yyin);
         
         // Añadir esta línea para imprimir el AST

@@ -28,7 +28,7 @@ int line_num = 1;
 "="             { return EQUALS; }
 "print"         { return PRINT; }
 
-[a-zA-ZñÑ_][a-zA-ZñÑ0-9_]*  { yylval.var = strdup(yytext); return VARIABLE; }
+[a-zA-ZñÑ][a-zA-ZñÑ0-9_]*  { yylval.var = strdup(yytext); return VARIABLE; }
 "//"[^\n]*?   { /* COMMENT */ }
 \"([^"\\]|\\.)*\" { yylval.var = strdup(yytext); return STRING; }
 

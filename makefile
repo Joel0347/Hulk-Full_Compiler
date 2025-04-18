@@ -12,15 +12,19 @@ AST_DIR = ast
 CODE_GEN_DIR = code_generation
 LEXER_DIR = lexer
 PARSER_DIR = parser
+SEMANTIC_DIR = semantic_check
+TYPE_DIR = type
+VISITOR_DIR = visitor
+SCOPE_DIR = scope
 
-.PHONY: all build run clean
+.PHONY: all build run clean debug
 
 all: build
 
 build: $(EXEC)
 	@./$(EXEC)
 
-$(EXEC): lex.yy.o y.tab.o $(AST_DIR)/ast.o $(SRC_DIR)/main.o $(CODE_GEN_DIR)/llvm_gen.o
+$(EXEC): lex.yy.o y.tab.o $(AST_DIR)/ast.o $(SRC_DIR)/main.o $(CODE_GEN_DIR)/llvm_gen.o $(SEMANTIC_DIR)/semantic.o $(SCOPE_DIR)/scope.o $(VISITOR_DIR)/visitor.o $(TYPE_DIR)/type.o
 	@echo "🔗 Enlazando ejecutable..."
 	@$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 	@echo "🔄 Compiling..."
@@ -40,6 +44,18 @@ $(CODE_GEN_DIR)/llvm_gen.o: $(CODE_GEN_DIR)/llvm_gen.c $(CODE_GEN_DIR)/llvm_gen.
 $(AST_DIR)/ast.o: $(AST_DIR)/ast.c $(AST_DIR)/ast.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
+$(SEMANTIC_DIR)/semantic.o: $(SEMANTIC_DIR)/semantic.c $(SEMANTIC_DIR)/semantic.h $(AST_DIR)/ast.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(SCOPE_DIR)/scope.o: $(SCOPE_DIR)/scope.c $(SCOPE_DIR)/scope.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(VISITOR_DIR)/visitor.o: $(VISITOR_DIR)/visitor.c $(VISITOR_DIR)/visitor.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(TYPE_DIR)/type.o: $(TYPE_DIR)/type.c $(TYPE_DIR)/type.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
 %.o: %.c
 	@echo "🔨 Compilando $<..."
 	@$(CC) $(CFLAGS) -c $< -o $@
@@ -54,8 +70,16 @@ run: build
 		echo "⚠️  output.ll does not exist or it is empty - nothing to be executed"; \
 	fi
 
+debug:
+	@gdb ./compilador
+	# run, backtrace
+
 clean:
 	@echo "🧹 Cleaning project..."
 	@rm -f *.o $(EXEC) y.tab.* lex.yy.c *.output y.* output.ll program
 	@rm -f $(AST_DIR)/*.o
 	@rm -f $(CODE_GEN_DIR)/*.o
+	@rm -f $(SEMANTIC_DIR)/*.o
+	@rm -f $(VISITOR_DIR)/*.o
+	@rm -f $(TYPE_DIR)/*.o
+	@rm -f $(SCOPE_DIR)/*.o
