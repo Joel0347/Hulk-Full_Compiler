@@ -29,9 +29,23 @@ sudo apt install flex bison llvm clang
 │ └── lexer.l
 ├── parser/ # Parser
 │ └── parser.y
+├── scope/ #scope
+| ├──scope.c
+| └──scope.h
+├── semantic_check/ #semantic check
+| ├──semantic.c
+| └──semantic.h
+├── type/ #types
+| ├──type.c
+| └──type.h
+├── visitor/ #visitor
+| ├──visitor.c
+| └──visitor.h
+|
 ├── main.c # Entry point
 ├── Makefile # Build automation
-└── README.md
+├── README.md
+└── script.hulk #HULK code to compile
 ```
 
 ## **Usage** 🛠
