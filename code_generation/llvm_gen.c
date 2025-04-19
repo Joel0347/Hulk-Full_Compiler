@@ -125,30 +125,65 @@ LLVMValueRef codegen(ASTNode* node) {
             LLVMValueRef L = codegen(node->data.op_node.left);
             LLVMValueRef R = codegen(node->data.op_node.right);
             
-            switch (node->data.op_node.op) {
-                case OP_ADD: return LLVMBuildFAdd(builder, L, R, "add_tmp");
-                case OP_SUB: return LLVMBuildFSub(builder, L, R, "sub_tmp");
-                case OP_MUL: return LLVMBuildFMul(builder, L, R, "mul_tmp");
-                case OP_DIV: return LLVMBuildFDiv(builder, L, R, "div_tmp");
-                case OP_POW: {
-                    LLVMTypeRef pow_type = LLVMFunctionType(LLVMDoubleType(),
-                        (LLVMTypeRef[]){LLVMDoubleType(), LLVMDoubleType()}, 2, 0);
-                    LLVMValueRef pow_func = LLVMGetNamedFunction(module, "pow");
-                    if (!pow_func) {
-                        pow_func = LLVMAddFunction(module, "pow", pow_type);
+            // Si los operandos son números, convertirlos para comparación
+            if (node->data.op_node.left->return_type->kind == TYPE_NUMBER) {
+                switch (node->data.op_node.op) {
+                    case OP_ADD: return LLVMBuildFAdd(builder, L, R, "add_tmp");
+                    case OP_SUB: return LLVMBuildFSub(builder, L, R, "sub_tmp");
+                    case OP_MUL: return LLVMBuildFMul(builder, L, R, "mul_tmp");
+                    case OP_DIV: return LLVMBuildFDiv(builder, L, R, "div_tmp");
+                    case OP_POW: {
+                        LLVMTypeRef pow_type = LLVMFunctionType(LLVMDoubleType(),
+                            (LLVMTypeRef[]){LLVMDoubleType(), LLVMDoubleType()}, 2, 0);
+                        LLVMValueRef pow_func = LLVMGetNamedFunction(module, "pow");
+                        if (!pow_func) {
+                            pow_func = LLVMAddFunction(module, "pow", pow_type);
+                        }
+                        return LLVMBuildCall2(builder, pow_type, pow_func, 
+                            (LLVMValueRef[]){L, R}, 2, "pow_tmp");
                     }
-                    return LLVMBuildCall2(builder, pow_type, pow_func, 
-                        (LLVMValueRef[]){L, R}, 2, "pow_tmp");
+                    // Comparaciones numéricas
+                    case OP_EQ:  return LLVMBuildFCmp(builder, LLVMRealOEQ, L, R, "eq_tmp");
+                    case OP_NEQ: return LLVMBuildFCmp(builder, LLVMRealONE, L, R, "neq_tmp");
+                    case OP_GR:  return LLVMBuildFCmp(builder, LLVMRealOGT, L, R, "gt_tmp");
+                    case OP_GRE: return LLVMBuildFCmp(builder, LLVMRealOGE, L, R, "ge_tmp");
+                    case OP_LS:  return LLVMBuildFCmp(builder, LLVMRealOLT, L, R, "lt_tmp");
+                    case OP_LSE: return LLVMBuildFCmp(builder, LLVMRealOLE, L, R, "le_tmp");
                 }
-                default: 
-                    fprintf(stderr, "Operador desconocido\n");
-                    exit(1);
             }
+            
+            // Operadores booleanos
+            if (node->data.op_node.left->return_type->kind == TYPE_BOOLEAN) {
+                switch (node->data.op_node.op) {
+                    case OP_AND: return LLVMBuildAnd(builder, L, R, "and_tmp");
+                    case OP_OR:  return LLVMBuildOr(builder, L, R, "or_tmp");
+                    case OP_EQ:  return LLVMBuildICmp(builder, LLVMIntEQ, L, R, "eq_tmp");
+                    case OP_NEQ: return LLVMBuildICmp(builder, LLVMIntNE, L, R, "neq_tmp");
+                }
+            }
+            
+            fprintf(stderr, "Operador desconocido o no soportado\n");
+            exit(1);
         }
 
         case NODE_UNARY_OP: {
             LLVMValueRef operand = codegen(node->data.op_node.left);
-            return LLVMBuildFNeg(builder, operand, "neg_tmp");
+            
+            switch (node->data.op_node.op) {
+                case OP_NEGATE: 
+                    return LLVMBuildFNeg(builder, operand, "neg_tmp");
+                case OP_NOT:
+                    return LLVMBuildNot(builder, operand, "not_tmp");
+            }
+            
+            fprintf(stderr, "Operador unario desconocido\n");
+            exit(1);
+        }
+
+        case NODE_BOOLEAN: {
+            // Convertir "true"/"false" string a valor booleano LLVM
+            int value = strcmp(node->data.string_value, "true") == 0 ? 1 : 0;
+            return LLVMConstInt(LLVMInt1Type(), value, 0);  // Usar 0 en lugar de false
         }
 
         case NODE_STRING: {
@@ -161,7 +196,7 @@ LLVMValueRef codegen(ASTNode* node) {
             LLVMValueRef expr = codegen(node->data.op_node.left);
             if (!expr) return NULL;
             
-            // Declarar printf como variádica
+            // Obtener función printf
             LLVMValueRef printf_func = LLVMGetNamedFunction(module, "printf");
             if (!printf_func) {
                 LLVMTypeRef printf_type = LLVMFunctionType(LLVMInt32Type(),
@@ -169,35 +204,49 @@ LLVMValueRef codegen(ASTNode* node) {
                 printf_func = LLVMAddFunction(module, "printf", printf_type);
             }
             
-            // Verificar si estamos imprimiendo un string o un número
-            if (node->data.op_node.left->type == NODE_STRING) {
-                // Para strings, usar formato %s
-                const char* format = "%s\n";
-                LLVMValueRef format_str = LLVMBuildGlobalStringPtr(builder, format, "fmt");
-                
-                // Construir la llamada
-                LLVMValueRef args[] = {format_str, expr};
-                return LLVMBuildCall2(builder,
-                    LLVMFunctionType(LLVMInt32Type(), 
-                        (LLVMTypeRef[]){LLVMPointerType(LLVMInt8Type(), 0)}, 1, 1),
-                    printf_func,
-                    args,
-                    2,
-                    "printf_call");
-            } else {
-                // Para números, mantener el formato %.1f
-                const char* format = "%.1f\n";
-                LLVMValueRef format_str = LLVMBuildGlobalStringPtr(builder, format, "fmt");
-                
-                LLVMValueRef args[] = {format_str, expr};
-                return LLVMBuildCall2(builder,
-                    LLVMFunctionType(LLVMInt32Type(), 
-                        (LLVMTypeRef[]){LLVMPointerType(LLVMInt8Type(), 0)}, 1, 1),
-                    printf_func,
-                    args,
-                    2,
-                    "printf_call");
+            const char* format;
+            LLVMValueRef format_str;
+            LLVMValueRef* args;
+            int num_args;
+            
+            // Seleccionar formato según el tipo
+            switch (node->data.op_node.left->return_type->kind) {
+                case TYPE_NUMBER:
+                    format = "%.1f\n";
+                    format_str = LLVMBuildGlobalStringPtr(builder, format, "fmt");
+                    args = (LLVMValueRef[]){format_str, expr};
+                    num_args = 2;
+                    break;
+                    
+                case TYPE_BOOLEAN:
+                    // Convertir booleano a string "true" o "false"
+                    format_str = LLVMBuildGlobalStringPtr(builder, "%s\n", "fmt");
+                    LLVMValueRef true_str = LLVMBuildGlobalStringPtr(builder, "true", "true_str");
+                    LLVMValueRef false_str = LLVMBuildGlobalStringPtr(builder, "false", "false_str");
+                    LLVMValueRef cond_str = LLVMBuildSelect(builder, expr, true_str, false_str, "bool_str");
+                    args = (LLVMValueRef[]){format_str, cond_str};
+                    num_args = 2;
+                    break;
+                    
+                case TYPE_STRING:
+                    format = "%s\n";
+                    format_str = LLVMBuildGlobalStringPtr(builder, format, "fmt");
+                    args = (LLVMValueRef[]){format_str, expr};
+                    num_args = 2;
+                    break;
+                    
+                default:
+                    fprintf(stderr, "Tipo no soportado para print\n");
+                    exit(1);
             }
+            
+            return LLVMBuildCall2(builder, 
+                LLVMFunctionType(LLVMInt32Type(), 
+                    (LLVMTypeRef[]){LLVMPointerType(LLVMInt8Type(), 0)}, 1, 1),
+                printf_func,
+                args,
+                num_args,
+                "printf_call");
         }
 
         default:
