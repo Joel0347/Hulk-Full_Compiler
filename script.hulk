@@ -1,5 +1,6 @@
-x=2;
-y=3;
-z=3;
-print(x>y);
-print(y==z);
+
+print(6%4);  
+    
+
+
+

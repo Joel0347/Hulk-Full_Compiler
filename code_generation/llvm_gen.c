@@ -1,11 +1,10 @@
 #include "llvm_gen.h"
-#include "../scope/scope.h"
 #include <llvm-c/Core.h>
 #include <llvm-c/ExecutionEngine.h>
 #include <llvm-c/Target.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <string.h> // Para strcat y strcmp
 
 static LLVMModuleRef module;
 static LLVMBuilderRef builder;
@@ -74,7 +73,7 @@ void free_llvm_resources() {
     }
 }
 
-LLVMValueRef codegen(ASTNode* node) {
+static LLVMValueRef codegen(ASTNode* node) {
     if (!node) return NULL;
 
     switch (node->type) {
@@ -98,7 +97,9 @@ LLVMValueRef codegen(ASTNode* node) {
                 fprintf(stderr, "Variable no declarada: %s\n", node->data.variable_name);
                 exit(1);
             }
-            return LLVMBuildLoad2(builder, LLVMDoubleType(), alloca, "load");
+            // Cargar usando el tipo correcto
+            LLVMTypeRef var_type = LLVMGetElementType(LLVMTypeOf(alloca));
+            return LLVMBuildLoad2(builder, var_type, alloca, "load");
         }
 
         case NODE_ASSIGNMENT: {
@@ -107,12 +108,20 @@ LLVMValueRef codegen(ASTNode* node) {
             
             LLVMValueRef alloca = lookup_variable(var_name);
             if (!alloca) {
-                // Nueva variable - crear alloca
+                // Nueva variable - crear alloca con el tipo correcto
                 LLVMBasicBlockRef current_block = LLVMGetInsertBlock(builder);
                 LLVMBasicBlockRef entry_block = LLVMGetEntryBasicBlock(LLVMGetBasicBlockParent(current_block));
                 LLVMPositionBuilderAtEnd(builder, entry_block);
                 
-                alloca = LLVMBuildAlloca(builder, LLVMDoubleType(), var_name);
+                // Usar tipo correcto según el valor a asignar
+                LLVMTypeRef var_type;
+                if (node->data.op_node.right->return_type->kind == TYPE_STRING) {
+                    var_type = LLVMPointerType(LLVMInt8Type(), 0);
+                } else {
+                    var_type = LLVMDoubleType();
+                }
+                
+                alloca = LLVMBuildAlloca(builder, var_type, var_name);
                 declare_variable(var_name, alloca);
                 
                 LLVMPositionBuilderAtEnd(builder, current_block);
@@ -124,7 +133,151 @@ LLVMValueRef codegen(ASTNode* node) {
         case NODE_BINARY_OP: {
             LLVMValueRef L = codegen(node->data.op_node.left);
             LLVMValueRef R = codegen(node->data.op_node.right);
-            
+
+            // Para strings
+            if (node->data.op_node.left->return_type->kind == TYPE_STRING) {
+                switch (node->data.op_node.op) {
+                    case OP_CONCAT:
+                    case OP_DCONCAT: {
+                        // Declarar funciones necesarias
+                        LLVMValueRef strlen_func = LLVMGetNamedFunction(module, "strlen");
+                        if (!strlen_func) {
+                            LLVMTypeRef strlen_type = LLVMFunctionType(LLVMInt64Type(),
+                                (LLVMTypeRef[]){LLVMPointerType(LLVMInt8Type(), 0)}, 1, 0);
+                            strlen_func = LLVMAddFunction(module, "strlen", strlen_type);
+                        }
+
+                        LLVMValueRef malloc_func = LLVMGetNamedFunction(module, "malloc");
+                        if (!malloc_func) {
+                            LLVMTypeRef malloc_type = LLVMFunctionType(
+                                LLVMPointerType(LLVMInt8Type(), 0),
+                                (LLVMTypeRef[]){LLVMInt64Type()}, 1, 0);
+                            malloc_func = LLVMAddFunction(module, "malloc", malloc_type);
+                        }
+
+                        // Obtener longitudes de los strings
+                        LLVMValueRef len1 = LLVMBuildCall2(builder, 
+                            LLVMGetElementType(LLVMTypeOf(strlen_func)),
+                            strlen_func, (LLVMValueRef[]){L}, 1, "len1");
+                        LLVMValueRef len2 = LLVMBuildCall2(builder,
+                            LLVMGetElementType(LLVMTypeOf(strlen_func)),
+                            strlen_func, (LLVMValueRef[]){R}, 1, "len2");
+
+                        // Calcular tamaño total necesario
+                        LLVMValueRef total_len = LLVMBuildAdd(builder, len1, len2, "total_len");
+                        if (node->data.op_node.op == OP_DCONCAT) {
+                            // Agregar 1 para el espacio si es @@
+                            total_len = LLVMBuildAdd(builder, total_len, 
+                                LLVMConstInt(LLVMInt64Type(), 1, 0), "total_len_space");
+                        }
+                        // Agregar 1 para el null terminator
+                        total_len = LLVMBuildAdd(builder, total_len,
+                            LLVMConstInt(LLVMInt64Type(), 1, 0), "total_len_null");
+
+                        // Asignar memoria
+                        LLVMValueRef buffer = LLVMBuildCall2(builder,
+                            LLVMGetElementType(LLVMTypeOf(malloc_func)),
+                            malloc_func, (LLVMValueRef[]){total_len}, 1, "buffer");
+
+                        // Copiar strings
+                        LLVMBuildCall2(builder, 
+                            LLVMFunctionType(LLVMVoidType(),
+                                (LLVMTypeRef[]){
+                                    LLVMPointerType(LLVMInt8Type(), 0),
+                                    LLVMPointerType(LLVMInt8Type(), 0)
+                                }, 2, 0),
+                            LLVMGetNamedFunction(module, "strcpy"),
+                            (LLVMValueRef[]){buffer, L}, 2, "");
+
+                        if (node->data.op_node.op == OP_DCONCAT) {
+                            // Agregar espacio si es @@
+                            LLVMValueRef space_ptr = LLVMBuildGEP2(builder, 
+                                LLVMInt8Type(), 
+                                buffer,
+                                &len1,  // Cambiado: solo pasamos el puntero a len1
+                                1,
+                                "space_ptr");
+                            LLVMBuildStore(builder, 
+                                LLVMConstInt(LLVMInt8Type(), ' ', 0),
+                                space_ptr);
+                            
+                            // Actualizar posición para segundo string
+                            LLVMValueRef after_space = LLVMBuildGEP2(builder, 
+                                LLVMInt8Type(), buffer,
+                                (LLVMValueRef[]){
+                                    LLVMBuildAdd(builder, len1,
+                                        LLVMConstInt(LLVMInt64Type(), 1, 0), "")
+                                }, 1, "after_space");
+                            LLVMBuildCall2(builder,
+                                LLVMFunctionType(LLVMVoidType(),
+                                    (LLVMTypeRef[]){
+                                        LLVMPointerType(LLVMInt8Type(), 0),
+                                        LLVMPointerType(LLVMInt8Type(), 0)
+                                    }, 2, 0),
+                                LLVMGetNamedFunction(module, "strcpy"),
+                                (LLVMValueRef[]){after_space, R}, 2, "");
+                        } else {
+                            // Concatenar directamente si es @
+                            LLVMBuildCall2(builder,
+                                LLVMFunctionType(LLVMVoidType(),
+                                    (LLVMTypeRef[]){
+                                        LLVMPointerType(LLVMInt8Type(), 0),
+                                        LLVMPointerType(LLVMInt8Type(), 0)
+                                    }, 2, 0),
+                                LLVMGetNamedFunction(module, "strcat"),
+                                (LLVMValueRef[]){buffer, R}, 2, "");
+                        }
+
+                        return buffer;
+                    }
+
+                    // Comparaciones de strings
+                    case OP_EQ:
+                    case OP_NEQ:
+                    case OP_GR:
+                    case OP_GRE:
+                    case OP_LS:
+                    case OP_LSE: {
+                        // Declarar función strcmp
+                        LLVMValueRef strcmp_func = LLVMGetNamedFunction(module, "strcmp");
+                        if (!strcmp_func) {
+                            LLVMTypeRef strcmp_type = LLVMFunctionType(LLVMInt32Type(),
+                                (LLVMTypeRef[]){
+                                    LLVMPointerType(LLVMInt8Type(), 0),
+                                    LLVMPointerType(LLVMInt8Type(), 0)
+                                }, 2, 0);
+                            strcmp_func = LLVMAddFunction(module, "strcmp", strcmp_type);
+                        }
+
+                        LLVMValueRef cmp = LLVMBuildCall2(builder,
+                            LLVMGetElementType(LLVMTypeOf(strcmp_func)),
+                            strcmp_func,
+                            (LLVMValueRef[]){L, R}, 2, "strcmp_result");
+
+                        switch (node->data.op_node.op) {
+                            case OP_EQ:  return LLVMBuildICmp(builder, LLVMIntEQ, cmp, LLVMConstInt(LLVMInt32Type(), 0, 0), "str_eq");
+                            case OP_NEQ: return LLVMBuildICmp(builder, LLVMIntNE, cmp, LLVMConstInt(LLVMInt32Type(), 0, 0), "str_ne");
+                            case OP_GR:  return LLVMBuildICmp(builder, LLVMIntSGT, cmp, LLVMConstInt(LLVMInt32Type(), 0, 0), "str_gt");
+                            case OP_GRE: return LLVMBuildICmp(builder, LLVMIntSGE, cmp, LLVMConstInt(LLVMInt32Type(), 0, 0), "str_ge");
+                            case OP_LS:  return LLVMBuildICmp(builder, LLVMIntSLT, cmp, LLVMConstInt(LLVMInt32Type(), 0, 0), "str_lt");
+                            case OP_LSE: return LLVMBuildICmp(builder, LLVMIntSLE, cmp, LLVMConstInt(LLVMInt32Type(), 0, 0), "str_le");
+                            default: break;
+                        }
+                    }
+                }
+            }
+
+            // Para booleanos
+            if (node->data.op_node.left->return_type->kind == TYPE_BOOLEAN) {
+                switch (node->data.op_node.op) {
+                    case OP_EQ:  return LLVMBuildICmp(builder, LLVMIntEQ, L, R, "bool_eq");
+                    case OP_NEQ: return LLVMBuildICmp(builder, LLVMIntNE, L, R, "bool_ne");
+                    case OP_AND: return LLVMBuildAnd(builder, L, R, "bool_and");
+                    case OP_OR:  return LLVMBuildOr(builder, L, R, "bool_or");
+                    default: break;
+                }
+            }
+
             // Si los operandos son números, convertirlos para comparación
             if (node->data.op_node.left->return_type->kind == TYPE_NUMBER) {
                 switch (node->data.op_node.op) {
@@ -132,6 +285,18 @@ LLVMValueRef codegen(ASTNode* node) {
                     case OP_SUB: return LLVMBuildFSub(builder, L, R, "sub_tmp");
                     case OP_MUL: return LLVMBuildFMul(builder, L, R, "mul_tmp");
                     case OP_DIV: return LLVMBuildFDiv(builder, L, R, "div_tmp");
+                    case OP_MOD: {
+                        // Añadir función fmod si no existe
+                        LLVMTypeRef fmod_type = LLVMFunctionType(LLVMDoubleType(),
+                            (LLVMTypeRef[]){LLVMDoubleType(), LLVMDoubleType()}, 2, 0);
+                        LLVMValueRef fmod_func = LLVMGetNamedFunction(module, "fmod");
+                        if (!fmod_func) {
+                            fmod_func = LLVMAddFunction(module, "fmod", fmod_type);
+                        }
+                        // Llamar a fmod(L, R)
+                        return LLVMBuildCall2(builder, fmod_type, fmod_func,
+                            (LLVMValueRef[]){L, R}, 2, "mod_tmp");
+                    }
                     case OP_POW: {
                         LLVMTypeRef pow_type = LLVMFunctionType(LLVMDoubleType(),
                             (LLVMTypeRef[]){LLVMDoubleType(), LLVMDoubleType()}, 2, 0);
@@ -149,16 +314,6 @@ LLVMValueRef codegen(ASTNode* node) {
                     case OP_GRE: return LLVMBuildFCmp(builder, LLVMRealOGE, L, R, "ge_tmp");
                     case OP_LS:  return LLVMBuildFCmp(builder, LLVMRealOLT, L, R, "lt_tmp");
                     case OP_LSE: return LLVMBuildFCmp(builder, LLVMRealOLE, L, R, "le_tmp");
-                }
-            }
-            
-            // Operadores booleanos
-            if (node->data.op_node.left->return_type->kind == TYPE_BOOLEAN) {
-                switch (node->data.op_node.op) {
-                    case OP_AND: return LLVMBuildAnd(builder, L, R, "and_tmp");
-                    case OP_OR:  return LLVMBuildOr(builder, L, R, "or_tmp");
-                    case OP_EQ:  return LLVMBuildICmp(builder, LLVMIntEQ, L, R, "eq_tmp");
-                    case OP_NEQ: return LLVMBuildICmp(builder, LLVMIntNE, L, R, "neq_tmp");
                 }
             }
             
@@ -187,16 +342,15 @@ LLVMValueRef codegen(ASTNode* node) {
         }
 
         case NODE_STRING: {
-            // Create a global string constant
-            LLVMValueRef str = LLVMBuildGlobalStringPtr(builder, node->data.string_value, "str");
-            return str;
+            // Crear string global y retornar puntero
+            return LLVMBuildGlobalStringPtr(builder, node->data.string_value, "str");
         }
 
         case NODE_PRINT: {
             LLVMValueRef expr = codegen(node->data.op_node.left);
             if (!expr) return NULL;
             
-            // Obtener función printf
+            // Obtener o declarar función printf
             LLVMValueRef printf_func = LLVMGetNamedFunction(module, "printf");
             if (!printf_func) {
                 LLVMTypeRef printf_type = LLVMFunctionType(LLVMInt32Type(),
@@ -219,7 +373,6 @@ LLVMValueRef codegen(ASTNode* node) {
                     break;
                     
                 case TYPE_BOOLEAN:
-                    // Convertir booleano a string "true" o "false"
                     format_str = LLVMBuildGlobalStringPtr(builder, "%s\n", "fmt");
                     LLVMValueRef true_str = LLVMBuildGlobalStringPtr(builder, "true", "true_str");
                     LLVMValueRef false_str = LLVMBuildGlobalStringPtr(builder, "false", "false_str");
@@ -240,18 +393,11 @@ LLVMValueRef codegen(ASTNode* node) {
                     exit(1);
             }
             
-            return LLVMBuildCall2(builder, 
-                LLVMFunctionType(LLVMInt32Type(), 
-                    (LLVMTypeRef[]){LLVMPointerType(LLVMInt8Type(), 0)}, 1, 1),
-                printf_func,
-                args,
-                num_args,
-                "printf_call");
+            // Construir llamada a printf
+            LLVMTypeRef printf_type = LLVMFunctionType(LLVMInt32Type(),
+                (LLVMTypeRef[]){LLVMPointerType(LLVMInt8Type(), 0)}, 1, 1);
+            return LLVMBuildCall2(builder, printf_type, printf_func, args, num_args, "printf_call");
         }
-
-        default:
-            fprintf(stderr, "Nodo AST no reconocido\n");
-            exit(1);
     }
 }
 
@@ -282,6 +428,21 @@ static void declare_variable(const char* name, LLVMValueRef alloca) {
 void generate_llvm_code(ASTNode* ast, const char* filename) {
     init_llvm();
     
+    // Declarar funciones de C necesarias con tipos correctos
+    LLVMTypeRef strcpy_type = LLVMFunctionType(LLVMVoidType(),
+        (LLVMTypeRef[]){
+            LLVMPointerType(LLVMInt8Type(), 0),
+            LLVMPointerType(LLVMInt8Type(), 0)
+        }, 2, 0);
+    LLVMAddFunction(module, "strcpy", strcpy_type);
+
+    LLVMTypeRef strcat_type = LLVMFunctionType(LLVMVoidType(),
+        (LLVMTypeRef[]){
+            LLVMPointerType(LLVMInt8Type(), 0),
+            LLVMPointerType(LLVMInt8Type(), 0)
+        }, 2, 0);
+    LLVMAddFunction(module, "strcat", strcat_type);
+
     // Inicializar scope global
     current_scope = NULL;
     push_scope();
