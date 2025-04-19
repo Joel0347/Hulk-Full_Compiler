@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <string.h>
 #include "ast/ast.h"
 
 int yylex(void);
@@ -37,6 +38,10 @@ void add_statement(ASTNode* stmt) {
     char* str;
     char* var;
     struct ASTNode* node;
+    struct {
+        struct ASTNode** args;
+        int arg_count;
+    } *arg_list;
 }
 
 %token <val> NUMBER
@@ -48,7 +53,8 @@ void add_statement(ASTNode* stmt) {
 %token <str> TRUE
 %token <str> FALSE
 %token ERROR
-%token LPAREN RPAREN EQUALS SEMICOLON
+%token LPAREN RPAREN EQUALS SEMICOLON COMMA
+%token SQRT SIN COS EXP LOG RAND
 
 %left DCONCAT
 %left CONCAT
@@ -63,6 +69,7 @@ void add_statement(ASTNode* stmt) {
 %left UMINUS
 
 %type <node> expression statement
+%type <arg_list> list_args
 
 %%
 
@@ -101,14 +108,44 @@ statement:
       }
     ;
 
+
+list_args:
+    expression {
+        $$ = malloc(sizeof(*$$));
+        $$->args = malloc(sizeof(ASTNode *) * 1);
+        $$->args[0] = $1;
+        $$->arg_count = 1;
+    }
+    | expression COMMA list_args {
+        $$ = malloc(sizeof(*$$));
+        $$->args = malloc(sizeof(ASTNode *) * ($3->arg_count + 1));
+        $$->args[0] = $1;
+        memcpy($$->args + 1, $3->args, sizeof(ASTNode *) * $3->arg_count);
+        $$->arg_count = $3->arg_count + 1;
+        free($3->args);
+    }
+
+    | /* empty */ {
+        $$ = malloc(sizeof(*$$));
+        $$->args = NULL;
+        $$->arg_count = 0;
+    }
+;
+
 expression:
-    NUMBER                      { $$ = create_number_node($1); }
-    | PI                        { $$ = create_number_node(M_PI); }
-    | E                         { $$ = create_number_node(M_E); }
-    | STRING                    { $$ = create_string_node($1); }
-    | TRUE                      { $$ = create_boolean_node($1); }
-    | FALSE                     { $$ = create_boolean_node($1); }
-    | VARIABLE                  { $$ = create_variable_node($1); }
+    NUMBER                               { $$ = create_number_node($1); }
+    | PI                                 { $$ = create_number_node(M_PI); }
+    | E                                  { $$ = create_number_node(M_E); }
+    | STRING                             { $$ = create_string_node($1); }
+    | TRUE                               { $$ = create_boolean_node($1); }
+    | FALSE                              { $$ = create_boolean_node($1); }
+    | SQRT LPAREN list_args RPAREN       { $$ = create_builtin_func_call_node("sqrt", $3->args, $3->arg_count); }
+    | SIN LPAREN list_args RPAREN        { $$ = create_builtin_func_call_node("sin", $3->args, $3->arg_count); }
+    | COS LPAREN list_args RPAREN        { $$ = create_builtin_func_call_node("cos", $3->args, $3->arg_count); }
+    | EXP LPAREN list_args RPAREN        { $$ = create_builtin_func_call_node("exp", $3->args, $3->arg_count); }
+    | LOG LPAREN list_args RPAREN        { $$ = create_builtin_func_call_node("log", $3->args, $3->arg_count); }
+    | RAND LPAREN list_args RPAREN       { $$ = create_builtin_func_call_node("rand", $3->args, $3->arg_count); }
+    | VARIABLE                           { $$ = create_variable_node($1); }
     | expression DCONCAT expression      { $$ = create_binary_op_node(OP_DCONCAT, "@@", $1, $3, &TYPE_STRING_INST) }
     | expression CONCAT expression       { $$ = create_binary_op_node(OP_CONCAT, "@", $1, $3, &TYPE_STRING_INST) }
     | expression AND expression          { $$ = create_binary_op_node(OP_AND, "&", $1, $3, &TYPE_BOOLEAN_INST)}
@@ -120,7 +157,6 @@ expression:
     | expression GREATER expression      { $$ = create_binary_op_node(OP_GR, ">", $1, $3, &TYPE_BOOLEAN_INST)}
     | expression ELESS expression        { $$ = create_binary_op_node(OP_LSE, "<=", $1, $3, &TYPE_BOOLEAN_INST)}
     | expression LESS expression         { $$ = create_binary_op_node(OP_LS, "<", $1, $3, &TYPE_BOOLEAN_INST)}
-
     | expression PLUS expression         { $$ = create_binary_op_node(OP_ADD, "+", $1, $3, &TYPE_NUMBER_INST)}
     | expression MINUS expression        { $$ = create_binary_op_node(OP_SUB, "-", $1, $3, &TYPE_NUMBER_INST); }
     | expression TIMES expression        { $$ = create_binary_op_node(OP_MUL, "*", $1, $3, &TYPE_NUMBER_INST); }

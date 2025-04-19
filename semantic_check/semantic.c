@@ -15,6 +15,7 @@ int analyze_semantics(ASTNode* node) {
         .visit_binary_op = visit_binary_op,
         .visit_number = visit_number,
         .visit_print = visit_print,
+        .visit_builtin_func_call = visit_builtin_func_call,
         .visit_string = visit_string,
         .visit_boolean = visit_boolean,
         .visit_unary_op = visit_unary_op,
@@ -46,7 +47,7 @@ Type* find_type(Visitor* v, ASTNode* node) {
 
 int compatibility_type_binary_op(Operator op, Type* left, Type* right) {
 
-    for (int i = 0; i < rules_count; i++)
+    for (int i = 0; i < op_rules_count; i++)
     {
         OperatorTypeRule rule = operator_rules[i];
         if (rule.op == op && 
@@ -60,7 +61,7 @@ int compatibility_type_binary_op(Operator op, Type* left, Type* right) {
 
 int compatibility_type_unary_op(Operator op, Type* left) {
 
-    for (int i = 0; i < rules_count; i++)
+    for (int i = 0; i < op_rules_count; i++)
     {
         OperatorTypeRule rule = operator_rules[i];
         if (rule.op == op && 
@@ -69,6 +70,46 @@ int compatibility_type_unary_op(Operator op, Type* left) {
     }
 
     return 0;
+}
+
+void compatibility_type_func(Visitor* v, ASTNode* node) {
+    // assuming the functions exists in the scope
+
+    FuncTypeRule* rule_ = NULL;
+    for(int i = 0; i < func_rules_count; i++) 
+    {
+        FuncTypeRule rule = func_rules[i];
+        if (!strcmp(rule.name, node->data.func_node.name))
+        {
+            if (rule.arg_count == node->data.func_node.arg_count) {
+                for (int j = 0; j < rule.arg_count; j++)
+                {
+                    Type* type = find_type(v, node->data.func_node.args[j]);
+                    if (rule.args_types[j]->kind != type->kind) {
+                        char* str = NULL;
+                        asprintf(&str, "Function '%s' receives '%s', not '%s' as argument %d in line: %d.",
+                        node->data.func_node.name, rule.args_types[j]->name, type->name, j+1, node->line);
+                        add_error(&(v->errors), &(v->error_count), str);
+                    }
+                }
+
+                return;
+                    
+            } else {
+                rule_ = &func_rules[i];
+                continue;
+            }
+            
+        }
+    }
+
+    if (rule_) {
+        char* str = NULL;
+        asprintf(&str, "Function '%s' receives %d argument(s), but %d was(were) given in line: %d.",
+        node->data.func_node.name, rule_->arg_count, node->data.func_node.arg_count, node->line);
+        add_error(&(v->errors), &(v->error_count), str);
+        return;
+    }
 }
 
 // Funciones de visita para cada nodo:
@@ -91,13 +132,11 @@ static void visit_assignment(Visitor* v, ASTNode* node) {
         return;
     }
     
-    // Chequear expresión
     var_node->scope->parent = node->scope;
     val_node->scope->parent = node->scope;
 
     accept(v, val_node);
     
-    // Insertar en tabla de símbolos
     Symbol* sym = find_symbol(node->scope, var_node->data.variable_name);
     Type* inferried_type = find_type(v, val_node);
     
@@ -178,4 +217,16 @@ static void visit_print(Visitor* v, ASTNode* node) {
     ASTNode* left = node->data.op_node.left;
     left->scope->parent = node->scope;
     accept(v, left);
+}
+
+static void visit_builtin_func_call(Visitor* v, ASTNode* node) {
+    ASTNode** args = node->data.func_node.args;
+
+    for (int i = 0; i < node->data.func_node.arg_count; i++)
+    {
+        args[i]->scope->parent = node->scope;
+        accept(v, args[i]);
+    }
+    
+    compatibility_type_func(v, node);
 }

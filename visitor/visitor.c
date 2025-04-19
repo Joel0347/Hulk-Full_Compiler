@@ -31,6 +31,9 @@ void accept(Visitor* visitor, ASTNode* node) {
         case NODE_VARIABLE:
             visitor->visit_variable(visitor, node);
             break;
+        case NODE_BUILTIN_FUNC:
+            visitor->visit_builtin_func_call(visitor, node);
+            break;
     }
 }
 

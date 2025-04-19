@@ -1,5 +1,12 @@
-x=2;
-y=3;
-z=3;
-print(x>y);
-print(y==z);
+// KENDRY TODO ESTO TIENE QUE PINCHAR
+
+x = 2 + 3^(3-2);
+z = exp(x);
+
+print(log(E));
+print(log(2, 4));
+print(cos(PI/2));
+print(sin(PI));
+print(exp(2) + z);
+print(sqrt(z));
+print(rand());

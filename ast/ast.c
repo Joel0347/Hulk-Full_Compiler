@@ -1,6 +1,7 @@
 #include "ast.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 ASTNode* create_program_node(ASTNode** statements, int count) {
     ASTNode* node = malloc(sizeof(ASTNode));
@@ -104,6 +105,22 @@ ASTNode* create_print_node(ASTNode* expr) {
     return node;
 }
 
+ASTNode* create_builtin_func_call_node(char* name, ASTNode** args, int arg_count) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->line = line_num;
+    node->type = NODE_BUILTIN_FUNC;
+    node->scope = create_scope(NULL);
+    node->return_type = &TYPE_NUMBER_INST;
+    node->data.func_node.name = strdup(name);
+    node->data.func_node.args = malloc(sizeof(ASTNode*) * arg_count);
+    for (int i = 0; i < arg_count; i++) {
+        node->data.func_node.args[i] = args[i];
+    }
+    node->data.func_node.arg_count = arg_count;
+    return node;
+}
+
+
 void free_ast(ASTNode* node) {
     if (!node) {
         return;
@@ -126,6 +143,11 @@ void free_ast(ASTNode* node) {
             }
             free(node->data.program_node.statements);
             break;
+        case NODE_BUILTIN_FUNC:
+            for (int i = 0; i < node->data.func_node.arg_count; i++) {
+                free_ast(node->data.func_node.args[i]);
+            }
+            break;
         default:
             break;
     }
@@ -143,6 +165,13 @@ void print_ast(ASTNode* node, int indent) {
             printf("Program:\n");
             for (int i = 0; i < node->data.program_node.count; i++) {
                 print_ast(node->data.program_node.statements[i], indent + 1);
+            }
+            break;
+        case NODE_BUILTIN_FUNC:
+            printf("Builtin_Func: %s, receives:\n", node->data.func_node.name);
+            int arg_count = node->data.func_node.arg_count;
+            for (int i = 0; i < arg_count; i++) {
+                print_ast(node->data.func_node.args[i], indent + 1);
             }
             break;
         case NODE_NUMBER:

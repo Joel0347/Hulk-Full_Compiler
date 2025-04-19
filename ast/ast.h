@@ -14,7 +14,8 @@ typedef enum {
     NODE_PRINT,
     NODE_STRING,
     NODE_BOOLEAN,
-    NODE_PROGRAM
+    NODE_PROGRAM,
+    NODE_BUILTIN_FUNC
 } NodeType;
 
 typedef struct ASTNode {
@@ -36,6 +37,12 @@ typedef struct ASTNode {
             struct ASTNode** statements;
             int count;
         } program_node;
+        struct {
+            char* name;
+            struct ASTNode** args;
+            int arg_count;
+            struct ASTNode *body;
+        } func_node;
     } data;
 } ASTNode;
 
@@ -48,6 +55,7 @@ ASTNode* create_binary_op_node(Operator op, char* op_name, ASTNode* left, ASTNod
 ASTNode* create_unary_op_node(Operator op, char* op_name, ASTNode* operand, Type* return_type);
 ASTNode* create_assignment_node(char* var, ASTNode* value);
 ASTNode* create_print_node(ASTNode* expr);
+ASTNode* create_builtin_func_call_node(char* name, ASTNode** args, int arg_count);
 void free_ast(ASTNode* node);
 void print_ast(ASTNode* node, int indent);
 

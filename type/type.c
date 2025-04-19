@@ -51,4 +51,20 @@ OperatorTypeRule operator_rules[] = {
     { &TYPE_NUMBER_INST, NULL, &TYPE_NUMBER_INST, OP_NEGATE },// (-)
 };
 
-int rules_count = sizeof(operator_rules) / sizeof(OperatorTypeRule);
+FuncTypeRule func_rules[] = {
+// ----------------------  FUNCTIONS ALLOWED  --------------------------------
+ 
+//      args_count  |    [args_types]    |   return_type   | func_name
+
+{ 1, (Type*[]){ &TYPE_NUMBER_INST }, &TYPE_NUMBER_INST, "sqrt" }, //sqrt
+{ 1, (Type*[]){ &TYPE_NUMBER_INST }, &TYPE_NUMBER_INST, "sin" }, //sin
+{ 1, (Type*[]){ &TYPE_NUMBER_INST }, &TYPE_NUMBER_INST, "cos" }, //cos
+{ 1, (Type*[]){ &TYPE_NUMBER_INST }, &TYPE_NUMBER_INST, "exp" }, //exp
+{ 1, (Type*[]){ &TYPE_NUMBER_INST }, &TYPE_NUMBER_INST, "log" }, //log
+{ 2, (Type*[]){ &TYPE_NUMBER_INST, &TYPE_NUMBER_INST }, &TYPE_NUMBER_INST, "log" }, //log
+{ 0, NULL, &TYPE_NUMBER_INST, "rand" } //rand
+
+};
+
+int op_rules_count = sizeof(operator_rules) / sizeof(OperatorTypeRule);
+int func_rules_count = sizeof(func_rules) / sizeof(FuncTypeRule);
