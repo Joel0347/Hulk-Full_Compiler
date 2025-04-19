@@ -46,6 +46,13 @@ typedef struct OperatorTypeRule {
     Operator op;
 } OperatorTypeRule;
 
+typedef struct FuncTypeRule {
+    int arg_count;
+    Type** args_types;
+    Type* result_type;
+    char* name;
+} FuncTypeRule;
+
 // Variables globales para tipos básicos (añade estas declaraciones)
 extern Type TYPE_NUMBER_INST;
 extern Type TYPE_STRING_INST;
@@ -55,7 +62,9 @@ extern Type TYPE_UNKNOWN_INST;
 extern Type TYPE_ERROR_INST;
 
 // Usa & para referenciar las instancias de tipos
-extern int rules_count;
+extern int op_rules_count;
+extern int func_rules_count;
 extern OperatorTypeRule operator_rules[];
+extern FuncTypeRule func_rules[];
 
 #endif
