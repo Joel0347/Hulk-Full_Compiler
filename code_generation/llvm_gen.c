@@ -1,26 +1,59 @@
 #include "llvm_gen.h"
+#include "../scope/scope.h"
 #include <llvm-c/Core.h>
 #include <llvm-c/ExecutionEngine.h>
 #include <llvm-c/Target.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 static LLVMModuleRef module;
 static LLVMBuilderRef builder;
 static LLVMContextRef context;
 
-typedef struct SymbolEntry {
-    char name;
+// Nueva estructura para manejar variables LLVM con scope
+typedef struct ScopeVarEntry {
+    char* name;
     LLVMValueRef alloca;
-    struct SymbolEntry* next;
-} SymbolEntry;
+    struct ScopeVarEntry* next;
+} ScopeVarEntry;
 
-static SymbolEntry* symbol_table = NULL;
+typedef struct LLVMScope {
+    ScopeVarEntry* variables;
+    struct LLVMScope* parent;
+} LLVMScope;
 
-// Funciones auxiliares
+static LLVMScope* current_scope = NULL;
+
+// Funciones auxiliares actualizadas
 static LLVMValueRef codegen(ASTNode* node);
-static LLVMValueRef lookup_symbol(char name);
-static void add_symbol(char name, LLVMValueRef alloca);
+static LLVMValueRef lookup_variable(const char* name);
+static void declare_variable(const char* name, LLVMValueRef alloca);
+
+// Nueva función para manejar scopes
+static void push_scope() {
+    LLVMScope* new_scope = malloc(sizeof(LLVMScope));
+    new_scope->variables = NULL;
+    new_scope->parent = current_scope;
+    current_scope = new_scope;
+}
+
+static void pop_scope() {
+    if (!current_scope) return;
+    
+    // Liberar variables del scope actual
+    ScopeVarEntry* current = current_scope->variables;
+    while (current) {
+        ScopeVarEntry* next = current->next;
+        free(current->name);
+        free(current);
+        current = next;
+    }
+    
+    LLVMScope* parent = current_scope->parent;
+    free(current_scope);
+    current_scope = parent;
+}
 
 void init_llvm() {
     LLVMInitializeNativeTarget();
@@ -35,33 +68,57 @@ void free_llvm_resources() {
     LLVMDisposeBuilder(builder);
     LLVMDisposeModule(module);
     
-    // Liberar tabla de símbolos
-    SymbolEntry* entry = symbol_table;
-    while (entry) {
-        SymbolEntry* next = entry->next;
-        free(entry);
-        entry = next;
+    // Liberar scopes
+    while (current_scope) {
+        pop_scope();
     }
-    symbol_table = NULL;
 }
 
 LLVMValueRef codegen(ASTNode* node) {
-   if (!node) return NULL;
+    if (!node) return NULL;
 
     switch (node->type) {
+        case NODE_PROGRAM: {
+            push_scope(); // Crear scope global
+            LLVMValueRef last = NULL;
+            for (int i = 0; i < node->data.program_node.count; i++) {
+                last = codegen(node->data.program_node.statements[i]);
+            }
+            pop_scope();
+            return last;
+        }
+
         case NODE_NUMBER: {
-            // Ensure we create a constant double
-            LLVMValueRef constant = LLVMConstReal(LLVMDoubleType(), node->data.number_value);
-            return constant;
+            return LLVMConstReal(LLVMDoubleType(), node->data.number_value);
         }
 
         case NODE_VARIABLE: {
-            LLVMValueRef alloca = lookup_symbol(node->data.variable_name);
+            LLVMValueRef alloca = lookup_variable(node->data.variable_name);
             if (!alloca) {
-                fprintf(stderr, "Variable no declarada: %c\n", node->data.variable_name);
+                fprintf(stderr, "Variable no declarada: %s\n", node->data.variable_name);
                 exit(1);
             }
             return LLVMBuildLoad2(builder, LLVMDoubleType(), alloca, "load");
+        }
+
+        case NODE_ASSIGNMENT: {
+            const char* var_name = node->data.op_node.left->data.variable_name;
+            LLVMValueRef value = codegen(node->data.op_node.right);
+            
+            LLVMValueRef alloca = lookup_variable(var_name);
+            if (!alloca) {
+                // Nueva variable - crear alloca
+                LLVMBasicBlockRef current_block = LLVMGetInsertBlock(builder);
+                LLVMBasicBlockRef entry_block = LLVMGetEntryBasicBlock(LLVMGetBasicBlockParent(current_block));
+                LLVMPositionBuilderAtEnd(builder, entry_block);
+                
+                alloca = LLVMBuildAlloca(builder, LLVMDoubleType(), var_name);
+                declare_variable(var_name, alloca);
+                
+                LLVMPositionBuilderAtEnd(builder, current_block);
+            }
+            
+            return LLVMBuildStore(builder, value, alloca);
         }
 
         case NODE_BINARY_OP: {
@@ -92,25 +149,6 @@ LLVMValueRef codegen(ASTNode* node) {
         case NODE_UNARY_OP: {
             LLVMValueRef operand = codegen(node->data.op_node.left);
             return LLVMBuildFNeg(builder, operand, "neg_tmp");
-        }
-
-        case NODE_ASSIGNMENT: {
-            char var_name = node->data.op_node.left->data.variable_name;
-            LLVMValueRef value = codegen(node->data.op_node.right);
-            
-            // Crear alloca si no existe
-            LLVMValueRef alloca = lookup_symbol(var_name);
-            if (!alloca) {
-                LLVMBasicBlockRef current_block = LLVMGetInsertBlock(builder);
-                LLVMPositionBuilderAtEnd(builder, LLVMGetEntryBasicBlock(LLVMGetBasicBlockParent(current_block)));
-                char name_str[2] = {var_name, '\0'};
-                alloca = LLVMBuildAlloca(builder, LLVMDoubleType(), name_str);
-                LLVMPositionBuilderAtEnd(builder, current_block);
-                add_symbol(var_name, alloca);
-            }
-            
-            LLVMBuildStore(builder, value, alloca);
-            return value;
         }
 
         case NODE_STRING: {
@@ -162,23 +200,42 @@ LLVMValueRef codegen(ASTNode* node) {
             }
         }
 
-        case NODE_PROGRAM: {
-            LLVMValueRef last = NULL;
-            // Generate code for each statement in sequence
-            for (int i = 0; i < node->data.program_node.count; i++) {
-                last = codegen(node->data.program_node.statements[i]);
-            }
-            return last; // Return the last evaluated expression
-        }
-
         default:
             fprintf(stderr, "Nodo AST no reconocido\n");
             exit(1);
     }
 }
 
+// Implementaciones actualizadas de funciones auxiliares
+static LLVMValueRef lookup_variable(const char* name) {
+    LLVMScope* scope = current_scope;
+    while (scope) {
+        ScopeVarEntry* entry = scope->variables;
+        while (entry) {
+            if (strcmp(entry->name, name) == 0) {
+                return entry->alloca;
+            }
+            entry = entry->next;
+        }
+        scope = scope->parent;
+    }
+    return NULL;
+}
+
+static void declare_variable(const char* name, LLVMValueRef alloca) {
+    ScopeVarEntry* entry = malloc(sizeof(ScopeVarEntry));
+    entry->name = strdup(name);
+    entry->alloca = alloca;
+    entry->next = current_scope->variables;
+    current_scope->variables = entry;
+}
+
 void generate_llvm_code(ASTNode* ast, const char* filename) {
     init_llvm();
+    
+    // Inicializar scope global
+    current_scope = NULL;
+    push_scope();
     
     // Declarar printf como función externa
     LLVMTypeRef printf_type = LLVMFunctionType(LLVMInt32Type(),
@@ -222,25 +279,6 @@ void generate_llvm_code(ASTNode* ast, const char* filename) {
         exit(1);
     }
     
+    pop_scope(); // Limpiar scope global
     free_llvm_resources();
-}
-
-// Implementaciones de funciones auxiliares
-LLVMValueRef lookup_symbol(char name) {
-    SymbolEntry* entry = symbol_table;
-    while (entry) {
-        if (entry->name == name) {
-            return entry->alloca;
-        }
-        entry = entry->next;
-    }
-    return NULL;
-}
-
-void add_symbol(char name, LLVMValueRef alloca) {
-    SymbolEntry* entry = malloc(sizeof(SymbolEntry));
-    entry->name = name;
-    entry->alloca = alloca;
-    entry->next = symbol_table;
-    symbol_table = entry;
 }
