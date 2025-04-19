@@ -1,3 +1,5 @@
-x=5;
-y=6;
-print(x+y);
+x=2;
+y=3;
+z=3;
+print(x>y);
+print(y==z);
