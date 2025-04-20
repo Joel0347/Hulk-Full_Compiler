@@ -16,6 +16,7 @@ SEMANTIC_DIR = semantic_check
 TYPE_DIR = type
 VISITOR_DIR = visitor
 SCOPE_DIR = scope
+UTILS_DIR = utils
 
 .PHONY: all build run clean debug
 
@@ -24,7 +25,7 @@ all: build
 build: $(EXEC)
 	@./$(EXEC)
 
-$(EXEC): lex.yy.o y.tab.o $(AST_DIR)/ast.o $(SRC_DIR)/main.o $(CODE_GEN_DIR)/llvm_gen.o $(SEMANTIC_DIR)/semantic.o $(SCOPE_DIR)/scope.o $(VISITOR_DIR)/visitor.o $(TYPE_DIR)/type.o
+$(EXEC): lex.yy.o y.tab.o $(AST_DIR)/ast.o $(SRC_DIR)/main.o $(CODE_GEN_DIR)/llvm_gen.o $(UTILS_DIR)/utils.o $(SEMANTIC_DIR)/semantic.o $(SCOPE_DIR)/scope.o $(VISITOR_DIR)/visitor.o $(TYPE_DIR)/type.o
 	@echo "🔗 Enlazando ejecutable..."
 	@$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 	@echo "🔄 Compiling..."
@@ -42,6 +43,9 @@ $(CODE_GEN_DIR)/llvm_gen.o: $(CODE_GEN_DIR)/llvm_gen.c $(CODE_GEN_DIR)/llvm_gen.
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(AST_DIR)/ast.o: $(AST_DIR)/ast.c $(AST_DIR)/ast.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(UTILS_DIR)/utils.o: $(UTILS_DIR)/utils.c $(UTILS_DIR)/utils.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(SEMANTIC_DIR)/semantic.o: $(SEMANTIC_DIR)/semantic.c $(SEMANTIC_DIR)/semantic.h $(AST_DIR)/ast.h
@@ -83,3 +87,4 @@ clean:
 	@rm -f $(VISITOR_DIR)/*.o
 	@rm -f $(TYPE_DIR)/*.o
 	@rm -f $(SCOPE_DIR)/*.o
+	@rm -f $(UTILS_DIR)/*.o

@@ -1,8 +1,9 @@
 // KENDRY TODO ESTO TIENE QUE PINCHAR
-
+w = 2 == 3 & !(3<4);
 x = 2 + 3^(3-2);
 z = exp(x);
 
+print(1,2);
 print(log(E));
 print(log(2, 4));
 print(cos(PI/2));
