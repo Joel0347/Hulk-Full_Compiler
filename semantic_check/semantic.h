@@ -3,9 +3,6 @@
 
 int analyze_semantics(ASTNode* node);
 Type* type_checker(Visitor* v, ASTNode* node);
-int compatibility_type_binary_op(Operator op, Type* left, Type* right);
-int compatibility_type_unary_op(Operator op, Type* left);
-void compatibility_type_func(Visitor* v, ASTNode* node);
 static void visit_program(Visitor* v, ASTNode* node);
 static void visit_assignment(Visitor* v, ASTNode* node);
 static void visit_variable(Visitor* v, ASTNode* node);

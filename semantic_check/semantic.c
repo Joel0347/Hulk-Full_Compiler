@@ -26,12 +26,10 @@ int analyze_semantics(ASTNode* node) {
     
     accept(&visitor, node);
     
-    // Mostrar errores
     for (int i = 0; i < visitor.error_count; i++) {
         printf(RED "!!SEMANTIC ERROR: %s\n" RESET, visitor.errors[i]);
     }
 
-    // Liberar recursos
     free_error(visitor.errors, visitor.error_count);
 
     return visitor.error_count;
@@ -45,74 +43,17 @@ Type* find_type(Visitor* v, ASTNode* node) {
     return node->return_type;
 }
 
-int compatibility_type_binary_op(Operator op, Type* left, Type* right) {
-
-    for (int i = 0; i < op_rules_count; i++)
+Type** find_types(ASTNode** args, int args_count) {
+    Type** types = (Type**)malloc(args_count * sizeof(Type*));
+    for (int i = 0; i < args_count; i++)
     {
-        OperatorTypeRule rule = operator_rules[i];
-        if (rule.op == op && 
-            rule.left_type->kind == left->kind &&
-            rule.right_type->kind == right->kind)  
-            return 1;
+        types[i] = args[i]->return_type;
     }
-
-    return 0;
+    
+    return types;
 }
 
-int compatibility_type_unary_op(Operator op, Type* left) {
-
-    for (int i = 0; i < op_rules_count; i++)
-    {
-        OperatorTypeRule rule = operator_rules[i];
-        if (rule.op == op && 
-            rule.left_type->kind == left->kind)  
-            return 1;
-    }
-
-    return 0;
-}
-
-void compatibility_type_func(Visitor* v, ASTNode* node) {
-    // assuming the functions exists in the scope
-
-    FuncTypeRule* rule_ = NULL;
-    for(int i = 0; i < func_rules_count; i++) 
-    {
-        FuncTypeRule rule = func_rules[i];
-        if (!strcmp(rule.name, node->data.func_node.name))
-        {
-            if (rule.arg_count == node->data.func_node.arg_count) {
-                for (int j = 0; j < rule.arg_count; j++)
-                {
-                    Type* type = find_type(v, node->data.func_node.args[j]);
-                    if (rule.args_types[j]->kind != type->kind) {
-                        char* str = NULL;
-                        asprintf(&str, "Function '%s' receives '%s', not '%s' as argument %d in line: %d.",
-                        node->data.func_node.name, rule.args_types[j]->name, type->name, j+1, node->line);
-                        add_error(&(v->errors), &(v->error_count), str);
-                    }
-                }
-
-                return;
-                    
-            } else {
-                rule_ = &func_rules[i];
-                continue;
-            }
-            
-        }
-    }
-
-    if (rule_) {
-        char* str = NULL;
-        asprintf(&str, "Function '%s' receives %d argument(s), but %d was(were) given in line: %d.",
-        node->data.func_node.name, rule_->arg_count, node->data.func_node.arg_count, node->line);
-        add_error(&(v->errors), &(v->error_count), str);
-        return;
-    }
-}
-
-// Funciones de visita para cada nodo:
+// Visit functions for each node:
 static void visit_program(Visitor* v, ASTNode* node) { 
     for(int i = 0; i < node->data.program_node.count; i++) {
         ASTNode* child =  node->data.program_node.statements[i];
@@ -189,7 +130,13 @@ static void visit_binary_op(Visitor* v, ASTNode* node) {
     Type* left_type = find_type(v, left);
     Type* right_type = find_type(v, right);
 
-    if (!compatibility_type_binary_op(node->data.op_node.op, left_type, right_type)) {
+    OperatorTypeRule rule = create_op_rule ( 
+        left_type, right_type, 
+        node->return_type, 
+        node->data.op_node.op 
+    );
+
+    if (!find_op_match(&rule)) {
         char* str = NULL;
         asprintf(&str, "Operator '%s' can not be used between '%s' and '%s' in line: %d.",
             node->data.op_node.op_name, left_type->name, right_type->name, node->line);
@@ -205,7 +152,13 @@ static void visit_unary_op(Visitor* v, ASTNode* node) {
     accept(v, left);
     Type* left_type = find_type(v, left);
 
-    if (!compatibility_type_unary_op(node->data.op_node.op, left_type)) {
+    OperatorTypeRule rule = create_op_rule( 
+        left_type, NULL, 
+        node->return_type, 
+        node->data.op_node.op 
+    );
+
+    if (!find_op_match(&rule)) {
         char* str = NULL;
         asprintf(&str, "Operator '%s' can not be used with '%s' in line: %d.",
             node->data.op_node.op_name, left_type->name, node->line);
@@ -227,6 +180,34 @@ static void visit_builtin_func_call(Visitor* v, ASTNode* node) {
         args[i]->scope->parent = node->scope;
         accept(v, args[i]);
     }
+
+    Type** args_types = find_types(args, node->data.func_node.arg_count);
     
-    compatibility_type_func(v, node);
+    FuncTypeRule rule = create_func_rule(
+        node->data.func_node.arg_count, 
+        args_types, node->return_type, 
+        node->data.func_node.name
+    );
+
+    Tuple* compatibility = find_func_match(&rule);
+
+    if (!compatibility->matched) {
+        if (!compatibility->same_count) {
+            char* str = NULL;
+            asprintf(&str, "Function '%s' receives %d argument(s), but %d was(were) given in line: %d.",
+                node->data.func_node.name, compatibility->arg1_count, 
+                compatibility->arg2_count, node->line
+            );
+            add_error(&(v->errors), &(v->error_count), str);
+        } else {
+            char* str = NULL;
+            asprintf(&str, "Function '%s' receives '%s', not '%s' as argument %d in line: %d.",
+                node->data.func_node.name, compatibility->type1_name, 
+                compatibility->type2_name, compatibility->pos, node->line
+            );
+            add_error(&(v->errors), &(v->error_count), str);
+        }
+    }
+
+    free_tuple(compatibility);
 }

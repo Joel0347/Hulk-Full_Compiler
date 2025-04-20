@@ -38,6 +38,9 @@ sudo apt install flex bison llvm clang
 ├── type/ #types
 | ├──type.c
 | └──type.h
+├── utils/ #utilities
+| ├──utils.c
+| └──utils.h
 ├── visitor/ #visitor
 | ├──visitor.c
 | └──visitor.h

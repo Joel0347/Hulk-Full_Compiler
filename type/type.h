@@ -2,6 +2,7 @@
 #define TYPE_H
 
 #include <stddef.h>  
+#include "utils/utils.h"
 
 typedef enum {
     TYPE_NUMBER,
@@ -11,12 +12,6 @@ typedef enum {
     TYPE_UNKNOWN,
     TYPE_ERROR  // Para manejar errores de tipo
 } TypeKind;
-
-typedef struct Type {
-    TypeKind kind;
-    char* name;         // Para tipos personalizados
-    struct Type* sub_type; // Para arreglos, genéricos, etc.
-} Type;
 
 typedef enum {
     OP_ADD,
@@ -38,6 +33,12 @@ typedef enum {
     OP_LSE,
     OP_LS
 } Operator;
+
+typedef struct Type {
+    TypeKind kind;
+    char* name;         // Para tipos personalizados
+    struct Type* sub_type; // Para arreglos, genéricos, etc.
+} Type;
 
 typedef struct OperatorTypeRule {
     Type* left_type;    // NULL para operadores unarios
@@ -66,5 +67,14 @@ extern int op_rules_count;
 extern int func_rules_count;
 extern OperatorTypeRule operator_rules[];
 extern FuncTypeRule func_rules[];
+
+OperatorTypeRule create_op_rule(Type* left_type, Type* right_type, Type* return_type, Operator op);
+FuncTypeRule create_func_rule(int arg_count, Type** args_types, Type* result_type, char* name);
+int type_equals(Type* type1, Type* type2);
+int op_rule_equals(OperatorTypeRule* op1, OperatorTypeRule* op2);
+int find_op_match(OperatorTypeRule* possible_match);
+Tuple* args_type_equals(Type** args1, Type** args2, int count);
+Tuple* func_rule_equals(FuncTypeRule* f1, FuncTypeRule* f2);
+Tuple* find_func_match(FuncTypeRule* possible_match);
 
 #endif
