@@ -9,7 +9,6 @@ int yylex(void);
 int yyparse(void);
 void yyerror(const char *s);
 
-// Variables globales
 ASTNode* root;
 int error_count = 0;
 int max_errors = 1;
@@ -17,7 +16,6 @@ int max_errors = 1;
 #define RED     "\x1B[31m"
 #define RESET   "\x1B[0m"
 
-// Prototipos
 const char* token_to_str(int token);
 
 ASTNode** statements = NULL;
@@ -75,7 +73,7 @@ void add_statement(ASTNode* stmt) {
 
 program:
     input {
-        // Cuando el parsing termina exitosamente, crea el nodo programa
+        // When parsing ends succesfully, it creates the program node
         if (error_count == 0) {
             root = create_program_node(statements, statement_count);
         } else {
@@ -91,7 +89,7 @@ input:
         if (++error_count >= max_errors) {
             YYABORT;
         }
-        // Buscar punto de sincronización (; o nueva línea)
+        // Find syncronization point (; or new line)
         while (1) {
             int tok = yylex();
             if (tok == 0 || tok == SEMICOLON || tok == '\n') break;
@@ -102,7 +100,7 @@ input:
 
 statement:
     expression SEMICOLON          { $$ = $1; }
-    | ERROR SEMICOLON { // Maneja errores léxicos seguidos de ;
+    | ERROR SEMICOLON { // Handle error fallowed by ;
         yyerrok;
         YYABORT;
       }
@@ -167,7 +165,7 @@ expression:
     | LPAREN expression RPAREN           { $$ = $2; }
     | PRINT LPAREN expression RPAREN     { $$ = create_print_node($3); }
     | VARIABLE EQUALS expression         { $$ = create_assignment_node($1, $3); }
-    | ERROR { // Maneja cualquier otro error en expresión
+    | ERROR { // Handle any other error
         yyerrok;
         YYABORT;
       }
@@ -202,6 +200,7 @@ const char* token_to_str(int token) {
         case GREATER: return "'>'";
         case ELESS: return "'<='";
         case LESS: return "'<'";
+        case COMMA: return "','";
         default: return "";
     }
 }

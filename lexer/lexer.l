@@ -1,8 +1,8 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
-#include "y.tab.h"  // Asegúrate que este es el header correcto
-#include "ast/ast.h"    // Necesario para el tipo ASTNode
+#include "y.tab.h"
+#include "ast/ast.h"
 
 int yywrap(void) { return 1; }
 int line_num = 1;
