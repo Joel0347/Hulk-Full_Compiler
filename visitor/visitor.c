@@ -13,9 +13,6 @@ void accept(Visitor* visitor, ASTNode* node) {
         case NODE_NUMBER:
             visitor->visit_number(visitor, node);
             break;
-        case NODE_PRINT:
-            visitor->visit_print(visitor, node);
-            break;
         case NODE_STRING:
             visitor->visit_string(visitor, node);
             break;

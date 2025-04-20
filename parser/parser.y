@@ -47,12 +47,11 @@ void add_statement(ASTNode* stmt) {
 %token <val> E
 %token <var> VARIABLE
 %token <str> STRING
-%token PRINT
 %token <str> TRUE
 %token <str> FALSE
 %token ERROR
 %token LPAREN RPAREN EQUALS SEMICOLON COMMA
-%token SQRT SIN COS EXP LOG RAND
+%token SQRT SIN COS EXP LOG RAND PRINT
 
 %left DCONCAT
 %left CONCAT
@@ -137,12 +136,13 @@ expression:
     | STRING                             { $$ = create_string_node($1); }
     | TRUE                               { $$ = create_boolean_node($1); }
     | FALSE                              { $$ = create_boolean_node($1); }
-    | SQRT LPAREN list_args RPAREN       { $$ = create_builtin_func_call_node("sqrt", $3->args, $3->arg_count); }
-    | SIN LPAREN list_args RPAREN        { $$ = create_builtin_func_call_node("sin", $3->args, $3->arg_count); }
-    | COS LPAREN list_args RPAREN        { $$ = create_builtin_func_call_node("cos", $3->args, $3->arg_count); }
-    | EXP LPAREN list_args RPAREN        { $$ = create_builtin_func_call_node("exp", $3->args, $3->arg_count); }
-    | LOG LPAREN list_args RPAREN        { $$ = create_builtin_func_call_node("log", $3->args, $3->arg_count); }
-    | RAND LPAREN list_args RPAREN       { $$ = create_builtin_func_call_node("rand", $3->args, $3->arg_count); }
+    | SQRT LPAREN list_args RPAREN       { $$ = create_builtin_func_call_node("sqrt", $3->args, $3->arg_count, &TYPE_NUMBER_INST); }
+    | SIN LPAREN list_args RPAREN        { $$ = create_builtin_func_call_node("sin", $3->args, $3->arg_count, &TYPE_NUMBER_INST); }
+    | COS LPAREN list_args RPAREN        { $$ = create_builtin_func_call_node("cos", $3->args, $3->arg_count, &TYPE_NUMBER_INST); }
+    | EXP LPAREN list_args RPAREN        { $$ = create_builtin_func_call_node("exp", $3->args, $3->arg_count, &TYPE_NUMBER_INST); }
+    | LOG LPAREN list_args RPAREN        { $$ = create_builtin_func_call_node("log", $3->args, $3->arg_count, &TYPE_NUMBER_INST); }
+    | PRINT LPAREN list_args RPAREN     { $$ = create_builtin_func_call_node("print", $3->args, $3->arg_count, &TYPE_VOID_INST); }
+    | RAND LPAREN list_args RPAREN       { $$ = create_builtin_func_call_node("rand", $3->args, $3->arg_count, &TYPE_NUMBER_INST); }
     | VARIABLE                           { $$ = create_variable_node($1); }
     | expression DCONCAT expression      { $$ = create_binary_op_node(OP_DCONCAT, "@@", $1, $3, &TYPE_STRING_INST) }
     | expression CONCAT expression       { $$ = create_binary_op_node(OP_CONCAT, "@", $1, $3, &TYPE_STRING_INST) }
@@ -163,7 +163,6 @@ expression:
     | expression POWER expression        { $$ = create_binary_op_node(OP_POW, "^", $1, $3, &TYPE_NUMBER_INST); }
     | MINUS expression %prec UMINUS      { $$ = create_unary_op_node(OP_NEGATE, "-", $2, &TYPE_NUMBER_INST); }
     | LPAREN expression RPAREN           { $$ = $2; }
-    | PRINT LPAREN expression RPAREN     { $$ = create_print_node($3); }
     | VARIABLE EQUALS expression         { $$ = create_assignment_node($1, $3); }
     | ERROR { // Handle any other error
         yyerrok;

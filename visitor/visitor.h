@@ -20,7 +20,6 @@ typedef void (*VisitVariable)(Visitor*, ASTNode*);
 typedef void (*VisitBinaryOp)(Visitor*, ASTNode*);
 typedef void (*VisitUnaryOp)(Visitor*, ASTNode*);
 typedef void (*VisitAssignment)(Visitor*, ASTNode*);
-typedef void (*VisitPrint)(Visitor*, ASTNode*);
 typedef void (*VisitBultinFunc)(Visitor*, ASTNode*);
 
 struct Visitor {
@@ -35,11 +34,7 @@ struct Visitor {
     VisitBinaryOp visit_binary_op;
     VisitUnaryOp visit_unary_op;
     VisitAssignment visit_assignment;
-    VisitPrint visit_print;
     VisitBultinFunc visit_builtin_func_call;
-    
-    // Para inferencia de tipos
-    TypeKind (*type_checker)(Visitor*, ASTNode*);
 
     // errores
     char** errors;

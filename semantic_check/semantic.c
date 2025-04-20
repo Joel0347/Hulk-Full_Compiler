@@ -14,7 +14,6 @@ int analyze_semantics(ASTNode* node) {
         .visit_assignment = visit_assignment,
         .visit_binary_op = visit_binary_op,
         .visit_number = visit_number,
-        .visit_print = visit_print,
         .visit_builtin_func_call = visit_builtin_func_call,
         .visit_string = visit_string,
         .visit_boolean = visit_boolean,
@@ -166,12 +165,6 @@ static void visit_unary_op(Visitor* v, ASTNode* node) {
     }
 }
 
-static void visit_print(Visitor* v, ASTNode* node) {
-    ASTNode* left = node->data.op_node.left;
-    left->scope->parent = node->scope;
-    accept(v, left);
-}
-
 static void visit_builtin_func_call(Visitor* v, ASTNode* node) {
     ASTNode** args = node->data.func_node.args;
 
@@ -210,4 +203,5 @@ static void visit_builtin_func_call(Visitor* v, ASTNode* node) {
     }
 
     free_tuple(compatibility);
+    free(args_types);
 }

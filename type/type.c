@@ -57,6 +57,9 @@ FuncTypeRule func_rules[] = {
  
 //      args_count  |    [args_types]    |   return_type   | func_name
 
+{ 1, (Type*[]){ &TYPE_NUMBER_INST }, &TYPE_VOID_INST, "print" }, //print
+{ 1, (Type*[]){ &TYPE_BOOLEAN_INST }, &TYPE_VOID_INST, "print" }, //print
+{ 1, (Type*[]){ &TYPE_STRING_INST }, &TYPE_VOID_INST, "print" }, //print
 { 1, (Type*[]){ &TYPE_NUMBER_INST }, &TYPE_NUMBER_INST, "sqrt" }, //sqrt
 { 1, (Type*[]){ &TYPE_NUMBER_INST }, &TYPE_NUMBER_INST, "sin" }, //sin
 { 1, (Type*[]){ &TYPE_NUMBER_INST }, &TYPE_NUMBER_INST, "cos" }, //cos

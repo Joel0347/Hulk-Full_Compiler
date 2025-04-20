@@ -94,23 +94,13 @@ ASTNode* create_assignment_node(char* var, ASTNode* value) {
     return node;
 }
 
-ASTNode* create_print_node(ASTNode* expr) {
+ASTNode* create_builtin_func_call_node(char* name, ASTNode** args, int arg_count, Type* type) {
     ASTNode* node = malloc(sizeof(ASTNode));
-    node->line = line_num;
-    node->type = NODE_PRINT;
-    node->scope = create_scope(NULL);
-    node->return_type = &TYPE_VOID_INST;
-    node->data.op_node.left = expr;  // Reusing op_node structure to store the expression to print
-    node->data.op_node.right = NULL;
-    return node;
-}
 
-ASTNode* create_builtin_func_call_node(char* name, ASTNode** args, int arg_count) {
-    ASTNode* node = malloc(sizeof(ASTNode));
     node->line = line_num;
     node->type = NODE_BUILTIN_FUNC;
     node->scope = create_scope(NULL);
-    node->return_type = &TYPE_NUMBER_INST;
+    node->return_type = type;
     node->data.func_node.name = strdup(name);
     node->data.func_node.args = malloc(sizeof(ASTNode*) * arg_count);
     for (int i = 0; i < arg_count; i++) {
@@ -133,7 +123,6 @@ void free_ast(ASTNode* node) {
         case NODE_BINARY_OP:
         case NODE_UNARY_OP:
         case NODE_ASSIGNMENT:
-        case NODE_PRINT:
             free_ast(node->data.op_node.left);
             free_ast(node->data.op_node.right);
             break;
@@ -220,10 +209,6 @@ void print_ast(ASTNode* node, int indent) {
             printf("Assignment:\n");
             print_ast(node->data.op_node.left, indent + 1);
             print_ast(node->data.op_node.right, indent + 1);
-            break;
-        case NODE_PRINT:
-            printf("Print:\n");
-            print_ast(node->data.op_node.left, indent + 1);
             break;
     }
 }
