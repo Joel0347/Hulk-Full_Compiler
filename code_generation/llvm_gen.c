@@ -346,58 +346,58 @@ static LLVMValueRef codegen(ASTNode* node) {
             return LLVMBuildGlobalStringPtr(builder, node->data.string_value, "str");
         }
 
-        case NODE_PRINT: {
-            LLVMValueRef expr = codegen(node->data.op_node.left);
-            if (!expr) return NULL;
+        // case NODE_PRINT: {
+        //     LLVMValueRef expr = codegen(node->data.op_node.left);
+        //     if (!expr) return NULL;
             
-            // Obtener o declarar función printf
-            LLVMValueRef printf_func = LLVMGetNamedFunction(module, "printf");
-            if (!printf_func) {
-                LLVMTypeRef printf_type = LLVMFunctionType(LLVMInt32Type(),
-                    (LLVMTypeRef[]){LLVMPointerType(LLVMInt8Type(), 0)}, 1, 1);
-                printf_func = LLVMAddFunction(module, "printf", printf_type);
-            }
+        //     // Obtener o declarar función printf
+        //     LLVMValueRef printf_func = LLVMGetNamedFunction(module, "printf");
+        //     if (!printf_func) {
+        //         LLVMTypeRef printf_type = LLVMFunctionType(LLVMInt32Type(),
+        //             (LLVMTypeRef[]){LLVMPointerType(LLVMInt8Type(), 0)}, 1, 1);
+        //         printf_func = LLVMAddFunction(module, "printf", printf_type);
+        //     }
             
-            const char* format;
-            LLVMValueRef format_str;
-            LLVMValueRef* args;
-            int num_args;
+        //     const char* format;
+        //     LLVMValueRef format_str;
+        //     LLVMValueRef* args;
+        //     int num_args;
             
-            // Seleccionar formato según el tipo
-            switch (node->data.op_node.left->return_type->kind) {
-                case TYPE_NUMBER:
-                    format = "%.1f\n";
-                    format_str = LLVMBuildGlobalStringPtr(builder, format, "fmt");
-                    args = (LLVMValueRef[]){format_str, expr};
-                    num_args = 2;
-                    break;
+        //     // Seleccionar formato según el tipo
+        //     switch (node->data.op_node.left->return_type->kind) {
+        //         case TYPE_NUMBER:
+        //             format = "%.1f\n";
+        //             format_str = LLVMBuildGlobalStringPtr(builder, format, "fmt");
+        //             args = (LLVMValueRef[]){format_str, expr};
+        //             num_args = 2;
+        //             break;
                     
-                case TYPE_BOOLEAN:
-                    format_str = LLVMBuildGlobalStringPtr(builder, "%s\n", "fmt");
-                    LLVMValueRef true_str = LLVMBuildGlobalStringPtr(builder, "true", "true_str");
-                    LLVMValueRef false_str = LLVMBuildGlobalStringPtr(builder, "false", "false_str");
-                    LLVMValueRef cond_str = LLVMBuildSelect(builder, expr, true_str, false_str, "bool_str");
-                    args = (LLVMValueRef[]){format_str, cond_str};
-                    num_args = 2;
-                    break;
+        //         case TYPE_BOOLEAN:
+        //             format_str = LLVMBuildGlobalStringPtr(builder, "%s\n", "fmt");
+        //             LLVMValueRef true_str = LLVMBuildGlobalStringPtr(builder, "true", "true_str");
+        //             LLVMValueRef false_str = LLVMBuildGlobalStringPtr(builder, "false", "false_str");
+        //             LLVMValueRef cond_str = LLVMBuildSelect(builder, expr, true_str, false_str, "bool_str");
+        //             args = (LLVMValueRef[]){format_str, cond_str};
+        //             num_args = 2;
+        //             break;
                     
-                case TYPE_STRING:
-                    format = "%s\n";
-                    format_str = LLVMBuildGlobalStringPtr(builder, format, "fmt");
-                    args = (LLVMValueRef[]){format_str, expr};
-                    num_args = 2;
-                    break;
+        //         case TYPE_STRING:
+        //             format = "%s\n";
+        //             format_str = LLVMBuildGlobalStringPtr(builder, format, "fmt");
+        //             args = (LLVMValueRef[]){format_str, expr};
+        //             num_args = 2;
+        //             break;
                     
-                default:
-                    fprintf(stderr, "Tipo no soportado para print\n");
-                    exit(1);
-            }
+        //         default:
+        //             fprintf(stderr, "Tipo no soportado para print\n");
+        //             exit(1);
+        //     }
             
-            // Construir llamada a printf
-            LLVMTypeRef printf_type = LLVMFunctionType(LLVMInt32Type(),
-                (LLVMTypeRef[]){LLVMPointerType(LLVMInt8Type(), 0)}, 1, 1);
-            return LLVMBuildCall2(builder, printf_type, printf_func, args, num_args, "printf_call");
-        }
+        //     // Construir llamada a printf
+        //     LLVMTypeRef printf_type = LLVMFunctionType(LLVMInt32Type(),
+        //         (LLVMTypeRef[]){LLVMPointerType(LLVMInt8Type(), 0)}, 1, 1);
+        //     return LLVMBuildCall2(builder, printf_type, printf_func, args, num_args, "printf_call");
+        // }
     }
 }
 

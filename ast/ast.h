@@ -11,7 +11,6 @@ typedef enum {
     NODE_BINARY_OP,
     NODE_UNARY_OP,
     NODE_ASSIGNMENT,
-    NODE_PRINT,
     NODE_STRING,
     NODE_BOOLEAN,
     NODE_PROGRAM,
@@ -54,8 +53,7 @@ ASTNode* create_variable_node(char* name);
 ASTNode* create_binary_op_node(Operator op, char* op_name, ASTNode* left, ASTNode* right, Type* return_type);
 ASTNode* create_unary_op_node(Operator op, char* op_name, ASTNode* operand, Type* return_type);
 ASTNode* create_assignment_node(char* var, ASTNode* value);
-ASTNode* create_print_node(ASTNode* expr);
-ASTNode* create_builtin_func_call_node(char* name, ASTNode** args, int arg_count);
+ASTNode* create_builtin_func_call_node(char* name, ASTNode** args, int arg_count, Type* type);
 void free_ast(ASTNode* node);
 void print_ast(ASTNode* node, int indent);
 
