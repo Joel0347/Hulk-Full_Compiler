@@ -62,10 +62,7 @@ OperatorTypeRule create_op_rule(Type* left_type, Type* right_type, Type* return_
 FuncTypeRule create_func_rule(int arg_count, Type** args_types, Type* result_type, char* name);
 int type_equals(Type* type1, Type* type2);
 int is_ancestor_type(Type* ancestor, Type* type);
-int op_rule_equals(OperatorTypeRule* op1, OperatorTypeRule* op2);
 int find_op_match(OperatorTypeRule* possible_match);
-Tuple* args_type_equals(Type** args1, Type** args2, int count);
-Tuple* func_rule_equals(FuncTypeRule* f1, FuncTypeRule* f2);
 Tuple* find_func_match(FuncTypeRule* possible_match);
 
 #endif

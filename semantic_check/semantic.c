@@ -54,7 +54,9 @@ Type** find_types(ASTNode** args, int args_count) {
 }
 
 // Visit functions for each node:
-static void visit_program(Visitor* v, ASTNode* node) { 
+static void visit_program(Visitor* v, ASTNode* node) {
+    init_basic_types(node->scope);
+
     for(int i = 0; i < node->data.program_node.count; i++) {
         ASTNode* child =  node->data.program_node.statements[i];
         child->scope->parent = node->scope;
