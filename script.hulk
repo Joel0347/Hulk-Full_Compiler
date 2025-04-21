@@ -2,7 +2,9 @@
 w = 2 == 3 & !(3<4);
 x = 2 + 3^(3-2);
 z = exp(x);
-
+print(w);
+print(x);
+print(z);
 print(1);
 print(log(E));
 print(log(2, 4));
@@ -12,14 +14,14 @@ print(exp(2) + z);
 print(sqrt(z));
 print(rand());
 {};
-"asda"@@ {
-    23 @ {
+p="JOEL"@@ {
+    "PONTE"@ {
         2;
-        "hola";
+        "A PINCHAR QUE SINO EL BARCA NO GANA LA SEXTA";
     };
 };
 
 {
     a = 2+x;
 }
-print();
+print(p);
