@@ -26,6 +26,8 @@ int line_num = 1;
 "^"             { return POWER; }
 "("             { return LPAREN; }
 ")"             { return RPAREN; }
+"{"             { return LBRACKET; }
+"}"             { return RBRACKET; }
 "=="            { return EQUALSEQUALS; }
 "="             { return EQUALS; }
 "@@"            { return DCONCAT; }

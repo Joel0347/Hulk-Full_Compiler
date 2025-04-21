@@ -1,6 +1,5 @@
 #include "utils.h"
 #include <stdlib.h>
-#include <stdio.h>
 
 Tuple* init_tuple_for_types(int matched, char* type1_name, char* type2_name, int pos) {
     Tuple* tuple = malloc(sizeof(Tuple));
