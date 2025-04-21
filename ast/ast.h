@@ -22,6 +22,7 @@ typedef struct ASTNode {
     int line;
     NodeType type;
     Type* return_type;
+    char* static_type;
     Scope* scope;
     union {
         double number_value;
@@ -53,7 +54,7 @@ ASTNode* create_boolean_node(char* value);
 ASTNode* create_variable_node(char* name);
 ASTNode* create_binary_op_node(Operator op, char* op_name, ASTNode* left, ASTNode* right, Type* return_type);
 ASTNode* create_unary_op_node(Operator op, char* op_name, ASTNode* operand, Type* return_type);
-ASTNode* create_assignment_node(char* var, ASTNode* value);
+ASTNode* create_assignment_node(char* var, ASTNode* value, char* type_name);
 ASTNode* create_builtin_func_call_node(char* name, ASTNode** args, int arg_count, Type* type);
 void free_ast(ASTNode* node);
 void print_ast(ASTNode* node, int indent);

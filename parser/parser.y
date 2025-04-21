@@ -45,13 +45,13 @@ void add_statement(ASTNode* stmt) {
 %token <val> NUMBER
 %token <val> PI
 %token <val> E
-%token <var> VARIABLE
+%token <var> ID
 %token <str> STRING
 %token <str> TRUE
 %token <str> FALSE
 %token ERROR
 %token LPAREN RPAREN EQUALS SEMICOLON COMMA LBRACKET RBRACKET
-%token SQRT SIN COS EXP LOG RAND PRINT
+%token SQRT SIN COS EXP LOG RAND PRINT COLON
 
 %left DCONCAT
 %left CONCAT
@@ -154,6 +154,11 @@ block_expr_list:
     }
 ;
 
+variable_declaration:
+    ID COLON ID EQUALS expression    { $$ = create_assignment_node($1, $5, $3); }
+    | ID EQUALS expression           { $$ = create_assignment_node($1, $3, "object"); }
+
+
 expression:
     NUMBER                               { $$ = create_number_node($1); }
     | PI                                 { $$ = create_number_node(M_PI); }
@@ -169,7 +174,7 @@ expression:
     | LOG LPAREN list_args RPAREN        { $$ = create_builtin_func_call_node("log", $3->args, $3->arg_count, &TYPE_NUMBER_INST); }
     | PRINT LPAREN list_args RPAREN      { $$ = create_builtin_func_call_node("print", $3->args, $3->arg_count, &TYPE_VOID_INST); }
     | RAND LPAREN list_args RPAREN       { $$ = create_builtin_func_call_node("rand", $3->args, $3->arg_count, &TYPE_NUMBER_INST); }
-    | VARIABLE                           { $$ = create_variable_node($1); }
+    | ID                                 { $$ = create_variable_node($1); }
     | expression DCONCAT expression      { $$ = create_binary_op_node(OP_DCONCAT, "@@", $1, $3, &TYPE_STRING_INST) }
     | expression CONCAT expression       { $$ = create_binary_op_node(OP_CONCAT, "@", $1, $3, &TYPE_STRING_INST) }
     | expression AND expression          { $$ = create_binary_op_node(OP_AND, "&", $1, $3, &TYPE_BOOLEAN_INST)}
@@ -189,7 +194,7 @@ expression:
     | expression POWER expression        { $$ = create_binary_op_node(OP_POW, "^", $1, $3, &TYPE_NUMBER_INST); }
     | MINUS expression %prec UMINUS      { $$ = create_unary_op_node(OP_NEGATE, "-", $2, &TYPE_NUMBER_INST); }
     | LPAREN expression RPAREN           { $$ = $2; }
-    | VARIABLE EQUALS expression         { $$ = create_assignment_node($1, $3); }
+    | variable_declaration               { $$ = $1; }
     | ERROR { // Handle any other error
         yyerrok;
         YYABORT;
@@ -200,7 +205,7 @@ expression:
 
 const char* token_to_str(int token) {
     switch(token) {
-        case NUMBER:       return "number" ; case VARIABLE: return "identifier"; case STRING:   return "string";
+        case NUMBER:       return "number" ; case ID:       return "identifier"; case STRING:   return "string";
         case PRINT:        return "'print'"; case LPAREN:   return "'('"       ; case RPAREN:   return "')'";
         case LBRACKET:     return "'{'"    ; case RBRACKET: return "'}'"       ; case EQUALS:   return "'='";
         case SEMICOLON:    return "';'"    ; case PLUS:     return "'+'"       ; case MINUS:    return "'-'";

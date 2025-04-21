@@ -2,12 +2,12 @@
 #include <string.h>
 
 // Definir las instancias de tipos básicos
-Type TYPE_NUMBER_INST = { TYPE_NUMBER, "number", NULL };
-Type TYPE_STRING_INST = { TYPE_STRING, "string", NULL };
-Type TYPE_BOOLEAN_INST = { TYPE_BOOLEAN, "boolean", NULL };
-Type TYPE_VOID_INST = { TYPE_VOID, "void", NULL };
-Type TYPE_UNKNOWN_INST = { TYPE_UNKNOWN, "unknown", NULL };
-Type TYPE_ERROR_INST = { TYPE_ERROR, "error", NULL };
+Type TYPE_NUMBER_INST = { "number", NULL, &TYPE_OBJECT_INST };
+Type TYPE_STRING_INST = { "string", NULL, &TYPE_OBJECT_INST };
+Type TYPE_BOOLEAN_INST = { "boolean", NULL, &TYPE_OBJECT_INST };
+Type TYPE_VOID_INST = { "void", NULL, &TYPE_OBJECT_INST };
+Type TYPE_OBJECT_INST = { "unknown", NULL, NULL };
+Type TYPE_ERROR_INST = { "error", NULL, NULL };
 
 OperatorTypeRule operator_rules[] = {
 
@@ -92,6 +92,12 @@ FuncTypeRule create_func_rule(int arg_count, Type** args_types, Type* result_typ
     return rule;
 }
 
+int is_ancestor_type(Type* ancestor, Type* type) {
+    if (type_equals(ancestor, type));
+        return 1;
+
+    return is_ancestor_type(ancestor, type->parent);
+}
 
 int type_equals(Type* type1, Type* type2) {
     if (type1 == NULL && type2 == NULL)
@@ -100,7 +106,7 @@ int type_equals(Type* type1, Type* type2) {
     if (type1 == NULL || type2 == NULL)
         return 0;
     
-    if (type1->kind == type2->kind && !strcmp(type1->name, type2->name)) {
+    if (!strcmp(type1->name, type2->name)) {
         return type_equals(type1->sub_type, type2->sub_type);
     }
 
@@ -127,7 +133,7 @@ int find_op_match(OperatorTypeRule* possible_match) {
 Tuple* args_type_equals(Type** args1, Type** args2, int count) {
     for (int i = 0; i < count; i++)
     {
-        if (!type_equals(args1[i], args2[i])) {
+        if (!is_ancestor_type(args1[i], args2[i])) {
             Tuple* tuple = init_tuple_for_types(0, args1[i]->name, args2[i]->name, i+1);
             return tuple;
         }

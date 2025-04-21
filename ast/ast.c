@@ -52,7 +52,7 @@ ASTNode* create_variable_node(char* name) {
     node->line = line_num;
     node->type = NODE_VARIABLE;
     node->scope = create_scope(NULL);
-    node->return_type = &TYPE_UNKNOWN_INST;
+    node->return_type = &TYPE_OBJECT_INST;
     node->data.variable_name = name;
     return node;
 }
@@ -83,11 +83,12 @@ ASTNode* create_unary_op_node(Operator op, char* op_name, ASTNode* operand, Type
     return node;
 }
 
-ASTNode* create_assignment_node(char* var, ASTNode* value) {
+ASTNode* create_assignment_node(char* var, ASTNode* value, char* type_name) {
     ASTNode* node = malloc(sizeof(ASTNode));
     node->line = line_num;
     node->type = NODE_ASSIGNMENT;
     node->return_type = &TYPE_VOID_INST;
+    node->static_type = type_name;
     node->scope = create_scope(NULL);
     node->data.op_node.left = create_variable_node(var);
     node->data.op_node.right = value;
