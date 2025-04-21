@@ -14,7 +14,8 @@ typedef enum {
     NODE_STRING,
     NODE_BOOLEAN,
     NODE_PROGRAM,
-    NODE_BUILTIN_FUNC
+    NODE_BUILTIN_FUNC,
+    NODE_BLOCK
 } NodeType;
 
 typedef struct ASTNode {
@@ -45,7 +46,7 @@ typedef struct ASTNode {
     } data;
 } ASTNode;
 
-ASTNode* create_program_node(ASTNode** statements, int count);
+ASTNode* create_program_node(ASTNode** statements, int count, NodeType type);
 ASTNode* create_number_node(double value);
 ASTNode* create_string_node(char* value);
 ASTNode* create_boolean_node(char* value);

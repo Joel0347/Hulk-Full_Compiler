@@ -11,3 +11,15 @@ print(sin(PI));
 print(exp(2) + z);
 print(sqrt(z));
 print(rand());
+{};
+"asda"@@ {
+    23 @ {
+        2;
+        "hola";
+    };
+};
+
+{
+    a = 2+x;
+}
+print();

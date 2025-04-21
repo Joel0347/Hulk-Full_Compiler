@@ -13,3 +13,4 @@ static void visit_boolean(Visitor* v, ASTNode* node);
 static void visit_binary_op(Visitor* v, ASTNode* node);
 static void visit_unary_op(Visitor* v, ASTNode* node);
 static void visit_builtin_func_call(Visitor* v, ASTNode* node);
+static void visit_block(Visitor* v, ASTNode* node);

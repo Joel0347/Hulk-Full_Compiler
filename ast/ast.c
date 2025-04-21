@@ -3,10 +3,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-ASTNode* create_program_node(ASTNode** statements, int count) {
+ASTNode* create_program_node(ASTNode** statements, int count, NodeType type) {
     ASTNode* node = malloc(sizeof(ASTNode));
     node->line = line_num;
-    node->type = NODE_PROGRAM;
+    node->type = type;
     node->scope = create_scope(NULL);
     node->data.program_node.statements = malloc(sizeof(ASTNode*) * count);
     for (int i = 0; i < count; i++) {
@@ -110,7 +110,6 @@ ASTNode* create_builtin_func_call_node(char* name, ASTNode** args, int arg_count
     return node;
 }
 
-
 void free_ast(ASTNode* node) {
     if (!node) {
         return;
@@ -127,6 +126,7 @@ void free_ast(ASTNode* node) {
             free_ast(node->data.op_node.right);
             break;
         case NODE_PROGRAM:
+        case NODE_BLOCK:
             for (int i = 0; i < node->data.program_node.count; i++) {
                 free_ast(node->data.program_node.statements[i]);
             }
@@ -152,6 +152,12 @@ void print_ast(ASTNode* node, int indent) {
     switch (node->type) {
         case NODE_PROGRAM:
             printf("Program:\n");
+            for (int i = 0; i < node->data.program_node.count; i++) {
+                print_ast(node->data.program_node.statements[i], indent + 1);
+            }
+            break;
+        case NODE_BLOCK:
+            printf("Block:\n");
             for (int i = 0; i < node->data.program_node.count; i++) {
                 print_ast(node->data.program_node.statements[i], indent + 1);
             }

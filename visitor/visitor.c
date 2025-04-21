@@ -16,6 +16,9 @@ void accept(Visitor* visitor, ASTNode* node) {
         case NODE_STRING:
             visitor->visit_string(visitor, node);
             break;
+        case NODE_BOOLEAN:
+            visitor->visit_boolean(visitor, node);
+            break;
         case NODE_UNARY_OP:
             visitor->visit_unary_op(visitor, node);
             break;
@@ -30,6 +33,9 @@ void accept(Visitor* visitor, ASTNode* node) {
             break;
         case NODE_BUILTIN_FUNC:
             visitor->visit_builtin_func_call(visitor, node);
+            break;
+        case NODE_BLOCK:
+            visitor->visit_block(visitor, node);
             break;
     }
 }

@@ -19,6 +19,7 @@ int analyze_semantics(ASTNode* node) {
         .visit_boolean = visit_boolean,
         .visit_unary_op = visit_unary_op,
         .visit_variable = visit_variable,
+        .visit_block = visit_block,
         .error_count = 0,
         .errors = NULL
     };
@@ -98,6 +99,7 @@ static void visit_variable(Visitor* v, ASTNode* node) {
     if(sym) {
         node->return_type = sym->type;
     } else {
+        node->return_type = &TYPE_ERROR_INST;
         char* str = NULL;
         asprintf(&str, "Undefined variable '%s' in line: %d", node->data.variable_name, node->line);
         add_error(&(v->errors), &(v->error_count), str);
@@ -136,6 +138,10 @@ static void visit_binary_op(Visitor* v, ASTNode* node) {
     );
 
     if (!find_op_match(&rule)) {
+        if (left->return_type == &TYPE_ERROR_INST || 
+            right->return_type == &TYPE_ERROR_INST) {
+                return;
+        }
         char* str = NULL;
         asprintf(&str, "Operator '%s' can not be used between '%s' and '%s' in line: %d.",
             node->data.op_node.op_name, left_type->name, right_type->name, node->line);
@@ -158,6 +164,9 @@ static void visit_unary_op(Visitor* v, ASTNode* node) {
     );
 
     if (!find_op_match(&rule)) {
+        if (left->return_type == &TYPE_ERROR_INST)
+            return;
+
         char* str = NULL;
         asprintf(&str, "Operator '%s' can not be used with '%s' in line: %d.",
             node->data.op_node.op_name, left_type->name, node->line);
@@ -193,6 +202,9 @@ static void visit_builtin_func_call(Visitor* v, ASTNode* node) {
             );
             add_error(&(v->errors), &(v->error_count), str);
         } else {
+            if (!strcmp(compatibility->type2_name, "error"))
+                return;
+
             char* str = NULL;
             asprintf(&str, "Function '%s' receives '%s', not '%s' as argument %d in line: %d.",
                 node->data.func_node.name, compatibility->type1_name, 
@@ -204,4 +216,18 @@ static void visit_builtin_func_call(Visitor* v, ASTNode* node) {
 
     free_tuple(compatibility);
     free(args_types);
+}
+
+static void visit_block(Visitor* v, ASTNode* node) {
+    ASTNode* current = NULL;
+    for(int i = 0; i < node->data.program_node.count; i++) {
+        current =  node->data.program_node.statements[i];
+        current->scope->parent = node->scope;
+        accept(v, current);
+    }
+
+    if (current)
+        node->return_type = find_type(v, current);
+    else
+        node->return_type = &TYPE_VOID_INST;
 }

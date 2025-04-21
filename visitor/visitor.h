@@ -21,6 +21,7 @@ typedef void (*VisitBinaryOp)(Visitor*, ASTNode*);
 typedef void (*VisitUnaryOp)(Visitor*, ASTNode*);
 typedef void (*VisitAssignment)(Visitor*, ASTNode*);
 typedef void (*VisitBultinFunc)(Visitor*, ASTNode*);
+typedef void (*VisitBlock)(Visitor*, ASTNode*);
 
 struct Visitor {
     int error_count;
@@ -35,6 +36,7 @@ struct Visitor {
     VisitUnaryOp visit_unary_op;
     VisitAssignment visit_assignment;
     VisitBultinFunc visit_builtin_func_call;
+    VisitBlock visit_block;
 
     // errores
     char** errors;

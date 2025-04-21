@@ -2,7 +2,7 @@
 #define TYPE_H
 
 #include <stddef.h>  
-#include "utils/utils.h"
+#include "../utils/utils.h"
 
 typedef enum {
     TYPE_NUMBER,
