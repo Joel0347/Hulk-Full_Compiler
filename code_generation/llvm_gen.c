@@ -109,9 +109,9 @@ static LLVMValueRef codegen(ASTNode* node) {
             
             // Determinar el tipo correcto para la nueva asignación
             LLVMTypeRef new_type;
-            if (node->data.op_node.right->return_type->kind == TYPE_STRING) {
+            if (type_equals(node->data.op_node.right->return_type, &TYPE_STRING_INST)) {
                 new_type = LLVMPointerType(LLVMInt8Type(), 0);
-            } else if (node->data.op_node.right->return_type->kind == TYPE_BOOLEAN) {
+            } else if (type_equals(node->data.op_node.right->return_type, &TYPE_BOOLEAN_INST)) {
                 new_type = LLVMInt1Type();
             } else {
                 new_type = LLVMDoubleType();
@@ -150,10 +150,22 @@ static LLVMValueRef codegen(ASTNode* node) {
             LLVMValueRef L = codegen(node->data.op_node.left);
             LLVMValueRef R = codegen(node->data.op_node.right);
 
+            OperatorTypeRule possible_rule = create_op_rule(
+                node->data.op_node.left->return_type,
+                node->data.op_node.right->return_type,
+                node->return_type,
+                node->data.op_node.op
+            );
+
+            if (find_op_match(&possible_rule)) {
+                // Generar código para la operación
+                // ...
+            }
+
             // Manejo de operaciones con strings (concatenación)
             if (node->data.op_node.op == OP_CONCAT || node->data.op_node.op == OP_DCONCAT) {
                 // Convertir números a strings si es necesario
-                if (node->data.op_node.left->return_type->kind == TYPE_NUMBER) {
+                if (type_equals(node->data.op_node.left->return_type, &TYPE_NUMBER_INST)) {
                     // Declarar snprintf si no existe
                     LLVMTypeRef snprintf_type = LLVMFunctionType(LLVMInt32Type(),
                         (LLVMTypeRef[]){
@@ -187,7 +199,7 @@ static LLVMValueRef codegen(ASTNode* node) {
                     L = buffer_ptr;
                 }
 
-                if (node->data.op_node.right->return_type->kind == TYPE_NUMBER) {
+                if (type_equals(node->data.op_node.right->return_type, &TYPE_NUMBER_INST)) {
                     // Mismo proceso para el segundo operando
                     LLVMTypeRef snprintf_type = LLVMFunctionType(LLVMInt32Type(),
                         (LLVMTypeRef[]){
@@ -308,8 +320,8 @@ static LLVMValueRef codegen(ASTNode* node) {
             }
 
             // Operaciones booleanas de comparación
-            if (node->data.op_node.left->return_type->kind == TYPE_BOOLEAN &&
-                node->data.op_node.right->return_type->kind == TYPE_BOOLEAN) {
+            if (type_equals(node->data.op_node.left->return_type, &TYPE_BOOLEAN_INST) &&
+                type_equals(node->data.op_node.right->return_type, &TYPE_BOOLEAN_INST)) {
                 switch (node->data.op_node.op) {
                     case OP_EQ:
                         return LLVMBuildICmp(builder, LLVMIntEQ, L, R, "bool_eq_tmp");
@@ -320,8 +332,8 @@ static LLVMValueRef codegen(ASTNode* node) {
                 }
             }
 
-            // Si los operandos son números, convertirlos para comparación
-            if (node->data.op_node.left->return_type->kind == TYPE_NUMBER) {
+            // Si los operandos son números
+            if (type_equals(node->data.op_node.left->return_type, &TYPE_NUMBER_INST)) {
                 switch (node->data.op_node.op) {
                     case OP_ADD: return LLVMBuildFAdd(builder, L, R, "add_tmp");
                     case OP_SUB: return LLVMBuildFSub(builder, L, R, "sub_tmp");
@@ -366,7 +378,7 @@ static LLVMValueRef codegen(ASTNode* node) {
             }
 
             // Operadores lógicos
-            if (node->data.op_node.left->return_type->kind == TYPE_BOOLEAN) {
+            if (type_equals(node->data.op_node.left->return_type, &TYPE_BOOLEAN_INST)) {
                 switch (node->data.op_node.op) {
                     case OP_AND:
                         return LLVMBuildAnd(builder, L, R, "and_tmp");
@@ -378,7 +390,7 @@ static LLVMValueRef codegen(ASTNode* node) {
             }
 
             // Comparación de strings
-            if (node->data.op_node.left->return_type->kind == TYPE_STRING) {
+            if (type_equals(node->data.op_node.left->return_type, &TYPE_STRING_INST)) {
                 // Usar strcmp para comparar strings
                 LLVMTypeRef strcmp_type = LLVMFunctionType(LLVMInt32Type(),
                     (LLVMTypeRef[]){
@@ -426,12 +438,12 @@ static LLVMValueRef codegen(ASTNode* node) {
             
             switch (node->data.op_node.op) {
                 case OP_NEGATE: 
-                    if (node->data.op_node.left->return_type->kind == TYPE_NUMBER) {
+                    if (type_equals(node->data.op_node.left->return_type, &TYPE_NUMBER_INST)) {
                         return LLVMBuildFNeg(builder, operand, "neg_tmp");
                     }
                     break;
                 case OP_NOT:
-                    if (node->data.op_node.left->return_type->kind == TYPE_BOOLEAN) {
+                    if (type_equals(node->data.op_node.left->return_type, &TYPE_BOOLEAN_INST)) {
                         // Negar un booleano es diferente que negar un número
                         return LLVMBuildNot(builder, operand, "not_tmp");
                     }
@@ -483,33 +495,32 @@ static LLVMValueRef codegen(ASTNode* node) {
                 int num_args;
 
                 // Seleccionar formato según el tipo del argumento
-                switch (node->data.func_node.args[0]->return_type->kind) {
-                    case TYPE_NUMBER:
+                if (node->data.func_node.arg_count > 0) {
+                    Type* arg_type = node->data.func_node.args[0]->return_type;
+                    if (type_equals(arg_type, &TYPE_NUMBER_INST)) {
                         format = "%g\n";
                         format_str = LLVMBuildGlobalStringPtr(builder, format, "fmt");
                         args = (LLVMValueRef[]){format_str, arg};
                         num_args = 2;
-                        break;
-
-                    case TYPE_BOOLEAN:
+                    }
+                    else if (type_equals(arg_type, &TYPE_BOOLEAN_INST)) {
                         format_str = LLVMBuildGlobalStringPtr(builder, "%s\n", "fmt");
                         LLVMValueRef true_str = LLVMBuildGlobalStringPtr(builder, "true", "true_str");
                         LLVMValueRef false_str = LLVMBuildGlobalStringPtr(builder, "false", "false_str");
                         LLVMValueRef cond_str = LLVMBuildSelect(builder, arg, true_str, false_str, "bool_str");
                         args = (LLVMValueRef[]){format_str, cond_str};
                         num_args = 2;
-                        break;
-
-                    case TYPE_STRING:
+                    }
+                    else if (type_equals(arg_type, &TYPE_STRING_INST)) {
                         format = "%s\n";
                         format_str = LLVMBuildGlobalStringPtr(builder, format, "fmt");
                         args = (LLVMValueRef[]){format_str, arg};
                         num_args = 2;
-                        break;
-
-                    default:
+                    }
+                    else {
                         fprintf(stderr, "Tipo no soportado para print\n");
                         exit(1);
+                    }
                 }
 
                 // Construir llamada a printf
