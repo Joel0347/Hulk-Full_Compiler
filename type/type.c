@@ -6,7 +6,7 @@ Type TYPE_NUMBER_INST = { "number", NULL, &TYPE_OBJECT_INST };
 Type TYPE_STRING_INST = { "string", NULL, &TYPE_OBJECT_INST };
 Type TYPE_BOOLEAN_INST = { "boolean", NULL, &TYPE_OBJECT_INST };
 Type TYPE_VOID_INST = { "void", NULL, &TYPE_OBJECT_INST };
-Type TYPE_OBJECT_INST = { "unknown", NULL, NULL };
+Type TYPE_OBJECT_INST = { "object", NULL, NULL };
 Type TYPE_ERROR_INST = { "error", NULL, NULL };
 
 OperatorTypeRule operator_rules[] = {

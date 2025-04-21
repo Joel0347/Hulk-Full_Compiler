@@ -65,7 +65,7 @@ void add_statement(ASTNode* stmt) {
 %left POWER
 %left UMINUS
 
-%type <node> expression block_expr statement
+%type <node> expression block_expr statement variable_declaration
 %type <arg_list> list_args block_expr_list
 
 %%
@@ -217,7 +217,7 @@ const char* token_to_str(int token) {
         case COMMA:        return "','"    ; case SQRT:     return "'sqrt'"    ; case RAND:     return "'rand'";
         case SIN:          return "'sin'"  ; case COS:      return "'cos'"     ; case LOG:      return "'log'";
         case EXP:          return "'exp'"  ; case TRUE:     return "'true'"    ; case FALSE:    return "'false'";
-        case PI:           return "'PI'"   ; case E:        return "'E'"       ;
+        case PI:           return "'PI'"   ; case E:        return "'E'"       ; case COLON:    return "':'";
 
         default: return "";
     }
