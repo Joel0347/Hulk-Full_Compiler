@@ -8,10 +8,6 @@
 
 typedef struct Visitor Visitor;
 
-typedef struct {
-    TypeKind type;
-} TypeInfo;
-
 typedef void (*VisitProgram)(Visitor*, ASTNode*);
 typedef void (*VisitNumber)(Visitor*, ASTNode*);
 typedef void (*VisitString)(Visitor*, ASTNode*);
@@ -26,7 +22,6 @@ typedef void (*VisitBlock)(Visitor*, ASTNode*);
 struct Visitor {
     int error_count;
     
-    // Funciones de visita
     VisitProgram visit_program;
     VisitNumber visit_number;
     VisitString visit_string;
@@ -38,7 +33,6 @@ struct Visitor {
     VisitBultinFunc visit_builtin_func_call;
     VisitBlock visit_block;
 
-    // errores
     char** errors;
 };
 

@@ -28,6 +28,7 @@ int line_num = 1;
 ")"             { return RPAREN; }
 "{"             { return LBRACKET; }
 "}"             { return RBRACKET; }
+":"             { return COLON; }      
 "=="            { return EQUALSEQUALS; }
 "="             { return EQUALS; }
 "@@"            { return DCONCAT; }
@@ -52,7 +53,7 @@ int line_num = 1;
 "log"           { return LOG; }
 "rand"          { return RAND; }
 
-[a-zA-ZñÑ][a-zA-ZñÑ0-9_]*  { yylval.var = strdup(yytext); return VARIABLE; }
+[a-zA-ZñÑ][a-zA-ZñÑ0-9_]*  { yylval.var = strdup(yytext); return ID; }
 "//"[^\n]*?   { /* COMMENT */ }
 \"([^"\\]|\\.)*\" { yylval.var = strdup(yytext); return STRING; }
 

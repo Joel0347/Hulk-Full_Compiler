@@ -66,9 +66,9 @@ static void visit_assignment(Visitor* v, ASTNode* node) {
     ASTNode* var_node = node->data.op_node.left;
     ASTNode* val_node = node->data.op_node.right;
 
-    if(var_node->type != NODE_VARIABLE) {
+    if (var_node->type != NODE_VARIABLE) {
         char* str = NULL;
-        asprintf(&str, "Left side of assigment must be a variable in line: %d.", node->line);
+        asprintf(&str, "Left side of assigment must be a variable. Line: %d.", node->line);
         add_error(&(v->errors), &(v->error_count), str);
         return;
     }
@@ -76,10 +76,31 @@ static void visit_assignment(Visitor* v, ASTNode* node) {
     var_node->scope->parent = node->scope;
     val_node->scope->parent = node->scope;
 
+    Symbol* defined_type = find_defined_type(node->scope, var_node->data.variable_name);
+
+    if (!defined_type) {
+        char* str = NULL;
+        asprintf(&str, "Variable '%s' was defined as '%s', which is not a valid type. Line: %d.", 
+            var_node->data.variable_name, var_node->static_type, node->line
+        );
+        add_error(&(v->errors), &(v->error_count), str);
+        return;
+    }
+
     accept(v, val_node);
+    Type* inferried_type = find_type(v, val_node);
+
+    if (!is_ancestor_type(var_node->static_type, inferried_type)) {
+        char* str = NULL;
+        asprintf(&str, "Variable '%s' was defined as '%s', but inferred as '%s'. Line: %d.", 
+            var_node->data.variable_name, var_node->static_type, 
+            inferried_type->name, node->line
+        );
+        add_error(&(v->errors), &(v->error_count), str);
+        return;
+    }
     
     Symbol* sym = find_symbol(node->scope, var_node->data.variable_name);
-    Type* inferried_type = find_type(v, val_node);
     
     if(!sym) {
         declare_symbol(
@@ -101,7 +122,7 @@ static void visit_variable(Visitor* v, ASTNode* node) {
     } else {
         node->return_type = &TYPE_ERROR_INST;
         char* str = NULL;
-        asprintf(&str, "Undefined variable '%s' in line: %d", node->data.variable_name, node->line);
+        asprintf(&str, "Undefined variable '%s'. Line: %d", node->data.variable_name, node->line);
         add_error(&(v->errors), &(v->error_count), str);
     }
 }
@@ -143,7 +164,7 @@ static void visit_binary_op(Visitor* v, ASTNode* node) {
                 return;
         }
         char* str = NULL;
-        asprintf(&str, "Operator '%s' can not be used between '%s' and '%s' in line: %d.",
+        asprintf(&str, "Operator '%s' can not be used between '%s' and '%s'. Line: %d.",
             node->data.op_node.op_name, left_type->name, right_type->name, node->line);
         add_error(&(v->errors), &(v->error_count), str);
     }
@@ -168,7 +189,7 @@ static void visit_unary_op(Visitor* v, ASTNode* node) {
             return;
 
         char* str = NULL;
-        asprintf(&str, "Operator '%s' can not be used with '%s' in line: %d.",
+        asprintf(&str, "Operator '%s' can not be used with '%s'. Line: %d.",
             node->data.op_node.op_name, left_type->name, node->line);
         add_error(&(v->errors), &(v->error_count), str);
     }
@@ -196,7 +217,7 @@ static void visit_builtin_func_call(Visitor* v, ASTNode* node) {
     if (!compatibility->matched) {
         if (!compatibility->same_count) {
             char* str = NULL;
-            asprintf(&str, "Function '%s' receives %d argument(s), but %d was(were) given in line: %d.",
+            asprintf(&str, "Function '%s' receives %d argument(s), but %d was(were) given. Line: %d.",
                 node->data.func_node.name, compatibility->arg1_count, 
                 compatibility->arg2_count, node->line
             );
@@ -206,7 +227,7 @@ static void visit_builtin_func_call(Visitor* v, ASTNode* node) {
                 return;
 
             char* str = NULL;
-            asprintf(&str, "Function '%s' receives '%s', not '%s' as argument %d in line: %d.",
+            asprintf(&str, "Function '%s' receives '%s', not '%s' as argument %d. Line: %d.",
                 node->data.func_node.name, compatibility->type1_name, 
                 compatibility->type2_name, compatibility->pos, node->line
             );
