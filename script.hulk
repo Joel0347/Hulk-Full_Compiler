@@ -1,6 +1,6 @@
 // KENDRY TODO ESTO TIENE QUE PINCHAR
 w = 2 == 3 & !(3<4);
-x:object = 2 + 3^(3-2);
+x= 2 + 3^(3-2);
 z = exp(x);
 print(w);
 print(x);
@@ -15,7 +15,7 @@ print(sqrt(z));
 print(rand());
 {};
 p="JOEL"@@ {
-    "PONTE"@ {
+    "PONTE "@ {
         2;
         "A PINCHAR QUE SINO EL BARCA NO GANA LA SEXTA";
     };
