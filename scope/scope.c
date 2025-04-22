@@ -37,29 +37,28 @@ void destroy_scope(Scope* scope) {
     free(scope);
 }
 
-void declare(Symbol* symbol, const char* name, Type* type) {
-    Symbol* new_symbol = (Symbol*)malloc(sizeof(Symbol));
-    new_symbol->name = strdup(name);
-    new_symbol->type = type;
-    new_symbol->next = symbol;
-    symbol = new_symbol;
-}
-
 void declare_symbol(Scope* scope, const char* name, Type* type) {    
-    // Symbol* symbol = (Symbol*)malloc(sizeof(Symbol));
-    // symbol->name = strdup(name);
-    // symbol->type = type;
-    // symbol->next = scope->symbols;
-    // scope->symbols = symbol;
-    declare(scope->symbols, name, type);
+    Symbol* symbol = (Symbol*)malloc(sizeof(Symbol));
+    symbol->name = strdup(name);
+    symbol->type = type;
+    symbol->next = scope->symbols;
+    scope->symbols = symbol;
 }
 
 void declare_function(Scope* scope, const char* name, Type* type) {    
-    declare(scope->functions, name, type);
+    Symbol* func = (Symbol*)malloc(sizeof(Symbol));
+    func->name = strdup(name);
+    func->type = type;
+    func->next = scope->functions;
+    scope->functions = func;
 }
 
 void declare_type(Scope* scope, Type* type) {    
-    declare(scope->defined_types, type->name, type);
+    Symbol* def_type = (Symbol*)malloc(sizeof(Symbol));
+    def_type->name = strdup(type->name);
+    def_type->type = type;
+    def_type->next = scope->defined_types;
+    scope->defined_types = def_type;
 }
 
 void init_basic_types(Scope* scope) {
@@ -70,12 +69,18 @@ void init_basic_types(Scope* scope) {
     declare_type(scope, &TYPE_OBJECT_INST);
 }
 
-Symbol* find(Scope* scope, Symbol* symbols, const char* name) {
+Symbol* find(Scope* scope, int index, const char* name) {
     if (!scope) {
         return NULL;
     }
 
-    Symbol* current = symbols;
+    Symbol* symbols[] = { 
+        scope->symbols, 
+        scope->functions, 
+        scope->defined_types 
+    };
+
+    Symbol* current = symbols[index];
     while (current) {
         if (!strcmp(current->name, name)) {
             return current;
@@ -84,37 +89,36 @@ Symbol* find(Scope* scope, Symbol* symbols, const char* name) {
     }
     
     if (scope->parent) {
-        return find(scope->parent, symbols, name);
+        return find(scope->parent, index, name);
     }
     
     return NULL;
 }
 
 Symbol* find_symbol(Scope* scope, const char* name) {
-    // if (!scope) {
-    //     return NULL;
-    // }
-
-    // Symbol* current = scope->symbols;
-    // while (current) {
-    //     if (!strcmp(current->name, name)) {
-    //         return current;
-    //     }
-    //     current = current->next;
-    // }
-    
-    // if (scope->parent) {
-    //     return find_symbol(scope->parent, name);
-    // }
-    
-    // return NULL;
-    return find(scope, scope->symbols, name);
+    return find(scope, 0, name);
 }
 
 Symbol* find_function(Scope* scope, const char* name) {
-    return find(scope, scope->functions, name);
+    return find(scope, 1, name);
 }
 
 Symbol* find_defined_type(Scope* scope, const char* name) {
-    return find(scope, scope->defined_types, name);
+    if (!scope) {
+        return NULL;
+    }
+
+    Symbol* current = scope->defined_types;
+    while (current) {
+        if (!strcmp(current->name, name)) {
+            return current;
+        }
+        current = current->next;
+    }
+    
+    if (scope->parent) {
+        return find_defined_type(scope->parent, name);
+    }
+    
+    return NULL;
 }

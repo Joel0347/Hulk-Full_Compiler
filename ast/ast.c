@@ -88,9 +88,9 @@ ASTNode* create_assignment_node(char* var, ASTNode* value, char* type_name) {
     node->line = line_num;
     node->type = NODE_ASSIGNMENT;
     node->return_type = &TYPE_VOID_INST;
-    node->static_type = type_name;
     node->scope = create_scope(NULL);
     node->data.op_node.left = create_variable_node(var);
+    node->data.op_node.left->static_type = type_name;
     node->data.op_node.right = value;
     return node;
 }

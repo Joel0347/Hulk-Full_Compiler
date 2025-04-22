@@ -156,8 +156,8 @@ block_expr_list:
 
 variable_declaration:
     ID COLON ID EQUALS expression    { $$ = create_assignment_node($1, $5, $3); }
-    | ID EQUALS expression           { $$ = create_assignment_node($1, $3, "object"); }
-
+    | ID EQUALS expression           { $$ = create_assignment_node($1, $3, ""); }
+;
 
 expression:
     NUMBER                               { $$ = create_number_node($1); }
