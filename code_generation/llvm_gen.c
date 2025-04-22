@@ -74,6 +74,43 @@ void free_llvm_resources() {
     }
 }
 
+// Agregar esta función auxiliar para procesar escapes
+static char* process_string_escapes(const char* input) {
+    size_t len = strlen(input);
+    char* output = malloc(len + 1);  // El resultado podría ser más corto, nunca más largo
+    size_t j = 0;
+    
+    for (size_t i = 0; i < len; i++) {
+        if (input[i] == '\\' && i + 1 < len) {
+            switch (input[i + 1]) {
+                case 'n':
+                    output[j++] = '\n';
+                    i++;
+                    break;
+                case 't':
+                    output[j++] = '\t';
+                    i++;
+                    break;
+                case '"':
+                    output[j++] = '"';
+                    i++;
+                    break;
+                case '\\':
+                    output[j++] = '\\';
+                    i++;
+                    break;
+                default:
+                    output[j++] = input[i];
+                    break;
+            }
+        } else {
+            output[j++] = input[i];
+        }
+    }
+    output[j] = '\0';
+    return output;
+}
+
 static LLVMValueRef codegen(ASTNode* node) {
     if (!node) return NULL;
 
@@ -446,8 +483,11 @@ static LLVMValueRef codegen(ASTNode* node) {
         }
 
         case NODE_STRING: {
-            // Crear string global y retornar puntero
-            return LLVMBuildGlobalStringPtr(builder, node->data.string_value, "str");
+            // Procesar escapes en el string
+            char* processed = process_string_escapes(node->data.string_value);
+            LLVMValueRef str = LLVMBuildGlobalStringPtr(builder, processed, "str");
+            free(processed);
+            return str;
         }
 
         case NODE_BUILTIN_FUNC: {
