@@ -55,7 +55,12 @@ int line_num = 1;
 
 [a-zA-ZñÑ][a-zA-ZñÑ0-9_]*  { yylval.var = strdup(yytext); return ID; }
 "//"[^\n]*?   { /* COMMENT */ }
-\"([^"\\]|\\.)*\" { yylval.var = strdup(yytext); return STRING; }
+\"([^"\\]|\\.)*\" {
+    int len = strlen(yytext);
+    yylval.var = strdup(yytext + 1);  // Skip first quote
+    yylval.var[len - 2] = '\0';       // Replace last quote for '\0'
+    return STRING;
+}
 
 .           { 
                 fprintf(stderr, RED"!!LEXICAL ERROR: Invalid character '%s' in line: %d \n"RESET, yytext, line_num);

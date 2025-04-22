@@ -25,7 +25,11 @@ all: build
 build: $(EXEC)
 	@./$(EXEC)
 
-$(EXEC): lex.yy.o y.tab.o $(AST_DIR)/ast.o $(SRC_DIR)/main.o $(CODE_GEN_DIR)/llvm_gen.o $(UTILS_DIR)/utils.o $(SEMANTIC_DIR)/semantic.o $(SCOPE_DIR)/scope.o $(VISITOR_DIR)/visitor.o $(TYPE_DIR)/type.o
+$(EXEC): lex.yy.o y.tab.o $(AST_DIR)/ast.o $(SRC_DIR)/main.o \
+	$(CODE_GEN_DIR)/llvm_gen.o $(UTILS_DIR)/utils.o \
+	$(SEMANTIC_DIR)/function_checking.o $(SEMANTIC_DIR)/variable_checking.o $(SEMANTIC_DIR)/basic_checking.o \
+	$(SEMANTIC_DIR)/semantic.o $(SCOPE_DIR)/scope.o $(VISITOR_DIR)/visitor.o $(TYPE_DIR)/type.o
+
 	@echo "🔗 Enlazando ejecutable..."
 	@$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 	@echo "🔄 Compiling..."
@@ -58,6 +62,15 @@ $(VISITOR_DIR)/visitor.o: $(VISITOR_DIR)/visitor.c $(VISITOR_DIR)/visitor.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(TYPE_DIR)/type.o: $(TYPE_DIR)/type.c $(TYPE_DIR)/type.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(SEMANTIC_DIR)/basic_checking.o: $(SEMANTIC_DIR)/basic_checking.c
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(SEMANTIC_DIR)/variable_checking.o: $(SEMANTIC_DIR)/variable_checking.c
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(SEMANTIC_DIR)/function_checking.o: $(SEMANTIC_DIR)/function_checking.c
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 %.o: %.c
