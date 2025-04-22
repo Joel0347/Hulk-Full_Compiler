@@ -1,6 +1,6 @@
 // KENDRY TODO ESTO TIENE QUE PINCHAR
 w = 2 == 3 & !(3<4);
-x = 2 + 3^(3-2);
+x:object = 2 + 3^(3-2);
 z = exp(x);
 print(w);
 print(x);
@@ -20,6 +20,8 @@ p="JOEL"@@ {
         "A PINCHAR QUE SINO EL BARCA NO GANA LA SEXTA";
     };
 };
+
+x = 2;
 
 {
     a = 2+x;

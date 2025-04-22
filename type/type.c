@@ -93,17 +93,20 @@ FuncTypeRule create_func_rule(int arg_count, Type** args_types, Type* result_typ
 }
 
 int is_ancestor_type(Type* ancestor, Type* type) {
-    if (type_equals(ancestor, type));
+    if (!type)
+        return 0;
+
+    if (type_equals(ancestor, type))
         return 1;
 
     return is_ancestor_type(ancestor, type->parent);
 }
 
 int type_equals(Type* type1, Type* type2) {
-    if (type1 == NULL && type2 == NULL)
+    if (!type1 && !type2)
         return 1;
 
-    if (type1 == NULL || type2 == NULL)
+    if (!type1 || !type2)
         return 0;
     
     if (!strcmp(type1->name, type2->name)) {
