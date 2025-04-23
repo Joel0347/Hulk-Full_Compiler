@@ -43,7 +43,6 @@ ASTNode* create_boolean_node(char* value) {
     node->scope = create_scope(NULL);
     node->return_type = &TYPE_BOOLEAN_INST;
     node->data.string_value = value;
-    printf("%s\n", value);
     return node;
 }
 

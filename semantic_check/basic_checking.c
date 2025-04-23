@@ -1,17 +1,28 @@
 #include "semantic.h"
 
 
-void visit_number(Visitor* v, ASTNode* node) {
-    return;
-}
+void visit_number(Visitor* v, ASTNode* node) { }
 
 void visit_string(Visitor* v, ASTNode* node) {
-    return;
+    char* string = node->data.string_value;
+    int count = strlen(string);
+
+    for (int i = 0; i < count; i++)
+    {
+        if (string[i] == '\\') {
+            if (!is_scape_char(string[i + 1])) {
+                char* str = NULL;
+                asprintf(&str, "Invalid scape sequence '\\%c'. Line: %d.", 
+                    string[i + 1], node->line
+                );
+                add_error(&(v->errors), &(v->error_count), str);
+            }
+            i++;
+        }
+    }
 }
 
-void visit_boolean(Visitor* v, ASTNode* node) {
-    return;
-}
+void visit_boolean(Visitor* v, ASTNode* node) { }
 
 void visit_binary_op(Visitor* v, ASTNode* node) {
     ASTNode* left = node->data.op_node.left;
@@ -33,10 +44,6 @@ void visit_binary_op(Visitor* v, ASTNode* node) {
     );
 
     if (!find_op_match(&rule)) {
-        if (left->return_type == &TYPE_ERROR_INST || 
-            right->return_type == &TYPE_ERROR_INST) {
-                return;
-        }
         char* str = NULL;
         asprintf(&str, "Operator '%s' can not be used between '%s' and '%s'. Line: %d.",
             node->data.op_node.op_name, left_type->name, right_type->name, node->line);
@@ -59,9 +66,6 @@ void visit_unary_op(Visitor* v, ASTNode* node) {
     );
 
     if (!find_op_match(&rule)) {
-        if (left->return_type == &TYPE_ERROR_INST)
-            return;
-
         char* str = NULL;
         asprintf(&str, "Operator '%s' can not be used with '%s'. Line: %d.",
             node->data.op_node.op_name, left_type->name, node->line);

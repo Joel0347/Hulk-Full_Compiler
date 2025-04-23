@@ -46,6 +46,7 @@ typedef struct FuncTypeRule {
 } FuncTypeRule;
 
 extern char* keywords[]; // keywords of the language
+extern char scape_chars[]; //scapes characters defined
 
 extern Type TYPE_NUMBER_INST;
 extern Type TYPE_STRING_INST;
@@ -62,6 +63,7 @@ extern FuncTypeRule func_rules[];
 OperatorTypeRule create_op_rule(Type* left_type, Type* right_type, Type* return_type, Operator op);
 FuncTypeRule create_func_rule(int arg_count, Type** args_types, Type* result_type, char* name);
 int match_as_keyword(char* name);
+int is_scape_char(char c);
 int type_equals(Type* type1, Type* type2);
 int is_ancestor_type(Type* ancestor, Type* type);
 int find_op_match(OperatorTypeRule* possible_match);
