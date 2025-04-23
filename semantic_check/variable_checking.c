@@ -49,24 +49,7 @@ void visit_assignment(Visitor* v, ASTNode* node) {
             var_node->data.variable_name, inferried_type
         );
     } else {
-        if (defined_type) {
-            char* str = NULL;
-            asprintf(&str, "Variable '%s' can not be typed when reassigned. Line: %d.", 
-                var_node->data.variable_name, node->line
-            );
-            add_error(&(v->errors), &(v->error_count), str);
-        }
-
-        if (!is_ancestor_type(sym->type, inferried_type)) {
-            char* str = NULL;
-            asprintf(&str, "Variable '%s' was defined as '%s' first, but then as '%s'. Line: %d.", 
-                var_node->data.variable_name, sym->type->name, inferried_type->name, node->line
-            );
-            add_error(&(v->errors), &(v->error_count), str);
-        }
-
-        else
-            sym->type = inferried_type;
+        sym->type = inferried_type;
     }
 
     var_node->return_type = inferried_type;
@@ -78,7 +61,6 @@ void visit_variable(Visitor* v, ASTNode* node) {
     if(sym) {
         node->return_type = sym->type;
     } else {
-        node->return_type = &TYPE_ERROR_INST;
         char* str = NULL;
         asprintf(&str, "Undefined variable '%s'. Line: %d", node->data.variable_name, node->line);
         add_error(&(v->errors), &(v->error_count), str);

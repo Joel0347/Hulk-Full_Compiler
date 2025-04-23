@@ -1,6 +1,7 @@
 // KENDRY TODO ESTO TIENE QUE PINCHAR
 w = 2 == 3 & !(3<4);
-x= 2 + 3^(3-2);
+x:number = 1+2;
+print(x-2);
 z = exp(x);
 print(w);
 print(x);
@@ -15,9 +16,9 @@ print(sqrt(z));
 print(rand());
 {};
 p="JOEL"@@ {
-    "PONTE "@ {
+    "PONTE\t\\\\"@ {
         2;
-        "A PINCHAR QUE SINO EL BARCA NO GANA LA SEXTA";
+        "A PINCHAR QUE SINO EL BARCA\nNO GANA LA SEXTA \n";
     };
 };
 
@@ -26,4 +27,7 @@ x = 2;
 {
     a = 2+x;
 }
+x :boolean= true;
+
 print(p);
+print(x&false);

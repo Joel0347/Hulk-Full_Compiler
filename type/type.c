@@ -3,6 +3,7 @@
 
 // keywords
 char* keywords[] = { "number", "string", "boolean", "void", "object", "true", "false", "PI", "E" };
+char scape_chars[] = { 'n', 't', '\\', '\"' };
 
 // Basic types instances
 Type TYPE_NUMBER_INST = { "number", NULL, &TYPE_OBJECT_INST };
@@ -77,11 +78,22 @@ FuncTypeRule func_rules[] = {
 int op_rules_count = sizeof(operator_rules) / sizeof(OperatorTypeRule);
 int func_rules_count = sizeof(func_rules) / sizeof(FuncTypeRule);
 int keyword_count = sizeof(keywords) / sizeof(char*);
+int scapes_count = sizeof(scape_chars) / sizeof(char);
 
 int match_as_keyword(char* name) {
     for (int i = 0; i < keyword_count; i++)
     {
         if (!strcmp(keywords[i], name))
+            return 1;
+    }
+
+    return 0;
+}
+
+int is_scape_char(char c) {
+    for (int i = 0; i < scapes_count; i++)
+    {
+        if (scape_chars[i] == c)
             return 1;
     }
 
