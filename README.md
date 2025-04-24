@@ -23,8 +23,18 @@ sudo apt install flex bison llvm clang
 │ ├── ast.c
 │ └── ast.h
 ├── code_generation/ # LLVM codegen
-│ ├── llvm_gen.c
-│ └── llvm_gen.h
+│ ├── llvm_builtins.c
+│ ├── llvm_builtins.h
+│ ├── llvm_codegen.c
+│ ├── llvm_codegen.h
+│ ├── llvm_core.c
+│ ├── llvm_core.h
+│ ├── llvm_operators.c
+│ ├── llvm_operators.h
+│ ├── llvm_scope.c
+│ ├── llvm_scope.h
+│ ├── llvm_string.c
+│ └── llvm_string.h
 ├── lexer/ # Lexer
 │ └── lexer.l
 ├── parser/ # Parser

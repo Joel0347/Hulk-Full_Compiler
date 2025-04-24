@@ -14,7 +14,6 @@ print(sin(PI));
 print(exp(2) + z);
 print(sqrt(z));
 print(rand());
-{};
 p="JOEL"@@ {
     "PONTE\t\\\\"@ {
         2;
