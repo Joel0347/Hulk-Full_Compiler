@@ -40,24 +40,24 @@ sudo apt install flex bison llvm clang
 ├── parser/ # Parser
 │ └── parser.y
 ├── scope/ #scope
-| ├──scope.c
-| └──scope.h
+│ ├──scope.c
+│ └──scope.h
 ├── semantic_check/ #semantic check
-| ├──basic_checking.c
-| ├──function_checking.c
-| ├──semantic.c
-| ├──semantic.h
-| └──variable_checking.c
+│ ├──basic_checking.c
+│ ├──function_checking.c
+│ ├──semantic.c
+│ ├──semantic.h
+│ └──variable_checking.c
 ├── type/ #types
-| ├──type.c
-| └──type.h
+│ ├──type.c
+│ └──type.h
 ├── utils/ #utilities
-| ├──utils.c
-| └──utils.h
+│ ├──utils.c
+│ └──utils.h
 ├── visitor/ #visitor
-| ├──visitor.c
-| └──visitor.h
-|
+│ ├──visitor.c
+│ └──visitor.h
+│
 ├── main.c # Entry point
 ├── Makefile # Build automation
 ├── README.md
