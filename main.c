@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "./ast/ast.h"
-#include "./code_generation/llvm_gen.h"
+#include "./code_generation/llvm_codegen.h"
 #include "./semantic_check/semantic.h"
 
 extern int yyparse(void);
@@ -22,7 +22,7 @@ int main() {
         print_ast(root, 0);
         
         printf("\nGenerando código LLVM...\n");
-        generate_llvm_code(root, "output.ll");
+        generate_main_function(root, "output.ll");
         printf("✅ Código LLVM generado en output.ll\n");
         
         free_ast(root);

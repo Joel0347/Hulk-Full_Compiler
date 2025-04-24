@@ -26,11 +26,13 @@ build: $(EXEC)
 	@./$(EXEC)
 
 $(EXEC): lex.yy.o y.tab.o $(AST_DIR)/ast.o $(SRC_DIR)/main.o \
-	$(CODE_GEN_DIR)/llvm_gen.o $(UTILS_DIR)/utils.o \
+	$(CODE_GEN_DIR)/llvm_builtins.o $(CODE_GEN_DIR)/llvm_core.o \
+	$(CODE_GEN_DIR)/llvm_codegen.o $(CODE_GEN_DIR)/llvm_scope.o $(CODE_GEN_DIR)/llvm_string.o \
+	$(CODE_GEN_DIR)/llvm_operators.o $(UTILS_DIR)/utils.o \
 	$(SEMANTIC_DIR)/function_checking.o $(SEMANTIC_DIR)/variable_checking.o $(SEMANTIC_DIR)/basic_checking.o \
 	$(SEMANTIC_DIR)/semantic.o $(SCOPE_DIR)/scope.o $(VISITOR_DIR)/visitor.o $(TYPE_DIR)/type.o
 
-	@echo "🔗 Enlazando ejecutable..."
+	@echo "🔗 Getting ready..."
 	@$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 	@echo "🔄 Compiling..."
 
@@ -42,8 +44,20 @@ lex.yy.c: $(LEXER_DIR)/lexer.l y.tab.h
 	@echo "Generating lexer..."
 	@$(LEX) $(LEXFLAGS) $< || (echo "Flex failed to process lexer.l"; exit 1)
 
-$(CODE_GEN_DIR)/llvm_gen.o: $(CODE_GEN_DIR)/llvm_gen.c $(CODE_GEN_DIR)/llvm_gen.h $(AST_DIR)/ast.h
-	@echo "⚡ Compilando módulo LLVM..."
+$(CODE_GEN_DIR)/llvm_codegen.o: $(CODE_GEN_DIR)/llvm_codegen.c $(CODE_GEN_DIR)/llvm_codegen.h $(AST_DIR)/ast.h
+	@echo "⚡ Compiling module LLVM..."
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(CODE_GEN_DIR)/llvm_builtins.o: $(CODE_GEN_DIR)/llvm_builtins.c $(CODE_GEN_DIR)/llvm_builtins.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(CODE_GEN_DIR)/llvm_scope.o: $(CODE_GEN_DIR)/llvm_scope.c $(CODE_GEN_DIR)/llvm_scope.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(CODE_GEN_DIR)/llvm_string.o: $(CODE_GEN_DIR)/llvm_string.c $(CODE_GEN_DIR)/llvm_string.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(CODE_GEN_DIR)/llvm_operators.o: $(CODE_GEN_DIR)/llvm_operators.c $(CODE_GEN_DIR)/llvm_operators.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(AST_DIR)/ast.o: $(AST_DIR)/ast.c $(AST_DIR)/ast.h
@@ -74,10 +88,10 @@ $(SEMANTIC_DIR)/function_checking.o: $(SEMANTIC_DIR)/function_checking.c
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 %.o: %.c
-	@echo "🔨 Compilando $<..."
+	@echo "🔨 Compiling $<..."
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-run: build
+run: clean build
 	@if [ -s output.ll ]; then \
 		echo "🔄 Compiling output.ll..."; \
 		clang output.ll -o program -lm || (echo "❌ clang failed when compiling output.ll"; exit 1); \

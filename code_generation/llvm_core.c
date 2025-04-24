@@ -1,0 +1,91 @@
+#include "llvm_core.h"
+#include <stdio.h>
+
+LLVMModuleRef module;
+LLVMBuilderRef builder;
+LLVMContextRef context;
+
+void init_llvm(void) {
+    LLVMInitializeNativeTarget();
+    LLVMInitializeNativeAsmPrinter();
+    
+    context = LLVMGetGlobalContext();
+    module = LLVMModuleCreateWithNameInContext("program", context);
+    builder = LLVMCreateBuilderInContext(context);
+    
+    // Declare external functions right after initialization
+    declare_external_functions();
+}
+
+void free_llvm_resources(void) {
+    LLVMDisposeBuilder(builder);
+    LLVMDisposeModule(module);
+}
+
+void declare_external_functions(void) {
+    // Declarar funciones estándar de C
+    LLVMTypeRef strcpy_type = LLVMFunctionType(LLVMVoidType(),
+        (LLVMTypeRef[]){
+            LLVMPointerType(LLVMInt8Type(), 0),
+            LLVMPointerType(LLVMInt8Type(), 0)
+        }, 2, 0);
+    LLVMAddFunction(module, "strcpy", strcpy_type);
+
+    LLVMTypeRef strcat_type = LLVMFunctionType(LLVMVoidType(),
+        (LLVMTypeRef[]){
+            LLVMPointerType(LLVMInt8Type(), 0),
+            LLVMPointerType(LLVMInt8Type(), 0)
+        }, 2, 0);
+    LLVMAddFunction(module, "strcat", strcat_type);
+
+    // Funciones matemáticas
+    LLVMTypeRef double_func_type = LLVMFunctionType(LLVMDoubleType(),
+        (LLVMTypeRef[]){LLVMDoubleType()}, 1, 0);
+    LLVMAddFunction(module, "sqrt", double_func_type);
+    LLVMAddFunction(module, "sin", double_func_type);
+    LLVMAddFunction(module, "cos", double_func_type);
+    LLVMAddFunction(module, "exp", double_func_type);
+    LLVMAddFunction(module, "log", double_func_type);
+    
+    // Otras funciones estándar
+    LLVMTypeRef rand_type = LLVMFunctionType(LLVMInt32Type(), NULL, 0, 0);
+    LLVMAddFunction(module, "rand", rand_type);
+
+    LLVMTypeRef strlen_type = LLVMFunctionType(LLVMInt64Type(),
+        (LLVMTypeRef[]){LLVMPointerType(LLVMInt8Type(), 0)}, 1, 0);
+    LLVMAddFunction(module, "strlen", strlen_type);
+
+    LLVMTypeRef malloc_type = LLVMFunctionType(
+        LLVMPointerType(LLVMInt8Type(), 0),
+        (LLVMTypeRef[]){LLVMInt64Type()}, 1, 0);
+    LLVMAddFunction(module, "malloc", malloc_type);
+
+    LLVMTypeRef snprintf_type = LLVMFunctionType(LLVMInt32Type(),
+        (LLVMTypeRef[]){
+            LLVMPointerType(LLVMInt8Type(), 0),
+            LLVMInt64Type(),
+            LLVMPointerType(LLVMInt8Type(), 0)
+        }, 3, 1);
+    LLVMAddFunction(module, "snprintf", snprintf_type);
+
+    LLVMTypeRef strcmp_type = LLVMFunctionType(LLVMInt32Type(),
+        (LLVMTypeRef[]){
+            LLVMPointerType(LLVMInt8Type(), 0),
+            LLVMPointerType(LLVMInt8Type(), 0)
+        }, 2, 0);
+    LLVMAddFunction(module, "strcmp", strcmp_type);
+
+    LLVMTypeRef pow_type = LLVMFunctionType(LLVMDoubleType(),
+        (LLVMTypeRef[]){LLVMDoubleType(), LLVMDoubleType()}, 2, 0);
+    LLVMAddFunction(module, "pow", pow_type);
+
+    LLVMTypeRef fmod_type = LLVMFunctionType(LLVMDoubleType(),
+        (LLVMTypeRef[]){LLVMDoubleType(), LLVMDoubleType()}, 2, 0);
+    LLVMAddFunction(module, "fmod", fmod_type);
+
+    // Declarar printf
+    LLVMTypeRef printf_type = LLVMFunctionType(LLVMInt32Type(),
+        (LLVMTypeRef[]){LLVMPointerType(LLVMInt8Type(), 0)}, 1, 1);
+    LLVMValueRef printf_func = LLVMAddFunction(module, "printf", printf_type);
+    LLVMSetLinkage(printf_func, LLVMExternalLinkage);
+}
