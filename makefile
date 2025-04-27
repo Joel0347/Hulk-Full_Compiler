@@ -5,7 +5,9 @@ LEXFLAGS = -w
 YFLAGS = -d -y -v
 LEX = flex
 YACC = bison
-EXEC = compilador
+
+BUILD_DIR = build
+EXEC = $(BUILD_DIR)/HULK
 
 SRC_DIR = .
 AST_DIR = ast
@@ -18,22 +20,27 @@ VISITOR_DIR = visitor
 SCOPE_DIR = scope
 UTILS_DIR = utils
 
-.PHONY: all build run clean debug
+.PHONY: all compile execute clean debug
 
-all: build
+all: compile
 
-build: $(EXEC)
+compile: $(EXEC)
 	@./$(EXEC)
 
-$(EXEC): lex.yy.o y.tab.o $(AST_DIR)/ast.o $(SRC_DIR)/main.o \
-	$(CODE_GEN_DIR)/llvm_gen.o $(UTILS_DIR)/utils.o \
-	$(SEMANTIC_DIR)/function_checking.o $(SEMANTIC_DIR)/variable_checking.o $(SEMANTIC_DIR)/basic_checking.o \
-	$(SEMANTIC_DIR)/semantic.o $(SCOPE_DIR)/scope.o $(VISITOR_DIR)/visitor.o $(TYPE_DIR)/type.o
+# Creamos el directorio build si no existe
+$(BUILD_DIR):
+	@mkdir -p $(BUILD_DIR)
 
-	@echo "🔗 Enlazando ejecutable..."
+# El directorio build se pone como dependencia order-only (con el símbolo |)
+$(EXEC): lex.yy.o y.tab.o $(AST_DIR)/ast.o $(SRC_DIR)/main.o \
+    $(CODE_GEN_DIR)/llvm_gen.o $(UTILS_DIR)/utils.o \
+    $(SEMANTIC_DIR)/function_checking.o $(SEMANTIC_DIR)/variable_checking.o $(SEMANTIC_DIR)/basic_checking.o \
+    $(SEMANTIC_DIR)/semantic.o $(SCOPE_DIR)/scope.o $(VISITOR_DIR)/visitor.o $(TYPE_DIR)/type.o | $(BUILD_DIR)
+	@echo "🔗 Getting ready..."
 	@$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 	@echo "🔄 Compiling..."
 
+# Reglas para generar el parser y lexer
 y.tab.c y.tab.h: $(PARSER_DIR)/parser.y
 	@echo "Generating parser..."
 	@$(YACC) $(YFLAGS) $< || (echo "Bison failed to process parser.y"; exit 1)
@@ -42,8 +49,9 @@ lex.yy.c: $(LEXER_DIR)/lexer.l y.tab.h
 	@echo "Generating lexer..."
 	@$(LEX) $(LEXFLAGS) $< || (echo "Flex failed to process lexer.l"; exit 1)
 
+# Reglas específicas para compilar cada componente
 $(CODE_GEN_DIR)/llvm_gen.o: $(CODE_GEN_DIR)/llvm_gen.c $(CODE_GEN_DIR)/llvm_gen.h $(AST_DIR)/ast.h
-	@echo "⚡ Compilando módulo LLVM..."
+	@echo "⚡ Compiling LLVM..."
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(AST_DIR)/ast.o: $(AST_DIR)/ast.c $(AST_DIR)/ast.h
@@ -73,26 +81,31 @@ $(SEMANTIC_DIR)/variable_checking.o: $(SEMANTIC_DIR)/variable_checking.c
 $(SEMANTIC_DIR)/function_checking.o: $(SEMANTIC_DIR)/function_checking.c
 	@$(CC) $(CFLAGS) -c $< -o $@
 
+# Regla genérica para compilar cualquier archivo .c en .o
 %.o: %.c
-	@echo "🔨 Compilando $<..."
+	@echo "🔨 Compiling $<..."
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-run: build
-	@if [ -s output.ll ]; then \
-		echo "🔄 Compiling output.ll..."; \
-		clang output.ll -o program -lm || (echo "❌ clang failed when compiling output.ll"; exit 1); \
-		echo "💻 Executing compiled program:"; \
-		./program; \
-	else \
-		echo "⚠️  output.ll does not exist or it is empty - nothing to be executed"; \
-	fi
+# Objetivo para compilar y ejecutar output.ll, si existe
+execute: compile
+	@if [ -s $(BUILD_DIR)/output.ll ]; then \
+        echo "🔄 Compiling output.ll..."; \
+        clang $(BUILD_DIR)/output.ll -o $(BUILD_DIR)/program -lm || (echo "❌ clang failed when compiling output.ll"; exit 1); \
+        echo "💻 Executing compiled program:"; \
+        $(BUILD_DIR)/program; \
+    else \
+        echo "⚠️  output.ll does not exist or is empty - nothing to be executed"; \
+    fi
 
+# Debugging con gdb
 debug:
-	@gdb ./compilador
-	# run, backtrace
+	@gdb $(BUILD_DIR)/HULK
+    # run, backtrace
 
+# Regla para limpiar todos los archivos generados
 clean:
 	@echo "🧹 Cleaning project..."
+	@rm -rf $(BUILD_DIR)
 	@rm -f *.o $(EXEC) y.tab.* lex.yy.c *.output y.* output.ll program
 	@rm -f $(AST_DIR)/*.o
 	@rm -f $(CODE_GEN_DIR)/*.o

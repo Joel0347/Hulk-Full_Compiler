@@ -60,7 +60,7 @@ void init_llvm() {
     LLVMInitializeNativeAsmPrinter();
     
     context = LLVMGetGlobalContext();
-    module = LLVMModuleCreateWithNameInContext("calculadora", context);
+    module = LLVMModuleCreateWithNameInContext("hulk", context);
     builder = LLVMCreateBuilderInContext(context);
 }
 
