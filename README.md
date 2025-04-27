@@ -60,19 +60,18 @@ sudo apt install flex bison llvm clang
 │
 ├── main.c # Entry point
 ├── Makefile # Build automation
-├── README.md
-└── script.hulk #HULK code to compile
+└──  README.md
 ```
 
 ## **Usage** 🛠
 
 ### 🔨 Build the project
 ```bash
-make build
+make compile
 ```
 ### ▶️ Run the compiler (generates output.ll)
 ```bash
-make run
+make execute
 ```
 ### 🧹 Clean generated files
 ```bash
@@ -82,11 +81,11 @@ make clean
 ### 📝 Testing the compiler
 ```
 
-1. Run make build to compile.
+1. Run `make compile` to compile.
 
 2. The compiler will generate output.ll (LLVM IR).
 
-3. If output.ll exists, make run will compile and execute it.
+3. If output.ll exists, `make execute` will compile and execute it.
 ```
 
 ## **Git Commit & Branch Strategy** 💻
