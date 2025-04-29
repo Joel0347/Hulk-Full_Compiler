@@ -13,5 +13,5 @@ void visit_string(Visitor* v, ASTNode* node);
 void visit_boolean(Visitor* v, ASTNode* node);
 void visit_binary_op(Visitor* v, ASTNode* node);
 void visit_unary_op(Visitor* v, ASTNode* node);
-void visit_builtin_func_call(Visitor* v, ASTNode* node);
+void visit_function_call(Visitor* v, ASTNode* node);
 void visit_block(Visitor* v, ASTNode* node);

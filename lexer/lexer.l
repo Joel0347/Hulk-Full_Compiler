@@ -45,13 +45,6 @@ int line_num = 1;
 "E"             { return E; }
 "true" | 
 "false"         { yylval.var = strdup(yytext); return BOOLEAN; }
-"print"         { return PRINT; }
-"sqrt"          { return SQRT; }
-"sin"           { return SIN; }
-"cos"           { return COS; }
-"exp"           { return EXP; }
-"log"           { return LOG; }
-"rand"          { return RAND; }
 
 [a-zA-ZñÑ][a-zA-ZñÑ0-9_]*  { yylval.var = strdup(yytext); return ID; }
 "//"[^\n]*?   { /* COMMENT */ }

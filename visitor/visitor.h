@@ -30,7 +30,7 @@ struct Visitor {
     VisitBinaryOp visit_binary_op;
     VisitUnaryOp visit_unary_op;
     VisitAssignment visit_assignment;
-    VisitBultinFunc visit_builtin_func_call;
+    VisitBultinFunc visit_function_call;
     VisitBlock visit_block;
 
     char** errors;

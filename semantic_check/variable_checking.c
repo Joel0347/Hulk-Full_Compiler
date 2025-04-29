@@ -61,6 +61,7 @@ void visit_variable(Visitor* v, ASTNode* node) {
     if(sym) {
         node->return_type = sym->type;
     } else {
+        node->return_type = &TYPE_UNKNOWN_INST;
         char* str = NULL;
         asprintf(&str, "Undefined variable '%s'. Line: %d", node->data.variable_name, node->line);
         add_error(&(v->errors), &(v->error_count), str);

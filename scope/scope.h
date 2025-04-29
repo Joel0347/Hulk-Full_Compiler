@@ -22,6 +22,11 @@ typedef struct FuncTable {
     int count;
 } FuncTable;
 
+typedef struct FuncData {
+    struct Function* func;
+    struct Tuple* state;
+} FuncData;
+
 typedef struct Scope {
     Symbol* symbols;
     FuncTable* functions;
@@ -39,7 +44,7 @@ void declare_function(
 void declare_type(Scope* scope, Type* type);
 void init_builtins(Scope* scope);
 Symbol* find_symbol(Scope* scope, const char* name);
-Tuple* find_function(Scope* scope, Function* f);
+FuncData* find_function(Scope* scope, Function* f);
 Symbol* find_defined_type(Scope* scope, const char* name);
 
 #endif

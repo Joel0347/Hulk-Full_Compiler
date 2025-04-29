@@ -1,7 +1,7 @@
 #include "semantic.h"
 
 
-void visit_builtin_func_call(Visitor* v, ASTNode* node) {
+void visit_function_call(Visitor* v, ASTNode* node) {
     ASTNode** args = node->data.func_node.args;
 
     for (int i = 0; i < node->data.func_node.arg_count; i++)
@@ -17,30 +17,39 @@ void visit_builtin_func_call(Visitor* v, ASTNode* node) {
     f->arg_count = node->data.func_node.arg_count;
     f->args_types = args_types;
 
-    Tuple* compatibility = find_function(node->scope, f);
+    FuncData* funcData = find_function(node->scope, f); 
 
-    if (!compatibility->matched) {
-        if (!compatibility->same_count) {
+    if (!funcData->state->matched) {
+        node->return_type = &TYPE_UNKNOWN_INST;
+        if (!funcData->state->same_name) {
+            char* str = NULL;
+            asprintf(&str, "Undefined function '%s'. Line: %d.",
+                node->data.func_node.name, node->line
+            );
+            add_error(&(v->errors), &(v->error_count), str);
+        } else if (!funcData->state->same_count) {
             char* str = NULL;
             asprintf(&str, "Function '%s' receives %d argument(s), but %d was(were) given. Line: %d.",
-                node->data.func_node.name, compatibility->arg1_count, 
-                compatibility->arg2_count, node->line
+                node->data.func_node.name, funcData->state->arg1_count, 
+                funcData->state->arg2_count, node->line
             );
             add_error(&(v->errors), &(v->error_count), str);
         } else {
-            if (!strcmp(compatibility->type2_name, "error"))
+            if (!strcmp(funcData->state->type2_name, "error"))
                 return;
 
             char* str = NULL;
             asprintf(&str, "Function '%s' receives '%s', not '%s' as argument %d. Line: %d.",
-                node->data.func_node.name, compatibility->type1_name, 
-                compatibility->type2_name, compatibility->pos, node->line
+                node->data.func_node.name, funcData->state->type1_name, 
+                funcData->state->type2_name, funcData->state->pos, node->line
             );
             add_error(&(v->errors), &(v->error_count), str);
         }
+    } else {
+        node->return_type = funcData->func->result_type;
     }
 
-    free_tuple(compatibility);
+    free_tuple(funcData->state);
     free(args_types);
     free(f);
 }

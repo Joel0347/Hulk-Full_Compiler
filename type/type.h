@@ -46,7 +46,7 @@ extern Type TYPE_STRING_INST;
 extern Type TYPE_BOOLEAN_INST;
 extern Type TYPE_VOID_INST;
 extern Type TYPE_OBJECT_INST;
-extern Type TYPE_ERROR_INST;
+extern Type TYPE_UNKNOWN_INST;
 
 extern int op_rules_count;
 extern OperatorTypeRule operator_rules[];

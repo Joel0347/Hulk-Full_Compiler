@@ -93,7 +93,7 @@ LLVMValueRef generate_code(ASTNode* node) {
             return str;
         }
 
-        case NODE_BUILTIN_FUNC:
+        case NODE_FUNC_CALL:
             return generate_builtin_function(node);
 
         case NODE_BLOCK: {
