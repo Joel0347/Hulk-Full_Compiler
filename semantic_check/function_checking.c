@@ -17,11 +17,14 @@ void visit_function_call(Visitor* v, ASTNode* node) {
     f->arg_count = node->data.func_node.arg_count;
     f->args_types = args_types;
 
-    FuncData* funcData = find_function(node->scope, f); 
+    FuncData* funcData = find_function(node->scope, f);
+
+    if (funcData->func)
+        node->return_type = funcData->func->result_type;
 
     if (!funcData->state->matched) {
-        node->return_type = &TYPE_UNKNOWN_INST;
         if (!funcData->state->same_name) {
+            node->return_type = &TYPE_UNKNOWN_INST;
             char* str = NULL;
             asprintf(&str, "Undefined function '%s'. Line: %d.",
                 node->data.func_node.name, node->line
@@ -45,8 +48,6 @@ void visit_function_call(Visitor* v, ASTNode* node) {
             );
             add_error(&(v->errors), &(v->error_count), str);
         }
-    } else {
-        node->return_type = funcData->func->result_type;
     }
 
     free_tuple(funcData->state);
