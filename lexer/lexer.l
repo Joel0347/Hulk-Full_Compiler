@@ -43,8 +43,8 @@ int line_num = 1;
 "<"             { return LESS; }          
 "PI"            { return PI; }
 "E"             { return E; }
-"true"          { yylval.var = strdup(yytext); return TRUE; }
-"false"         { yylval.var = strdup(yytext); return FALSE; }
+"true" | 
+"false"         { yylval.var = strdup(yytext); return BOOLEAN; }
 "print"         { return PRINT; }
 "sqrt"          { return SQRT; }
 "sin"           { return SIN; }

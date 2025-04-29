@@ -13,7 +13,7 @@ int main() {
         perror("Error opening script.hulk");
         return 1;
     }
-
+    
     if (!yyparse() && !analyze_semantics(root)) {
         fclose(yyin);
         

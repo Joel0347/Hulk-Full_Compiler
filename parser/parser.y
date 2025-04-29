@@ -47,8 +47,7 @@ void add_statement(ASTNode* stmt) {
 %token <val> E
 %token <var> ID
 %token <str> STRING
-%token <str> TRUE
-%token <str> FALSE
+%token <str> BOOLEAN
 %token ERROR
 %token LPAREN RPAREN EQUALS SEMICOLON COMMA LBRACKET RBRACKET
 %token SQRT SIN COS EXP LOG RAND PRINT COLON
@@ -164,8 +163,7 @@ expression:
     | PI                                 { $$ = create_number_node(M_PI); }
     | E                                  { $$ = create_number_node(M_E); }
     | STRING                             { $$ = create_string_node($1); }
-    | TRUE                               { $$ = create_boolean_node($1); }
-    | FALSE                              { $$ = create_boolean_node($1); }
+    | BOOLEAN                            { $$ = create_boolean_node($1); }
     | block_expr                         { $$ = $1; }
     | SQRT LPAREN list_args RPAREN       { $$ = create_builtin_func_call_node("sqrt", $3->args, $3->arg_count, &TYPE_NUMBER_INST); }
     | SIN LPAREN list_args RPAREN        { $$ = create_builtin_func_call_node("sin", $3->args, $3->arg_count, &TYPE_NUMBER_INST); }
@@ -216,8 +214,8 @@ const char* token_to_str(int token) {
         case GREATER:      return "'>'"    ; case ELESS:    return "'<='"      ; case LESS:     return "'<'";
         case COMMA:        return "','"    ; case SQRT:     return "'sqrt'"    ; case RAND:     return "'rand'";
         case SIN:          return "'sin'"  ; case COS:      return "'cos'"     ; case LOG:      return "'log'";
-        case EXP:          return "'exp'"  ; case TRUE:     return "'true'"    ; case FALSE:    return "'false'";
-        case PI:           return "'PI'"   ; case E:        return "'E'"       ; case COLON:    return "':'";
+        case EXP:          return "'exp'"  ; case PI:       return "'PI'"      ; case E:        return "'E'";
+        case COLON:        return "':'";
 
         default: return "";
     }
