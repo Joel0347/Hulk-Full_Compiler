@@ -147,8 +147,12 @@ void init_builtins(Scope* scope) {
 Tuple* args_type_equals(Type** args1, Type** args2, int count) {
     for (int i = 0; i < count; i++)
     {
-        if (!is_ancestor_type(args1[i], args2[i])) {
-            Tuple* tuple = init_tuple_for_types(0, args1[i]->name, args2[i]->name, i+1);
+        if (!type_equals(args2[i], &TYPE_UNKNOWN_INST) && 
+            !is_ancestor_type(args1[i], args2[i])
+        ) {
+            Tuple* tuple = init_tuple_for_types(
+                0, args1[i]->name, args2[i]->name, i+1
+            );
             return tuple;
         }
     }
@@ -156,7 +160,7 @@ Tuple* args_type_equals(Type** args1, Type** args2, int count) {
     return init_tuple_for_types(1, "", "", -1);
 }
 
-Tuple* func_rule_equals(Function* f1, Function* f2) {
+Tuple* func_equals(Function* f1, Function* f2) {
     if (strcmp(f1->name, f2->name)) {
         Tuple* tuple = init_tuple_for_count(0, -1, -1);
         tuple->same_name = 0;
@@ -195,17 +199,19 @@ FuncData* find_function(Scope* scope, Function* f) {
     }
 
     FuncData* result = (FuncData*)malloc(sizeof(FuncData));
+    int not_found = 1;
 
     if (scope->functions) {
         Function* current = scope->functions->first;
         while (current) {
-            Tuple* tuple = func_rule_equals(current, f);
+            Tuple* tuple = func_equals(current, f);
             if (tuple->matched) {
                 result->state = tuple;
                 result->func = current;
                 return result;
             }
             if (tuple->same_name) {
+                not_found = 0;
                 if (!result->state && !tuple->same_count || tuple->same_count) {
                     result->state = tuple;
                     result->func = current;
@@ -218,6 +224,9 @@ FuncData* find_function(Scope* scope, Function* f) {
         
     if (scope->parent) {
         return find_function(scope->parent, f);
+    } else if (not_found) {
+        result->state = init_tuple_for_count(0, -1, -1);
+        result->state->same_name = 0;
     }
     
     return result;
