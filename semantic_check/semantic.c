@@ -14,7 +14,7 @@ int analyze_semantics(ASTNode* node) {
         .visit_assignment = visit_assignment,
         .visit_binary_op = visit_binary_op,
         .visit_number = visit_number,
-        .visit_builtin_func_call = visit_builtin_func_call,
+        .visit_function_call = visit_function_call,
         .visit_string = visit_string,
         .visit_boolean = visit_boolean,
         .visit_unary_op = visit_unary_op,

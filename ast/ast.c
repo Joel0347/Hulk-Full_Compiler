@@ -94,13 +94,13 @@ ASTNode* create_assignment_node(char* var, ASTNode* value, char* type_name) {
     return node;
 }
 
-ASTNode* create_builtin_func_call_node(char* name, ASTNode** args, int arg_count, Type* type) {
+ASTNode* create_func_call_node(char* name, ASTNode** args, int arg_count) {
     ASTNode* node = malloc(sizeof(ASTNode));
 
     node->line = line_num;
-    node->type = NODE_BUILTIN_FUNC;
+    node->type = NODE_FUNC_CALL;
     node->scope = create_scope(NULL);
-    node->return_type = type;
+    node->return_type = &TYPE_OBJECT_INST;
     node->data.func_node.name = strdup(name);
     node->data.func_node.args = malloc(sizeof(ASTNode*) * arg_count);
     for (int i = 0; i < arg_count; i++) {
@@ -132,7 +132,7 @@ void free_ast(ASTNode* node) {
             }
             free(node->data.program_node.statements);
             break;
-        case NODE_BUILTIN_FUNC:
+        case NODE_FUNC_CALL:
             for (int i = 0; i < node->data.func_node.arg_count; i++) {
                 free_ast(node->data.func_node.args[i]);
             }
@@ -162,7 +162,7 @@ void print_ast(ASTNode* node, int indent) {
                 print_ast(node->data.program_node.statements[i], indent + 1);
             }
             break;
-        case NODE_BUILTIN_FUNC:
+        case NODE_FUNC_CALL:
             printf("Builtin_Func: %s, receives:\n", node->data.func_node.name);
             int arg_count = node->data.func_node.arg_count;
             for (int i = 0; i < arg_count; i++) {

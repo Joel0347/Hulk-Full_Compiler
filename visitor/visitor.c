@@ -31,8 +31,8 @@ void accept(Visitor* visitor, ASTNode* node) {
         case NODE_VARIABLE:
             visitor->visit_variable(visitor, node);
             break;
-        case NODE_BUILTIN_FUNC:
-            visitor->visit_builtin_func_call(visitor, node);
+        case NODE_FUNC_CALL:
+            visitor->visit_function_call(visitor, node);
             break;
         case NODE_BLOCK:
             visitor->visit_block(visitor, node);

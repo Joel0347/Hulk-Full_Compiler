@@ -189,24 +189,27 @@ Symbol* find_symbol(Scope* scope, const char* name) {
     return NULL;
 }
 
-Tuple* find_function(Scope* scope, Function* f) {
+FuncData* find_function(Scope* scope, Function* f) {
     if (!scope) {
         return NULL;
     }
 
-    Tuple* _tuple = NULL;
+    FuncData* result = (FuncData*)malloc(sizeof(FuncData));
 
     if (scope->functions) {
         Function* current = scope->functions->first;
         while (current) {
             Tuple* tuple = func_rule_equals(current, f);
-            if (tuple->matched)
-                return tuple;
+            if (tuple->matched) {
+                result->state = tuple;
+                result->func = current;
+                return result;
+            }
             if (tuple->same_name) {
-                if (!_tuple && !tuple->same_count)
-                    _tuple = tuple;
-                else if (tuple->same_count)
-                    _tuple = tuple;
+                if (!result->state && !tuple->same_count || tuple->same_count) {
+                    result->state = tuple;
+                    result->func = current;
+                }
             }
 
             current = current->next;
@@ -217,7 +220,7 @@ Tuple* find_function(Scope* scope, Function* f) {
         return find_function(scope->parent, f);
     }
     
-    return _tuple;
+    return result;
 }
 
 Symbol* find_defined_type(Scope* scope, const char* name) {

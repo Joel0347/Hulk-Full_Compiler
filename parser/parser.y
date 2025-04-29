@@ -49,8 +49,7 @@ void add_statement(ASTNode* stmt) {
 %token <str> STRING
 %token <str> BOOLEAN
 %token ERROR
-%token LPAREN RPAREN EQUALS SEMICOLON COMMA LBRACKET RBRACKET
-%token SQRT SIN COS EXP LOG RAND PRINT COLON
+%token LPAREN RPAREN EQUALS SEMICOLON COMMA LBRACKET RBRACKET COLON
 
 %left DCONCAT
 %left CONCAT
@@ -64,7 +63,7 @@ void add_statement(ASTNode* stmt) {
 %left POWER
 %left UMINUS
 
-%type <node> expression block_expr statement variable_declaration
+%type <node> expression block_expr statement variable_declaration function_call
 %type <arg_list> list_args block_expr_list
 
 %%
@@ -158,6 +157,10 @@ variable_declaration:
     | ID EQUALS expression           { $$ = create_assignment_node($1, $3, ""); }
 ;
 
+function_call:
+    ID LPAREN list_args RPAREN           { $$ = create_func_call_node($1, $3->args, $3->arg_count); }
+;
+
 expression:
     NUMBER                               { $$ = create_number_node($1); }
     | PI                                 { $$ = create_number_node(M_PI); }
@@ -165,13 +168,7 @@ expression:
     | STRING                             { $$ = create_string_node($1); }
     | BOOLEAN                            { $$ = create_boolean_node($1); }
     | block_expr                         { $$ = $1; }
-    | SQRT LPAREN list_args RPAREN       { $$ = create_builtin_func_call_node("sqrt", $3->args, $3->arg_count, &TYPE_NUMBER_INST); }
-    | SIN LPAREN list_args RPAREN        { $$ = create_builtin_func_call_node("sin", $3->args, $3->arg_count, &TYPE_NUMBER_INST); }
-    | COS LPAREN list_args RPAREN        { $$ = create_builtin_func_call_node("cos", $3->args, $3->arg_count, &TYPE_NUMBER_INST); }
-    | EXP LPAREN list_args RPAREN        { $$ = create_builtin_func_call_node("exp", $3->args, $3->arg_count, &TYPE_NUMBER_INST); }
-    | LOG LPAREN list_args RPAREN        { $$ = create_builtin_func_call_node("log", $3->args, $3->arg_count, &TYPE_NUMBER_INST); }
-    | PRINT LPAREN list_args RPAREN      { $$ = create_builtin_func_call_node("print", $3->args, $3->arg_count, &TYPE_VOID_INST); }
-    | RAND LPAREN list_args RPAREN       { $$ = create_builtin_func_call_node("rand", $3->args, $3->arg_count, &TYPE_NUMBER_INST); }
+    | function_call                      { $$ = $1; }
     | ID                                 { $$ = create_variable_node($1); }
     | expression DCONCAT expression      { $$ = create_binary_op_node(OP_DCONCAT, "@@", $1, $3, &TYPE_STRING_INST) }
     | expression CONCAT expression       { $$ = create_binary_op_node(OP_CONCAT, "@", $1, $3, &TYPE_STRING_INST) }
@@ -204,18 +201,15 @@ expression:
 const char* token_to_str(int token) {
     switch(token) {
         case NUMBER:       return "number" ; case ID:       return "identifier"; case STRING:   return "string";
-        case PRINT:        return "'print'"; case LPAREN:   return "'('"       ; case RPAREN:   return "')'";
-        case LBRACKET:     return "'{'"    ; case RBRACKET: return "'}'"       ; case EQUALS:   return "'='";
-        case SEMICOLON:    return "';'"    ; case PLUS:     return "'+'"       ; case MINUS:    return "'-'";
-        case TIMES:        return "'*'"    ; case DIVIDE:   return "'/'"       ; case MOD:      return "'%'";
-        case POWER:        return "'^'"    ; case CONCAT:   return "'@'"       ; case DCONCAT:  return "'@@'";
-        case AND:          return "'&'"    ; case OR:       return "'|'"       ; case NOT:      return "'!'";
-        case EQUALSEQUALS: return "'=='"   ; case NEQUALS:  return "'!='"      ; case EGREATER: return "'>='";
-        case GREATER:      return "'>'"    ; case ELESS:    return "'<='"      ; case LESS:     return "'<'";
-        case COMMA:        return "','"    ; case SQRT:     return "'sqrt'"    ; case RAND:     return "'rand'";
-        case SIN:          return "'sin'"  ; case COS:      return "'cos'"     ; case LOG:      return "'log'";
-        case EXP:          return "'exp'"  ; case PI:       return "'PI'"      ; case E:        return "'E'";
-        case COLON:        return "':'";
+        case LPAREN:       return "'('"    ; case RPAREN:   return "')'"       ; case COLON:    return "':'"   ;
+        case LBRACKET:     return "'{'"    ; case RBRACKET: return "'}'"       ; case EQUALS:   return "'='"   ;
+        case SEMICOLON:    return "';'"    ; case PLUS:     return "'+'"       ; case MINUS:    return "'-'"   ;
+        case TIMES:        return "'*'"    ; case DIVIDE:   return "'/'"       ; case MOD:      return "'%'"   ;
+        case POWER:        return "'^'"    ; case CONCAT:   return "'@'"       ; case DCONCAT:  return "'@@'"  ;
+        case AND:          return "'&'"    ; case OR:       return "'|'"       ; case NOT:      return "'!'"   ;
+        case EQUALSEQUALS: return "'=='"   ; case NEQUALS:  return "'!='"      ; case EGREATER: return "'>='"  ;
+        case GREATER:      return "'>'"    ; case ELESS:    return "'<='"      ; case LESS:     return "'<'"   ;
+        case COMMA:        return "','"    ; case PI:       return "'PI'"      ; case E:        return "'E'"   ;
 
         default: return "";
     }
