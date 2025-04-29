@@ -6,11 +6,11 @@ char* keywords[] = { "number", "string", "boolean", "void", "object", "true", "f
 char scape_chars[] = { 'n', 't', '\\', '\"' };
 
 // Basic types instances
+Type TYPE_OBJECT_INST = { "object", NULL, NULL };
 Type TYPE_NUMBER_INST = { "number", NULL, &TYPE_OBJECT_INST };
 Type TYPE_STRING_INST = { "string", NULL, &TYPE_OBJECT_INST };
 Type TYPE_BOOLEAN_INST = { "boolean", NULL, &TYPE_OBJECT_INST };
 Type TYPE_VOID_INST = { "void", NULL, &TYPE_OBJECT_INST };
-Type TYPE_OBJECT_INST = { "object", NULL, NULL };
 Type TYPE_ERROR_INST = { "error", NULL, NULL };
 
 OperatorTypeRule operator_rules[] = {
@@ -56,27 +56,8 @@ OperatorTypeRule operator_rules[] = {
     { &TYPE_NUMBER_INST, NULL, &TYPE_NUMBER_INST, OP_NEGATE },// (-)
 };
 
-FuncTypeRule func_rules[] = {
-// ----------------------  FUNCTIONS ALLOWED  --------------------------------
- 
-//      args_count  |    [args_types]    |   return_type   | func_name
-
-{ 0, NULL, &TYPE_VOID_INST, "print" }, //print
-{ 1, (Type*[]){ &TYPE_NUMBER_INST }, &TYPE_VOID_INST, "print" }, //print
-{ 1, (Type*[]){ &TYPE_BOOLEAN_INST }, &TYPE_VOID_INST, "print" }, //print
-{ 1, (Type*[]){ &TYPE_STRING_INST }, &TYPE_VOID_INST, "print" }, //print
-{ 1, (Type*[]){ &TYPE_NUMBER_INST }, &TYPE_NUMBER_INST, "sqrt" }, //sqrt
-{ 1, (Type*[]){ &TYPE_NUMBER_INST }, &TYPE_NUMBER_INST, "sin" }, //sin
-{ 1, (Type*[]){ &TYPE_NUMBER_INST }, &TYPE_NUMBER_INST, "cos" }, //cos
-{ 1, (Type*[]){ &TYPE_NUMBER_INST }, &TYPE_NUMBER_INST, "exp" }, //exp
-{ 1, (Type*[]){ &TYPE_NUMBER_INST }, &TYPE_NUMBER_INST, "log" }, //log
-{ 2, (Type*[]){ &TYPE_NUMBER_INST, &TYPE_NUMBER_INST }, &TYPE_NUMBER_INST, "log" }, //log
-{ 0, NULL, &TYPE_NUMBER_INST, "rand" } //rand
-
-};
 
 int op_rules_count = sizeof(operator_rules) / sizeof(OperatorTypeRule);
-int func_rules_count = sizeof(func_rules) / sizeof(FuncTypeRule);
 int keyword_count = sizeof(keywords) / sizeof(char*);
 int scapes_count = sizeof(scape_chars) / sizeof(char);
 
@@ -109,19 +90,10 @@ OperatorTypeRule create_op_rule(Type* left_type, Type* right_type, Type* return_
     return rule;
 }
 
-FuncTypeRule create_func_rule(int arg_count, Type** args_types, Type* result_type, char* name) {
-    FuncTypeRule rule = {
-        arg_count, args_types,
-        result_type, name
-    };
-
-    return rule;
-}
-
 int is_ancestor_type(Type* ancestor, Type* type) {
     if (!type)
         return 0;
-
+ 
     if (type_equals(ancestor, type))
         return 1;
 
@@ -157,43 +129,4 @@ int find_op_match(OperatorTypeRule* possible_match) {
     }
 
     return 0;
-}
-
-Tuple* args_type_equals(Type** args1, Type** args2, int count) {
-    for (int i = 0; i < count; i++)
-    {
-        if (!is_ancestor_type(args1[i], args2[i])) {
-            Tuple* tuple = init_tuple_for_types(0, args1[i]->name, args2[i]->name, i+1);
-            return tuple;
-        }
-    }
-    
-    return init_tuple_for_types(1, "", "", -1);
-}
-
-Tuple* func_rule_equals(FuncTypeRule* f1, FuncTypeRule* f2) {
-    if (strcmp(f1->name, f2->name)) {
-        Tuple* tuple = init_tuple_for_count(0, -1, -1);
-        tuple->same_name = 0;
-        return tuple;
-    }
-
-    if (f1->arg_count != f2->arg_count)
-        return init_tuple_for_count(0, f1->arg_count, f2->arg_count);
-
-    return args_type_equals(f1->args_types, f2->args_types, f1->arg_count);
-}
-
-Tuple* find_func_match(FuncTypeRule* possible_match) {
-    Tuple* _tuple = NULL;
-    for (int i = 0; i < func_rules_count; i++)
-    {
-        Tuple* tuple = func_rule_equals(&func_rules[i], possible_match);
-        if (tuple->matched)
-            return tuple;
-        if (tuple->same_name)
-            _tuple = tuple;
-    }
-    
-    return _tuple;
 }

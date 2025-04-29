@@ -11,14 +11,13 @@ void visit_builtin_func_call(Visitor* v, ASTNode* node) {
     }
 
     Type** args_types = find_types(args, node->data.func_node.arg_count);
-    
-    FuncTypeRule rule = create_func_rule(
-        node->data.func_node.arg_count, 
-        args_types, node->return_type, 
-        node->data.func_node.name
-    );
 
-    Tuple* compatibility = find_func_match(&rule);
+    Function* f = (Function*)malloc(sizeof(Function));
+    f->name = node->data.func_node.name;
+    f->arg_count = node->data.func_node.arg_count;
+    f->args_types = args_types;
+
+    Tuple* compatibility = find_function(node->scope, f);
 
     if (!compatibility->matched) {
         if (!compatibility->same_count) {
@@ -43,4 +42,5 @@ void visit_builtin_func_call(Visitor* v, ASTNode* node) {
 
     free_tuple(compatibility);
     free(args_types);
+    free(f);
 }

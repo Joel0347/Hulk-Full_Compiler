@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include "../ast/ast.h"
 #include "../visitor/visitor.h"
 

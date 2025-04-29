@@ -54,7 +54,7 @@ Type** find_types(ASTNode** args, int args_count) {
 }
 
 void visit_program(Visitor* v, ASTNode* node) {
-    init_basic_types(node->scope);
+    init_builtins(node->scope);
 
     for(int i = 0; i < node->data.program_node.count; i++) {
         ASTNode* child =  node->data.program_node.statements[i];
