@@ -6,6 +6,7 @@
 typedef struct Symbol {
     char* name;
     Type* type;
+    int is_param;
     struct Symbol* next;
 } Symbol;
 
@@ -36,12 +37,13 @@ typedef struct Scope {
 
 Scope* create_scope(Scope* parent);
 void destroy_scope(Scope* scope);
-void declare_symbol(Scope* scope, const char* name, Type* type);
+void declare_symbol(Scope* scope, const char* name, Type* type, int is_param);
 void declare_function(
     Scope* scope, int arg_count, Type** args_types, 
     Type* result_type, char* name
 );
 void declare_type(Scope* scope, Type* type);
+char* find_function_by_name(Scope* scope, char* name);
 void init_builtins(Scope* scope);
 Symbol* find_symbol(Scope* scope, const char* name);
 FuncData* find_function(Scope* scope, Function* f);

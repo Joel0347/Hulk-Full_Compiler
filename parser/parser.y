@@ -48,7 +48,7 @@ void add_statement(ASTNode* stmt) {
 %token <var> ID
 %token <str> STRING
 %token <str> BOOLEAN
-%token ERROR
+%token ERROR ARROW FUNCTION
 %token LPAREN RPAREN EQUALS SEMICOLON COMMA LBRACKET RBRACKET COLON
 
 %left DCONCAT
@@ -63,8 +63,8 @@ void add_statement(ASTNode* stmt) {
 %left POWER
 %left UMINUS
 
-%type <node> expression block_expr statement variable_declaration function_call
-%type <arg_list> list_args block_expr_list
+%type <node> expression block_expr statement variable_declaration function_call param function_declaration
+%type <arg_list> list_args block_expr_list param_list
 
 %%
 
@@ -152,9 +152,43 @@ block_expr_list:
     }
 ;
 
+param:
+    ID            { $$ = create_variable_node($1, ""); }
+    | ID COLON ID { $$ = create_variable_node($1, $3); }
+
+param_list:
+    param {
+        $$ = malloc(sizeof(*$$));
+        $$->args = malloc(sizeof(ASTNode *) * 1);
+        $$->args[0] = $1;
+        $$->arg_count = 1;
+    }
+    | param COMMA param_list {
+        $$ = malloc(sizeof(*$$));
+        $$->args = malloc(sizeof(ASTNode *) * ($3->arg_count + 1));
+        $$->args[0] = $1;
+        memcpy($$->args + 1, $3->args, sizeof(ASTNode *) * $3->arg_count);
+        $$->arg_count = $3->arg_count + 1;
+        free($3->args);
+    }
+    | /* empty */ {
+        $$ = malloc(sizeof(*$$));
+        $$->args = NULL;
+        $$->arg_count = 0;
+    }
+;
+
+function_declaration:
+    FUNCTION ID LPAREN param_list RPAREN ARROW expression            { $$ = create_func_dec_node($2, $4->args, $4->arg_count, $7, "") }
+    | FUNCTION ID LPAREN param_list RPAREN COLON ID ARROW expression { $$ = create_func_dec_node($2, $4->args, $4->arg_count, $9, $7) }
+    | FUNCTION ID LPAREN param_list RPAREN block_expr                { $$ = create_func_dec_node($2, $4->args, $4->arg_count, $6, "") }
+    | FUNCTION ID LPAREN param_list RPAREN COLON ID block_expr       { $$ = create_func_dec_node($2, $4->args, $4->arg_count, $8, $7) }
+
+;
+
 variable_declaration:
-    ID COLON ID EQUALS expression    { $$ = create_assignment_node($1, $5, $3); }
-    | ID EQUALS expression           { $$ = create_assignment_node($1, $3, ""); }
+    ID COLON ID EQUALS expression        { $$ = create_assignment_node($1, $5, $3); }
+    | ID EQUALS expression               { $$ = create_assignment_node($1, $3, ""); }
 ;
 
 function_call:
@@ -169,7 +203,7 @@ expression:
     | BOOLEAN                            { $$ = create_boolean_node($1); }
     | block_expr                         { $$ = $1; }
     | function_call                      { $$ = $1; }
-    | ID                                 { $$ = create_variable_node($1); }
+    | ID                                 { $$ = create_variable_node($1, ""); }
     | expression DCONCAT expression      { $$ = create_binary_op_node(OP_DCONCAT, "@@", $1, $3, &TYPE_STRING_INST) }
     | expression CONCAT expression       { $$ = create_binary_op_node(OP_CONCAT, "@", $1, $3, &TYPE_STRING_INST) }
     | expression AND expression          { $$ = create_binary_op_node(OP_AND, "&", $1, $3, &TYPE_BOOLEAN_INST)}
@@ -190,6 +224,7 @@ expression:
     | MINUS expression %prec UMINUS      { $$ = create_unary_op_node(OP_NEGATE, "-", $2, &TYPE_NUMBER_INST); }
     | LPAREN expression RPAREN           { $$ = $2; }
     | variable_declaration               { $$ = $1; }
+    | function_declaration               { $$ = $1; }
     | ERROR { // Handle any other error
         yyerrok;
         YYABORT;
@@ -200,16 +235,17 @@ expression:
 
 const char* token_to_str(int token) {
     switch(token) {
-        case NUMBER:       return "number" ; case ID:       return "identifier"; case STRING:   return "string";
-        case LPAREN:       return "'('"    ; case RPAREN:   return "')'"       ; case COLON:    return "':'"   ;
-        case LBRACKET:     return "'{'"    ; case RBRACKET: return "'}'"       ; case EQUALS:   return "'='"   ;
-        case SEMICOLON:    return "';'"    ; case PLUS:     return "'+'"       ; case MINUS:    return "'-'"   ;
-        case TIMES:        return "'*'"    ; case DIVIDE:   return "'/'"       ; case MOD:      return "'%'"   ;
-        case POWER:        return "'^'"    ; case CONCAT:   return "'@'"       ; case DCONCAT:  return "'@@'"  ;
-        case AND:          return "'&'"    ; case OR:       return "'|'"       ; case NOT:      return "'!'"   ;
-        case EQUALSEQUALS: return "'=='"   ; case NEQUALS:  return "'!='"      ; case EGREATER: return "'>='"  ;
-        case GREATER:      return "'>'"    ; case ELESS:    return "'<='"      ; case LESS:     return "'<'"   ;
-        case COMMA:        return "','"    ; case PI:       return "'PI'"      ; case E:        return "'E'"   ;
+        case NUMBER:       return "number" ; case ID:       return "'identifier'"; case STRING:   return "string";
+        case LPAREN:       return "'('"    ; case RPAREN:   return "')'"         ; case COLON:    return "':'"   ;
+        case LBRACKET:     return "'{'"    ; case RBRACKET: return "'}'"         ; case EQUALS:   return "'='"   ;
+        case SEMICOLON:    return "';'"    ; case PLUS:     return "'+'"         ; case MINUS:    return "'-'"   ;
+        case TIMES:        return "'*'"    ; case DIVIDE:   return "'/'"         ; case MOD:      return "'%'"   ;
+        case POWER:        return "'^'"    ; case CONCAT:   return "'@'"         ; case DCONCAT:  return "'@@'"  ;
+        case AND:          return "'&'"    ; case OR:       return "'|'"         ; case NOT:      return "'!'"   ;
+        case EQUALSEQUALS: return "'=='"   ; case NEQUALS:  return "'!='"        ; case EGREATER: return "'>='"  ;
+        case GREATER:      return "'>'"    ; case ELESS:    return "'<='"        ; case LESS:     return "'<'"   ;
+        case COMMA:        return "','"    ; case PI:       return "'PI'"        ; case E:        return "'E'"   ;
+        case ARROW:        return "'=>'"   ; case FUNCTION: return "'function'"  ;
 
         default: return "";
     }

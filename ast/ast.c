@@ -46,13 +46,17 @@ ASTNode* create_boolean_node(char* value) {
     return node;
 }
 
-ASTNode* create_variable_node(char* name) {
+ASTNode* create_variable_node(char* name, char* type) {
     ASTNode* node = malloc(sizeof(ASTNode));
     node->line = line_num;
     node->type = NODE_VARIABLE;
     node->scope = create_scope(NULL);
     node->return_type = &TYPE_OBJECT_INST;
     node->data.variable_name = name;
+
+    if (type)
+        node->static_type = type;
+
     return node;
 }
 
@@ -88,7 +92,7 @@ ASTNode* create_assignment_node(char* var, ASTNode* value, char* type_name) {
     node->type = NODE_ASSIGNMENT;
     node->return_type = &TYPE_VOID_INST;
     node->scope = create_scope(NULL);
-    node->data.op_node.left = create_variable_node(var);
+    node->data.op_node.left = create_variable_node(var, NULL);
     node->data.op_node.left->static_type = type_name;
     node->data.op_node.right = value;
     return node;
@@ -107,6 +111,23 @@ ASTNode* create_func_call_node(char* name, ASTNode** args, int arg_count) {
         node->data.func_node.args[i] = args[i];
     }
     node->data.func_node.arg_count = arg_count;
+    return node;
+}
+
+ASTNode* create_func_dec_node(char* name, ASTNode** args, int arg_count, ASTNode* body, char* ret_type) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->line = line_num;
+    node->type = NODE_FUNC_DEC;
+    node->return_type = &TYPE_VOID_INST;
+    node->scope = create_scope(NULL);
+    node->static_type = ret_type;
+    node->data.func_node.name = name;
+    node->data.func_node.args = malloc(sizeof(ASTNode*) * arg_count);
+    for (int i = 0; i < arg_count; i++) {
+        node->data.func_node.args[i] = args[i];
+    }
+    node->data.func_node.arg_count = arg_count;
+    node->data.func_node.body = body;
     return node;
 }
 
@@ -168,6 +189,10 @@ void print_ast(ASTNode* node, int indent) {
             for (int i = 0; i < arg_count; i++) {
                 print_ast(node->data.func_node.args[i], indent + 1);
             }
+            break;
+        case NODE_FUNC_DEC:
+            printf("Function_Declaration: %s, returns:\n", node->data.func_node.name);
+            print_ast(node->data.func_node.body, indent + 1);
             break;
         case NODE_NUMBER:
             printf("Number: %g\n", node->data.number_value);

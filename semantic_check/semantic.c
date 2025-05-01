@@ -20,6 +20,7 @@ int analyze_semantics(ASTNode* node) {
         .visit_unary_op = visit_unary_op,
         .visit_variable = visit_variable,
         .visit_block = visit_block,
+        .visit_function_dec = visit_function_dec,
         .error_count = 0,
         .errors = NULL
     };
