@@ -15,3 +15,4 @@ void visit_binary_op(Visitor* v, ASTNode* node);
 void visit_unary_op(Visitor* v, ASTNode* node);
 void visit_function_call(Visitor* v, ASTNode* node);
 void visit_block(Visitor* v, ASTNode* node);
+void visit_function_dec(Visitor* v, ASTNode* node);

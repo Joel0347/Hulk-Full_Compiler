@@ -24,7 +24,7 @@ void visit_function_call(Visitor* v, ASTNode* node) {
 
     if (!funcData->state->matched) {
         if (!funcData->state->same_name) {
-            node->return_type = &TYPE_UNKNOWN_INST;
+            node->return_type = &TYPE_ERROR_INST;
             char* str = NULL;
             asprintf(&str, "Undefined function '%s'. Line: %d.",
                 node->data.func_node.name, node->line
@@ -53,4 +53,76 @@ void visit_function_call(Visitor* v, ASTNode* node) {
     free_tuple(funcData->state);
     free(args_types);
     free(f);
+}
+
+void visit_function_dec(Visitor* v, ASTNode* node) {
+    ASTNode** params = node->data.func_node.args;
+    ASTNode* body = node->data.func_node.body;
+    body->scope->parent = node->scope;
+
+    for (int i = 0; i < node->data.func_node.arg_count; i++)
+    {
+        params[i]->scope->parent = node->scope;
+        Symbol* param_type = find_defined_type(node->scope, params[i]->static_type);
+
+        if (strcmp(params[i]->static_type, "") && !param_type) {
+            char* str = NULL;
+            asprintf(&str, "Parameter '%s' was defined as '%s', which is not a valid type. Line: %d.", 
+                params[i]->data.variable_name, params[i]->static_type, node->line
+            );
+            add_error(&(v->errors), &(v->error_count), str);
+        }
+
+        if (!strcmp(params[i]->static_type, "")) {
+            params[i]->return_type = &TYPE_ANY_INST;
+        } else if (param_type) {
+            params[i]->return_type = param_type;
+        }
+
+        declare_symbol(
+            node->scope, params[i]->data.variable_name,
+            params[i]->return_type, 1
+        );
+    }
+
+    accept(v, body);
+    Type* inferried_type = find_type(v, body);
+    Symbol* defined_type = find_defined_type(node->scope, node->static_type);
+
+    if (strcmp(node->static_type, "") && !defined_type) {
+        char* str = NULL;
+        asprintf(&str, "The return type of function '%s' was defined as '%s', which is not a valid type. Line: %d.", 
+            node->data.func_node.name, node->static_type, node->line
+        );
+        add_error(&(v->errors), &(v->error_count), str);
+    }
+
+    if (defined_type && !is_ancestor_type(defined_type->type, inferried_type)) {
+        char* str = NULL;
+        asprintf(&str, "The return type of function '%s' was defined as '%s', but inferred as '%s'. Line: %d.", 
+            node->data.func_node.name, node->static_type, 
+            inferried_type->name, node->line
+        );
+        add_error(&(v->errors), &(v->error_count), str);
+    }
+    
+    if (defined_type)
+        inferried_type = defined_type->type;
+
+    Function* func = find_function_by_name(node->scope, node->data.func_node.name);
+    Type** param_types = find_types(params, node->data.func_node.arg_count);
+    
+    if (!func) {
+        declare_function(
+            node->scope->parent, node->data.func_node.arg_count,
+            param_types, inferried_type, node->data.func_node.name
+        );
+    } else {
+        node->return_type = &TYPE_ERROR_INST;
+        char* str = NULL;
+        asprintf(&str, "Function '%s' already exists. Line: %d.", 
+            node->data.func_node.name, node->line
+        );
+        add_error(&(v->errors), &(v->error_count), str);
+    }
 }

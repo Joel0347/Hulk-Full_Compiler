@@ -37,6 +37,9 @@ void accept(Visitor* visitor, ASTNode* node) {
         case NODE_BLOCK:
             visitor->visit_block(visitor, node);
             break;
+        case NODE_FUNC_DEC:
+            visitor->visit_function_dec(visitor, node);
+            break;
     }
 }
 

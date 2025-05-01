@@ -45,10 +45,11 @@ void destroy_scope(Scope* scope) {
     free(scope);
 }
 
-void declare_symbol(Scope* scope, const char* name, Type* type) {    
+void declare_symbol(Scope* scope, const char* name, Type* type, int is_param) {    
     Symbol* symbol = (Symbol*)malloc(sizeof(Symbol));
     symbol->name = strdup(name);
     symbol->type = type;
+    symbol->is_param = is_param;
     symbol->next = scope->symbols;
     scope->symbols = symbol;
 }
@@ -147,7 +148,7 @@ void init_builtins(Scope* scope) {
 Tuple* args_type_equals(Type** args1, Type** args2, int count) {
     for (int i = 0; i < count; i++)
     {
-        if (!type_equals(args2[i], &TYPE_UNKNOWN_INST) && 
+        if (!type_equals(args2[i], &TYPE_ERROR_INST) && 
             !is_ancestor_type(args1[i], args2[i])
         ) {
             Tuple* tuple = init_tuple_for_types(
@@ -212,7 +213,7 @@ FuncData* find_function(Scope* scope, Function* f) {
             }
             if (tuple->same_name) {
                 not_found = 0;
-                if (!result->state && !tuple->same_count || tuple->same_count) {
+                if ((!result->state && !tuple->same_count) || tuple->same_count) {
                     result->state = tuple;
                     result->func = current;
                 }
@@ -232,8 +233,30 @@ FuncData* find_function(Scope* scope, Function* f) {
     return result;
 }
 
-Symbol* find_defined_type(Scope* scope, const char* name) {
+char* find_function_by_name(Scope* scope, char* name) {
     if (!scope) {
+        return NULL;
+    }
+
+    if (scope->functions) {
+        Function* current = scope->functions->first;
+        while (current) {
+            if (!strcmp(current->name, name)) {
+                return current;
+            }
+            current = current->next;
+        }
+    }
+    
+    if (scope->parent) {
+        return find_function_by_name(scope->parent, name);
+    }
+    
+    return NULL;
+}
+
+Symbol* find_defined_type(Scope* scope, const char* name) {
+    if (!scope || !name) {
         return NULL;
     }
 

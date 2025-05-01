@@ -2,7 +2,10 @@
 #include <string.h>
 
 // keywords
-char* keywords[] = { "number", "string", "boolean", "void", "object", "true", "false", "PI", "E" };
+char* keywords[] = { 
+    "number", "string", "boolean", "void", 
+    "object", "true", "false", "PI", "E", "function"
+};
 char scape_chars[] = { 'n', 't', '\\', '\"' };
 
 // Basic types instances
@@ -11,7 +14,8 @@ Type TYPE_NUMBER_INST = { "number", NULL, &TYPE_OBJECT_INST };
 Type TYPE_STRING_INST = { "string", NULL, &TYPE_OBJECT_INST };
 Type TYPE_BOOLEAN_INST = { "boolean", NULL, &TYPE_OBJECT_INST };
 Type TYPE_VOID_INST = { "void", NULL, &TYPE_OBJECT_INST };
-Type TYPE_UNKNOWN_INST = { "unknown", NULL, NULL };
+Type TYPE_ERROR_INST = { "error", NULL, NULL };
+Type TYPE_ANY_INST = { "any", NULL, NULL };
 
 OperatorTypeRule operator_rules[] = {
 
@@ -116,10 +120,10 @@ int type_equals(Type* type1, Type* type2) {
 
 int op_rule_equals(OperatorTypeRule* op1, OperatorTypeRule* op2) {
     return (type_equals(op1->left_type, op2->left_type) || 
-            type_equals(op2->left_type, &TYPE_UNKNOWN_INST)
+            type_equals(op2->left_type, &TYPE_ERROR_INST)
            ) &&
            (type_equals(op1->right_type, op2->right_type) ||
-            type_equals(op2->right_type, &TYPE_UNKNOWN_INST))
+            type_equals(op2->right_type, &TYPE_ERROR_INST))
             &&
             type_equals(op1->result_type, op2->result_type) &&
             op1->op == op2->op;
