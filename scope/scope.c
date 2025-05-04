@@ -152,8 +152,12 @@ void init_builtins(Scope* scope) {
 Tuple* args_type_equals(Type** args1, Type** args2, int count) {
     for (int i = 0; i < count; i++)
     {
-        if (!type_equals(args2[i], &TYPE_ERROR_INST) && 
+        if ((!type_equals(args2[i], &TYPE_ERROR_INST) &&
+            !type_equals(args2[i], &TYPE_ANY_INST)
+            ) &&
+            (!type_equals(args1[i], &TYPE_ANY_INST) &&
             !is_ancestor_type(args1[i], args2[i])
+            )
         ) {
             Tuple* tuple = init_tuple_for_types(
                 0, args1[i]->name, args2[i]->name, i+1
@@ -237,7 +241,7 @@ FuncData* find_function(Scope* scope, Function* f) {
     return result;
 }
 
-char* find_function_by_name(Scope* scope, char* name) {
+Function* find_function_by_name(Scope* scope, char* name) {
     if (!scope) {
         return NULL;
     }

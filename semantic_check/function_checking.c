@@ -1,5 +1,47 @@
 #include "semantic.h"
 
+IntList* unify_func(Visitor* v, ASTNode** args, Scope* scope, int arg_count, char* f_name) {
+    int count = 0;
+    IntList* unified = NULL;
+    Function* f;
+
+    while (scope)
+    {
+        if (scope->functions) {
+            Function* current = scope->functions->first; 
+            while (current)
+            {
+                if (!strcmp(f_name, current->name) &&
+                    arg_count == current->arg_count
+                ) {
+                    count ++;
+                    if (count > 1) {
+                        return NULL;
+                    }
+
+                    f = current;
+                }
+
+                current = current->next;
+            }
+        }
+
+        scope = scope->parent;
+    }
+
+    for (int i = 0; i < arg_count; i++)
+    {
+        if (type_equals(&TYPE_ANY_INST, args[i]->return_type)) {
+            if (unify_member(v, args[i], f->args_types[i])) {
+                unified = add_int_list(unified, i);
+            } else {
+                return NULL;
+            }
+        }
+    }
+    
+    return NULL;
+}
 
 void visit_function_call(Visitor* v, ASTNode* node) {
     ASTNode** args = node->data.func_node.args;
@@ -9,6 +51,19 @@ void visit_function_call(Visitor* v, ASTNode* node) {
         args[i]->scope->parent = node->scope;
         accept(v, args[i]);
     }
+
+    IntList* unified = unify_func(
+        v, args, node->scope, node->data.func_node.arg_count, 
+        node->data.func_node.name
+    );
+
+    for (IntList* current = unified; current != NULL; current = current->next)
+    {
+        accept(v, args[current->value]);
+    }
+
+    free_int_list(unified);
+    
 
     Type** args_types = find_types(args, node->data.func_node.arg_count);
 
@@ -111,7 +166,7 @@ void visit_function_dec(Visitor* v, ASTNode* node) {
 
     if (type_equals(inferried_type, &TYPE_ANY_INST)) {
         char* str = NULL;
-        asprintf(&str, "Imposible to infer return type of function '%s'. It must be type annotated. Line: %d.", 
+        asprintf(&str, "Impossible to infer return type of function '%s'. It must be type annotated. Line: %d.", 
             node->data.func_node.name, node->line
         );
         add_error(&(v->errors), &(v->error_count), str);
@@ -128,7 +183,7 @@ void visit_function_dec(Visitor* v, ASTNode* node) {
 
             if (type_equals(param->type, &TYPE_ANY_INST)) {
                 char* str = NULL;
-                asprintf(&str, "Imposible to infer type of parameter '%s' in function '%s'. It must be type annotated. Line: %d.", 
+                asprintf(&str, "Impossible to infer type of parameter '%s' in function '%s'. It must be type annotated. Line: %d.", 
                     param->name, node->data.func_node.name, node->line
                 );
                 add_error(&(v->errors), &(v->error_count), str);

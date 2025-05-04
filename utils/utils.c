@@ -24,6 +24,20 @@ Tuple* init_tuple_for_count(int matched, int arg1_count, int arg2_count) {
     return tuple;
 }
 
+IntList* add_int_list(IntList* list, int number) {
+    IntList* element = (IntList*)malloc(sizeof(IntList));
+    element->value = number;
+    element->next = list;
+
+    return element;
+}
+
+void free_int_list(IntList* list) {
+    if (list && list->next)
+        free_int_list(list->next);
+    free(list);
+}
+
 
 void free_tuple(Tuple* tuple) {
     free(tuple);

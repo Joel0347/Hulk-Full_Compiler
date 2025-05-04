@@ -5,6 +5,7 @@
 int analyze_semantics(ASTNode* node);
 Type* find_type(Visitor* v, ASTNode* node);
 Type** find_types(ASTNode** args, int args_count);
+int unify_member(Visitor* v, ASTNode* node, Type* type);
 void visit_program(Visitor* v, ASTNode* node);
 void visit_assignment(Visitor* v, ASTNode* node);
 void visit_variable(Visitor* v, ASTNode* node);

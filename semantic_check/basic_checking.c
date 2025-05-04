@@ -1,6 +1,5 @@
 #include "semantic.h"
 
-
 int unify_member(Visitor* v, ASTNode* node, Type* type) {
     // 0 not unfied
     // 1 unified right
