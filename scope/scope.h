@@ -3,10 +3,13 @@
 
 #include "../type/type.h"
 
+struct ASTNode;
+
 typedef struct Symbol {
     char* name;
     Type* type;
     int is_param;
+    struct ASTNode* value;
     struct Symbol* next;
 } Symbol;
 
@@ -37,7 +40,7 @@ typedef struct Scope {
 
 Scope* create_scope(Scope* parent);
 void destroy_scope(Scope* scope);
-void declare_symbol(Scope* scope, const char* name, Type* type, int is_param);
+void declare_symbol(Scope* scope, const char* name, Type* type, int is_param, struct ASTNode*);
 void declare_function(
     Scope* scope, int arg_count, Type** args_types, 
     Type* result_type, char* name

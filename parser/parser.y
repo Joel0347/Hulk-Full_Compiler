@@ -153,8 +153,8 @@ block_expr_list:
 ;
 
 param:
-    ID            { $$ = create_variable_node($1, ""); }
-    | ID COLON ID { $$ = create_variable_node($1, $3); }
+    ID            { $$ = create_variable_node($1, "", 1); }
+    | ID COLON ID { $$ = create_variable_node($1, $3, 1); }
 
 param_list:
     param {
@@ -203,7 +203,7 @@ expression:
     | BOOLEAN                            { $$ = create_boolean_node($1); }
     | block_expr                         { $$ = $1; }
     | function_call                      { $$ = $1; }
-    | ID                                 { $$ = create_variable_node($1, ""); }
+    | ID                                 { $$ = create_variable_node($1, "", 0); }
     | expression DCONCAT expression      { $$ = create_binary_op_node(OP_DCONCAT, "@@", $1, $3, &TYPE_STRING_INST) }
     | expression CONCAT expression       { $$ = create_binary_op_node(OP_CONCAT, "@", $1, $3, &TYPE_STRING_INST) }
     | expression AND expression          { $$ = create_binary_op_node(OP_AND, "&", $1, $3, &TYPE_BOOLEAN_INST)}

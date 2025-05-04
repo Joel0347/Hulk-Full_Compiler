@@ -110,7 +110,7 @@ int type_equals(Type* type1, Type* type2) {
 
     if (!type1 || !type2)
         return 0;
-    
+
     if (!strcmp(type1->name, type2->name)) {
         return type_equals(type1->sub_type, type2->sub_type);
     }
@@ -119,12 +119,15 @@ int type_equals(Type* type1, Type* type2) {
 }
 
 int op_rule_equals(OperatorTypeRule* op1, OperatorTypeRule* op2) {
-    return (type_equals(op1->left_type, op2->left_type) || 
-            type_equals(op2->left_type, &TYPE_ERROR_INST)
+    return (
+            (type_equals(op1->left_type, op2->left_type) &&
+             type_equals(op1->right_type, op2->right_type)
+            ) ||
+            type_equals(op2->left_type, &TYPE_ERROR_INST)||
+            type_equals(op2->right_type, &TYPE_ANY_INST) ||
+            type_equals(op2->right_type, &TYPE_ERROR_INST)||
+            type_equals(op2->left_type, &TYPE_ANY_INST)
            ) &&
-           (type_equals(op1->right_type, op2->right_type) ||
-            type_equals(op2->right_type, &TYPE_ERROR_INST))
-            &&
             type_equals(op1->result_type, op2->result_type) &&
             op1->op == op2->op;
 }
@@ -132,8 +135,9 @@ int op_rule_equals(OperatorTypeRule* op1, OperatorTypeRule* op2) {
 int find_op_match(OperatorTypeRule* possible_match) {
     for (int i = 0; i < op_rules_count; i++)
     {
-        if (op_rule_equals(&operator_rules[i], possible_match))
+        if (op_rule_equals(&operator_rules[i], possible_match)) {
             return 1;
+        }
     }
 
     return 0;

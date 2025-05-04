@@ -46,9 +46,10 @@ ASTNode* create_boolean_node(char* value) {
     return node;
 }
 
-ASTNode* create_variable_node(char* name, char* type) {
+ASTNode* create_variable_node(char* name, char* type, int is_param) {
     ASTNode* node = malloc(sizeof(ASTNode));
     node->line = line_num;
+    node->is_param = is_param;
     node->type = NODE_VARIABLE;
     node->scope = create_scope(NULL);
     node->return_type = &TYPE_OBJECT_INST;
@@ -92,7 +93,7 @@ ASTNode* create_assignment_node(char* var, ASTNode* value, char* type_name) {
     node->type = NODE_ASSIGNMENT;
     node->return_type = &TYPE_VOID_INST;
     node->scope = create_scope(NULL);
-    node->data.op_node.left = create_variable_node(var, NULL);
+    node->data.op_node.left = create_variable_node(var, NULL, 0);
     node->data.op_node.left->static_type = type_name;
     node->data.op_node.right = value;
     return node;
@@ -184,7 +185,7 @@ void print_ast(ASTNode* node, int indent) {
             }
             break;
         case NODE_FUNC_CALL:
-            printf("Builtin_Func: %s, receives:\n", node->data.func_node.name);
+            printf("Function_call: %s, receives:\n", node->data.func_node.name);
             int arg_count = node->data.func_node.arg_count;
             for (int i = 0; i < arg_count; i++) {
                 print_ast(node->data.func_node.args[i], indent + 1);

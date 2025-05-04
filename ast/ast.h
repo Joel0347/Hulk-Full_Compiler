@@ -21,10 +21,12 @@ typedef enum {
 
 typedef struct ASTNode {
     int line;
+    int is_param;
     NodeType type;
     Type* return_type;
     char* static_type;
     Scope* scope;
+    struct ASTNode* value;
     union {
         double number_value;
         char* string_value;
@@ -52,7 +54,7 @@ ASTNode* create_program_node(ASTNode** statements, int count, NodeType type);
 ASTNode* create_number_node(double value);
 ASTNode* create_string_node(char* value);
 ASTNode* create_boolean_node(char* value);
-ASTNode* create_variable_node(char* name, char* type);
+ASTNode* create_variable_node(char* name, char* type, int is_param);
 ASTNode* create_binary_op_node(Operator op, char* op_name, ASTNode* left, ASTNode* right, Type* return_type);
 ASTNode* create_unary_op_node(Operator op, char* op_name, ASTNode* operand, Type* return_type);
 ASTNode* create_assignment_node(char* var, ASTNode* value, char* type_name);
