@@ -76,12 +76,12 @@ void visit_function_dec(Visitor* v, ASTNode* node) {
         if (!strcmp(params[i]->static_type, "")) {
             params[i]->return_type = &TYPE_ANY_INST;
         } else if (param_type) {
-            params[i]->return_type = param_type;
+            params[i]->return_type = param_type->type;
         }
 
         declare_symbol(
             node->scope, params[i]->data.variable_name,
-            params[i]->return_type, 1
+            params[i]->return_type, 1, NULL
         );
     }
 
@@ -109,10 +109,34 @@ void visit_function_dec(Visitor* v, ASTNode* node) {
     if (defined_type)
         inferried_type = defined_type->type;
 
+    if (type_equals(inferried_type, &TYPE_ANY_INST)) {
+        char* str = NULL;
+        asprintf(&str, "Imposible to infer return type of function '%s'. It must be type annotated. Line: %d.", 
+            node->data.func_node.name, node->line
+        );
+        add_error(&(v->errors), &(v->error_count), str);
+    }
+
     Function* func = find_function_by_name(node->scope, node->data.func_node.name);
     Type** param_types = find_types(params, node->data.func_node.arg_count);
     
     if (!func) {
+
+        for (int i = 0; i < node->data.func_node.arg_count; i++)
+        {
+            Symbol* param = find_symbol(node->scope, params[i]->data.variable_name);
+
+            if (type_equals(param->type, &TYPE_ANY_INST)) {
+                char* str = NULL;
+                asprintf(&str, "Imposible to infer type of parameter '%s' in function '%s'. It must be type annotated. Line: %d.", 
+                    param->name, node->data.func_node.name, node->line
+                );
+                add_error(&(v->errors), &(v->error_count), str);
+            }
+
+            param_types[i] = param->type;
+        }
+
         declare_function(
             node->scope->parent, node->data.func_node.arg_count,
             param_types, inferried_type, node->data.func_node.name

@@ -34,6 +34,7 @@
 
 # Folders
 build/
+.vscode/
 
 # Files
 lex.yy.c

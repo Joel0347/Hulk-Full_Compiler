@@ -46,8 +46,15 @@ void visit_assignment(Visitor* v, ASTNode* node) {
     if(!sym) {
         declare_symbol(
             node->scope->parent, 
-            var_node->data.variable_name, inferried_type, 0
+            var_node->data.variable_name, inferried_type,
+            0, val_node
         );
+    } else if (sym->is_param) {
+        char* str = NULL;
+        asprintf(&str, "Parameter '%s' can not be redefined. Line: %d.", 
+            var_node->data.variable_name, node->line
+        );
+        add_error(&(v->errors), &(v->error_count), str);
     } else {
         sym->type = inferried_type;
     }
@@ -60,7 +67,9 @@ void visit_variable(Visitor* v, ASTNode* node) {
 
     if (sym) {
         node->return_type = sym->type;
-    } else {
+        node->is_param = sym->is_param;
+        node->value = sym->value;
+    } else if (!type_equals(node->return_type, &TYPE_ERROR_INST)) {
         node->return_type = &TYPE_ERROR_INST;
         char* str = NULL;
         asprintf(&str, "Undefined variable '%s'. Line: %d", node->data.variable_name, node->line);

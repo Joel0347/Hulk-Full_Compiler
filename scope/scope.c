@@ -45,11 +45,15 @@ void destroy_scope(Scope* scope) {
     free(scope);
 }
 
-void declare_symbol(Scope* scope, const char* name, Type* type, int is_param) {    
+void declare_symbol(
+    Scope* scope, const char* name, Type* type, 
+    int is_param, struct ASTNode* value
+) {    
     Symbol* symbol = (Symbol*)malloc(sizeof(Symbol));
     symbol->name = strdup(name);
     symbol->type = type;
     symbol->is_param = is_param;
+    symbol->value = value;
     symbol->next = scope->symbols;
     scope->symbols = symbol;
 }
