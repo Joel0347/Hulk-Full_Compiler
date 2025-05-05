@@ -37,7 +37,8 @@ $(EXEC): lex.yy.o y.tab.o $(AST_DIR)/ast.o $(SRC_DIR)/main.o \
 	$(CODE_GEN_DIR)/llvm_codegen.o $(CODE_GEN_DIR)/llvm_scope.o $(CODE_GEN_DIR)/llvm_string.o \
 	$(CODE_GEN_DIR)/llvm_operators.o $(UTILS_DIR)/utils.o \
     $(SEMANTIC_DIR)/function_checking.o $(SEMANTIC_DIR)/variable_checking.o $(SEMANTIC_DIR)/basic_checking.o \
-    $(SEMANTIC_DIR)/semantic.o $(SCOPE_DIR)/scope.o $(VISITOR_DIR)/visitor.o $(TYPE_DIR)/type.o | $(BUILD_DIR)
+    $(SEMANTIC_DIR)/semantic.o $(SCOPE_DIR)/scope.o $(SCOPE_DIR)/context.o $(VISITOR_DIR)/visitor.o \
+	$(TYPE_DIR)/type.o | $(BUILD_DIR)
 	@echo "🔗 Getting ready..."
 	@$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 	@echo "🔄 Compiling..."
@@ -77,6 +78,9 @@ $(SEMANTIC_DIR)/semantic.o: $(SEMANTIC_DIR)/semantic.c $(SEMANTIC_DIR)/semantic.
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(SCOPE_DIR)/scope.o: $(SCOPE_DIR)/scope.c $(SCOPE_DIR)/scope.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(SCOPE_DIR)/context.o: $(SCOPE_DIR)/context.c
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(VISITOR_DIR)/visitor.o: $(VISITOR_DIR)/visitor.c $(VISITOR_DIR)/visitor.h

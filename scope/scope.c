@@ -202,7 +202,7 @@ Symbol* find_symbol(Scope* scope, const char* name) {
     return NULL;
 }
 
-FuncData* find_function(Scope* scope, Function* f) {
+FuncData* find_function(Scope* scope, Function* f, Function* dec) {
     if (!scope) {
         return NULL;
     }
@@ -232,8 +232,25 @@ FuncData* find_function(Scope* scope, Function* f) {
     }
         
     if (scope->parent) {
-        return find_function(scope->parent, f);
-    } else if (not_found) {
+        FuncData* data = find_function(scope->parent, f, dec);
+
+        if (not_found || data->state->matched)
+            return data;
+
+    
+        return result;
+
+        // if (not_found || data->state->matched) {
+        //     return data;
+        // } else {
+        //     return result;
+        // }
+    } 
+    
+    if (not_found && dec) {
+        result->state = func_equals(dec, f);
+        result->func = dec;
+    } else if (not_found && !dec) {
         result->state = init_tuple_for_count(0, -1, -1);
         result->state->same_name = 0;
     }

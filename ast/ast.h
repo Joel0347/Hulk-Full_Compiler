@@ -26,6 +26,7 @@ typedef struct ASTNode {
     Type* return_type;
     char* static_type;
     Scope* scope;
+    Context* context;
     struct ASTNode* value;
     union {
         double number_value;
@@ -46,6 +47,7 @@ typedef struct ASTNode {
             struct ASTNode** args;
             int arg_count;
             struct ASTNode *body;
+            int checked;
         } func_node;
     } data;
 } ASTNode;
@@ -60,7 +62,6 @@ ASTNode* create_unary_op_node(Operator op, char* op_name, ASTNode* operand, Type
 ASTNode* create_assignment_node(char* var, ASTNode* value, char* type_name);
 ASTNode* create_func_call_node(char* name, ASTNode** args, int arg_count);
 ASTNode* create_func_dec_node(char* name, ASTNode** args, int arg_count, ASTNode* body, char* ret_type);
-void free_ast(ASTNode* node);
 void print_ast(ASTNode* node, int indent);
 
 #endif

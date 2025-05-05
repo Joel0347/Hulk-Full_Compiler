@@ -38,18 +38,34 @@ typedef struct Scope {
     struct Scope* parent;
 } Scope;
 
+// to get global context in the program or block.
+
+typedef struct ContextItem {
+    struct ASTNode* declaration;
+    struct ContextItem* next;
+} ContextItem;
+typedef struct Context {
+    ContextItem* first;
+    struct Context* parent;
+} Context;
+
 Scope* create_scope(Scope* parent);
+Context* create_context(Context* parent);
 void destroy_scope(Scope* scope);
+void destroy_context(Context* context);
 void declare_symbol(Scope* scope, const char* name, Type* type, int is_param, struct ASTNode*);
 void declare_function(
     Scope* scope, int arg_count, Type** args_types, 
     Type* result_type, char* name
 );
 void declare_type(Scope* scope, Type* type);
+void save_context_item(Context* context, struct ASTNode* item);
 Function* find_function_by_name(Scope* scope, char* name);
 void init_builtins(Scope* scope);
 Symbol* find_symbol(Scope* scope, const char* name);
-FuncData* find_function(Scope* scope, Function* f);
+FuncData* find_function(Scope* scope, Function* f, Function* dec);
 Symbol* find_defined_type(Scope* scope, const char* name);
+struct ASTNode* find_context_item(Context* context, char* name);
+void free_ast(struct ASTNode* node);
 
 #endif

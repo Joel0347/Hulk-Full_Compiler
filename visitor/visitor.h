@@ -39,6 +39,7 @@ struct Visitor {
 };
 
 void accept(Visitor* visitor, ASTNode* node);
+void get_context(Visitor* visitor, ASTNode* node);
 void add_error(char*** array, int* count, const char* str);
 void free_error(char** array, int count);
 

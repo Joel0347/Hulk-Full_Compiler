@@ -14,7 +14,9 @@ void visit_assignment(Visitor* v, ASTNode* node) {
     }
     
     var_node->scope->parent = node->scope;
+    var_node->context->parent = node->context;
     val_node->scope->parent = node->scope;
+    val_node->context->parent = node->context;
 
     Symbol* defined_type = find_defined_type(node->scope, var_node->static_type);
 

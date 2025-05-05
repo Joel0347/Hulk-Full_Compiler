@@ -43,6 +43,17 @@ void accept(Visitor* visitor, ASTNode* node) {
     }
 }
 
+void get_context(Visitor* visitor, ASTNode* node) {
+    for(int i = 0; i < node->data.program_node.count; i++) {
+        ASTNode* child =  node->data.program_node.statements[i];
+        if (child->type == NODE_FUNC_DEC) {
+            child->context->parent = node->context;
+            child->scope->parent = node->scope;
+            save_context_item(node->context, child);
+        }
+    }
+}
+
 void add_error(char*** array, int* count, const char* str) {
     *array = realloc(*array, (*count + 1) * sizeof(char*));
     (*array)[*count] = strdup(str);
