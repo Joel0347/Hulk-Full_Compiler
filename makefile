@@ -33,9 +33,9 @@ $(BUILD_DIR):
 
 # El directorio build se pone como dependencia order-only (con el símbolo |)
 $(EXEC): lex.yy.o y.tab.o $(AST_DIR)/ast.o $(SRC_DIR)/main.o \
-    $(CODE_GEN_DIR)/llvm_builtins.o $(CODE_GEN_DIR)/llvm_core.o \
-	$(CODE_GEN_DIR)/llvm_codegen.o $(CODE_GEN_DIR)/llvm_scope.o $(CODE_GEN_DIR)/llvm_string.o \
-	$(CODE_GEN_DIR)/llvm_operators.o $(UTILS_DIR)/utils.o \
+    $(CODE_GEN_DIR)/llvm_builtins.o $(CODE_GEN_DIR)/llvm_core.o $(VISITOR_DIR)/llvm_visitor.o \
+	$(CODE_GEN_DIR)/llvm_codegen.o $(SCOPE_DIR)/llvm_scope.o $(CODE_GEN_DIR)/llvm_string.o  $(VISITOR_DIR)/llvm_visitor.o\
+	$(CODE_GEN_DIR)/llvm_operators.o $(UTILS_DIR)/utils.o $(VISITOR_DIR)/llvm_visitor.o \
     $(SEMANTIC_DIR)/function_checking.o $(SEMANTIC_DIR)/variable_checking.o $(SEMANTIC_DIR)/basic_checking.o \
     $(SEMANTIC_DIR)/semantic.o $(SCOPE_DIR)/scope.o $(SCOPE_DIR)/context.o $(VISITOR_DIR)/visitor.o \
 	$(TYPE_DIR)/type.o | $(BUILD_DIR)
@@ -52,20 +52,23 @@ lex.yy.c: $(LEXER_DIR)/lexer.l y.tab.h
 	@echo "Generating lexer..."
 	@$(LEX) $(LEXFLAGS) $< || (echo "Flex failed to process lexer.l"; exit 1)
 
-$(CODE_GEN_DIR)/llvm_codegen.o: $(CODE_GEN_DIR)/llvm_codegen.c $(CODE_GEN_DIR)/llvm_codegen.h $(AST_DIR)/ast.h
+$(VISITOR_DIR)/llvm_visitor.o: $(VISITOR_DIR)/llvm_visitor.c $(VISITOR_DIR)/llvm_visitor.h
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(CODE_GEN_DIR)/llvm_codegen.o: $(CODE_GEN_DIR)/llvm_codegen.c $(CODE_GEN_DIR)/llvm_codegen.h $(AST_DIR)/ast.h $(VISITOR_DIR)/llvm_visitor.h
 	@echo "⚡ Compiling module LLVM..."
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(CODE_GEN_DIR)/llvm_builtins.o: $(CODE_GEN_DIR)/llvm_builtins.c $(CODE_GEN_DIR)/llvm_builtins.h
+$(CODE_GEN_DIR)/llvm_builtins.o: $(CODE_GEN_DIR)/llvm_builtins.c $(CODE_GEN_DIR)/llvm_builtins.h $(VISITOR_DIR)/llvm_visitor.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(CODE_GEN_DIR)/llvm_scope.o: $(CODE_GEN_DIR)/llvm_scope.c $(CODE_GEN_DIR)/llvm_scope.h
+$(SCOPE_DIR)/llvm_scope.o: $(SCOPE_DIR)/llvm_scope.c $(SCOPE_DIR)/llvm_scope.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(CODE_GEN_DIR)/llvm_string.o: $(CODE_GEN_DIR)/llvm_string.c $(CODE_GEN_DIR)/llvm_string.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
-$(CODE_GEN_DIR)/llvm_operators.o: $(CODE_GEN_DIR)/llvm_operators.c $(CODE_GEN_DIR)/llvm_operators.h
+$(CODE_GEN_DIR)/llvm_operators.o: $(CODE_GEN_DIR)/llvm_operators.c $(CODE_GEN_DIR)/llvm_operators.h $(VISITOR_DIR)/llvm_visitor.h
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(AST_DIR)/ast.o: $(AST_DIR)/ast.c $(AST_DIR)/ast.h

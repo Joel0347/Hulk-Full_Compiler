@@ -3,9 +3,14 @@
 
 #include <llvm-c/Core.h>
 #include "../ast/ast.h"
+#include "../visitor/llvm_visitor.h"
 
 // Genera código LLVM para funciones built-in como print, sqrt, sin, etc.
-LLVMValueRef generate_builtin_function(ASTNode* node);
+LLVMValueRef generate_builtin_function(LLVM_Visitor* v, ASTNode* node);
+LLVMValueRef print_function(LLVM_Visitor* v, ASTNode* node);
+LLVMValueRef log_function(LLVM_Visitor* v, ASTNode* node);
+LLVMValueRef rand_function(LLVM_Visitor* v, ASTNode* node);
+LLVMValueRef basic_functions(LLVM_Visitor* v, ASTNode* node, const char* name, const char* tmp_name);
 
 // Declara las funciones built-in al inicio de la generación
 void declare_builtin_functions(void);

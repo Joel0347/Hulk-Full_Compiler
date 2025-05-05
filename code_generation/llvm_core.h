@@ -15,4 +15,4 @@ void init_llvm(void);
 void free_llvm_resources(void);
 void declare_external_functions(void);
 
-#endif // LLVM_CORE_H
+#endif
