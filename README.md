@@ -40,6 +40,7 @@ sudo apt install flex bison llvm clang
 ├── parser/ # Parser
 │ └── parser.y
 ├── scope/ #scope
+│ ├──context.c
 │ ├──scope.c
 │ └──scope.h
 ├── semantic_check/ #semantic check
