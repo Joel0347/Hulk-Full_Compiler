@@ -102,7 +102,6 @@ void init_builtins(Scope* scope) {
     declare_type(scope, &TYPE_NUMBER_INST); //number
     declare_type(scope, &TYPE_STRING_INST); // string
     declare_type(scope, &TYPE_BOOLEAN_INST); // boolean
-    declare_type(scope, &TYPE_VOID_INST); // void
     declare_type(scope, &TYPE_OBJECT_INST); // object
 
     // BUILTIN FUNCTIONS:

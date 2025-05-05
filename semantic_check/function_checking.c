@@ -111,14 +111,6 @@ void visit_function_call(Visitor* v, ASTNode* node) {
             add_error(&(v->errors), &(v->error_count), str);
 
         } else if (!funcData->state->same_count) {
-            // if (declaration) {
-            //     funcData->state->arg1_count = declaration->data.func_node.arg_count;
-            //     funcData->state->arg2_count = f->arg_count;
-            //     funcData->state->same_count = 
-            //         funcData->state->arg1_count == funcData->state->arg2_count;
-            // }
-
-            // if (!funcData->state->same_count) {
                 char* str = NULL;
                 asprintf(&str, "Function '%s' receives %d argument(s), but %d was(were) given. Line: %d.",
                     node->data.func_node.name, funcData->state->arg1_count, 
@@ -128,7 +120,7 @@ void visit_function_call(Visitor* v, ASTNode* node) {
 
             // }
         } else {
-            if (!strcmp(funcData->state->type2_name, "error"))
+            if (!strcmp(funcData->state->type2_name, "Error"))
                 return;
 
             char* str = NULL;
@@ -150,8 +142,6 @@ void visit_function_dec(Visitor* v, ASTNode* node) {
         return;
     }
 
-    // ASTNode* declaration = find_context_item(node->context, node->data.func_node.name);
-    // declaration->data.func_node.checked = 1;
     node->data.func_node.checked = 1;
 
     ASTNode** params = node->data.func_node.args;

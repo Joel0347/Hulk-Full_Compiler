@@ -3,19 +3,19 @@
 
 // keywords
 char* keywords[] = { 
-    "number", "string", "boolean", "void", 
-    "object", "true", "false", "PI", "E", "function"
+    "Number", "String", "Boolean", "Object",
+    "true", "false", "PI", "E", "function"
 };
 char scape_chars[] = { 'n', 't', '\\', '\"' };
 
 // Basic types instances
-Type TYPE_OBJECT_INST = { "object", NULL, NULL };
-Type TYPE_NUMBER_INST = { "number", NULL, &TYPE_OBJECT_INST };
-Type TYPE_STRING_INST = { "string", NULL, &TYPE_OBJECT_INST };
-Type TYPE_BOOLEAN_INST = { "boolean", NULL, &TYPE_OBJECT_INST };
-Type TYPE_VOID_INST = { "void", NULL, &TYPE_OBJECT_INST };
-Type TYPE_ERROR_INST = { "error", NULL, NULL };
-Type TYPE_ANY_INST = { "any", NULL, NULL };
+Type TYPE_OBJECT_INST = { "Object", NULL, NULL };
+Type TYPE_NUMBER_INST = { "Number", NULL, &TYPE_OBJECT_INST };
+Type TYPE_STRING_INST = { "String", NULL, &TYPE_OBJECT_INST };
+Type TYPE_BOOLEAN_INST = { "Boolean", NULL, &TYPE_OBJECT_INST };
+Type TYPE_VOID_INST = { "Void", NULL, &TYPE_OBJECT_INST };
+Type TYPE_ERROR_INST = { "Error", NULL, NULL };
+Type TYPE_ANY_INST = { "Any", NULL, NULL };
 
 OperatorTypeRule operator_rules[] = {
 
