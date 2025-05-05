@@ -1,14 +1,13 @@
 #include "llvm_operators.h"
 #include "llvm_core.h"
 #include "llvm_string.h"
-#include "llvm_codegen.h"
 #include "../type/type.h"
 #include <stdio.h>
 #include <stdlib.h>
 
-LLVMValueRef generate_binary_operation(ASTNode* node) {
-    LLVMValueRef L = codegen(node->data.op_node.left);
-    LLVMValueRef R = codegen(node->data.op_node.right);
+LLVMValueRef generate_binary_operation(LLVM_Visitor* v, ASTNode* node) {
+    LLVMValueRef L = accept_gen(v, node->data.op_node.left);
+    LLVMValueRef R = accept_gen(v, node->data.op_node.right);
 
     // Manejo de operaciones con strings (concatenación)
     if (node->data.op_node.op == OP_CONCAT || node->data.op_node.op == OP_DCONCAT) {
@@ -156,8 +155,8 @@ LLVMValueRef generate_binary_operation(ASTNode* node) {
     exit(1);
 }
 
-LLVMValueRef generate_unary_operation(ASTNode* node) {
-    LLVMValueRef operand = codegen(node->data.op_node.left);
+LLVMValueRef generate_unary_operation(LLVM_Visitor* v, ASTNode* node) {
+    LLVMValueRef operand = accept_gen(v, node->data.op_node.left);
     
     switch (node->data.op_node.op) {
         case OP_NEGATE: 
