@@ -56,10 +56,12 @@ Type** find_types(ASTNode** args, int args_count) {
 
 void visit_program(Visitor* v, ASTNode* node) {
     init_builtins(node->scope);
+    get_context(v, node);
 
     for(int i = 0; i < node->data.program_node.count; i++) {
         ASTNode* child =  node->data.program_node.statements[i];
         child->scope->parent = node->scope;
+        child->context->parent = node->context;
         accept(v, child);
     }
 }

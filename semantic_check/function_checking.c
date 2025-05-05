@@ -29,13 +29,15 @@ IntList* unify_func(Visitor* v, ASTNode** args, Scope* scope, int arg_count, cha
         scope = scope->parent;
     }
 
-    for (int i = 0; i < arg_count; i++)
-    {
-        if (type_equals(&TYPE_ANY_INST, args[i]->return_type)) {
-            if (unify_member(v, args[i], f->args_types[i])) {
-                unified = add_int_list(unified, i);
-            } else {
-                return NULL;
+    if (count) {
+        for (int i = 0; i < arg_count; i++)
+        {
+            if (type_equals(&TYPE_ANY_INST, args[i]->return_type)) {
+                if (unify_member(v, args[i], f->args_types[i])) {
+                    unified = add_int_list(unified, i);
+                } else {
+                    return NULL;
+                }
             }
         }
     }
@@ -49,7 +51,14 @@ void visit_function_call(Visitor* v, ASTNode* node) {
     for (int i = 0; i < node->data.func_node.arg_count; i++)
     {
         args[i]->scope->parent = node->scope;
+        args[i]->context->parent = node->context;
         accept(v, args[i]);
+    }
+
+    ASTNode* declaration = find_context_item(node->context, node->data.func_node.name);
+
+    if (declaration) {
+        accept(v, declaration);
     }
 
     IntList* unified = unify_func(
@@ -72,7 +81,22 @@ void visit_function_call(Visitor* v, ASTNode* node) {
     f->arg_count = node->data.func_node.arg_count;
     f->args_types = args_types;
 
-    FuncData* funcData = find_function(node->scope, f);
+    Function* dec = NULL;
+
+    if (declaration) {
+
+        Type** dec_args_types = find_types(
+            declaration->data.func_node.args, 
+            declaration->data.func_node.arg_count
+        );
+
+        dec = (Function*)malloc(sizeof(Function));
+        dec->name = declaration->data.func_node.name;
+        dec->arg_count = declaration->data.func_node.arg_count;
+        dec->args_types = dec_args_types;
+    }
+
+    FuncData* funcData = find_function(node->scope, f, dec);
 
     if (funcData->func)
         node->return_type = funcData->func->result_type;
@@ -85,13 +109,24 @@ void visit_function_call(Visitor* v, ASTNode* node) {
                 node->data.func_node.name, node->line
             );
             add_error(&(v->errors), &(v->error_count), str);
+
         } else if (!funcData->state->same_count) {
-            char* str = NULL;
-            asprintf(&str, "Function '%s' receives %d argument(s), but %d was(were) given. Line: %d.",
-                node->data.func_node.name, funcData->state->arg1_count, 
-                funcData->state->arg2_count, node->line
-            );
-            add_error(&(v->errors), &(v->error_count), str);
+            // if (declaration) {
+            //     funcData->state->arg1_count = declaration->data.func_node.arg_count;
+            //     funcData->state->arg2_count = f->arg_count;
+            //     funcData->state->same_count = 
+            //         funcData->state->arg1_count == funcData->state->arg2_count;
+            // }
+
+            // if (!funcData->state->same_count) {
+                char* str = NULL;
+                asprintf(&str, "Function '%s' receives %d argument(s), but %d was(were) given. Line: %d.",
+                    node->data.func_node.name, funcData->state->arg1_count, 
+                    funcData->state->arg2_count, node->line
+                );
+                add_error(&(v->errors), &(v->error_count), str);
+
+            // }
         } else {
             if (!strcmp(funcData->state->type2_name, "error"))
                 return;
@@ -111,13 +146,23 @@ void visit_function_call(Visitor* v, ASTNode* node) {
 }
 
 void visit_function_dec(Visitor* v, ASTNode* node) {
+    if (node->data.func_node.checked) {
+        return;
+    }
+
+    // ASTNode* declaration = find_context_item(node->context, node->data.func_node.name);
+    // declaration->data.func_node.checked = 1;
+    node->data.func_node.checked = 1;
+
     ASTNode** params = node->data.func_node.args;
     ASTNode* body = node->data.func_node.body;
     body->scope->parent = node->scope;
+    body->context->parent = node->context;
 
     for (int i = 0; i < node->data.func_node.arg_count; i++)
     {
         params[i]->scope->parent = node->scope;
+        params[i]->context->parent = node->context;
         Symbol* param_type = find_defined_type(node->scope, params[i]->static_type);
 
         if (strcmp(params[i]->static_type, "") && !param_type) {

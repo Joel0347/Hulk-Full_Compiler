@@ -8,6 +8,7 @@ ASTNode* create_program_node(ASTNode** statements, int count, NodeType type) {
     node->line = line_num;
     node->type = type;
     node->scope = create_scope(NULL);
+    node->context = create_context(NULL);
     node->data.program_node.statements = malloc(sizeof(ASTNode*) * count);
     for (int i = 0; i < count; i++) {
         node->data.program_node.statements[i] = statements[i];
@@ -21,6 +22,7 @@ ASTNode* create_number_node(double value) {
     node->line = line_num;
     node->type = NODE_NUMBER;
     node->scope = create_scope(NULL);
+    node->context = create_context(NULL);
     node->return_type = &TYPE_NUMBER_INST;
     node->data.number_value = value;
     return node;
@@ -31,6 +33,7 @@ ASTNode* create_string_node(char* value) {
     node->line = line_num;
     node->type = NODE_STRING;
     node->scope = create_scope(NULL);
+    node->context = create_context(NULL);
     node->return_type = &TYPE_STRING_INST;
     node->data.string_value = value;
     return node;
@@ -41,6 +44,7 @@ ASTNode* create_boolean_node(char* value) {
     node->line = line_num;
     node->type = NODE_BOOLEAN;
     node->scope = create_scope(NULL);
+    node->context = create_context(NULL);
     node->return_type = &TYPE_BOOLEAN_INST;
     node->data.string_value = value;
     return node;
@@ -52,6 +56,7 @@ ASTNode* create_variable_node(char* name, char* type, int is_param) {
     node->is_param = is_param;
     node->type = NODE_VARIABLE;
     node->scope = create_scope(NULL);
+    node->context = create_context(NULL);
     node->return_type = &TYPE_OBJECT_INST;
     node->data.variable_name = name;
 
@@ -66,6 +71,7 @@ ASTNode* create_binary_op_node(Operator op, char* op_name, ASTNode* left, ASTNod
     node->line = line_num;
     node->type = NODE_BINARY_OP;
     node->scope = create_scope(NULL);
+    node->context = create_context(NULL);
     node->return_type = return_type;
     node->data.op_node.op_name = op_name;
     node->data.op_node.op = op;
@@ -79,6 +85,7 @@ ASTNode* create_unary_op_node(Operator op, char* op_name, ASTNode* operand, Type
     node->line = line_num;
     node->type = NODE_UNARY_OP;
     node->scope = create_scope(NULL);
+    node->context = create_context(NULL);
     node->return_type = return_type;
     node->data.op_node.op_name = op_name;
     node->data.op_node.op = op;
@@ -93,6 +100,7 @@ ASTNode* create_assignment_node(char* var, ASTNode* value, char* type_name) {
     node->type = NODE_ASSIGNMENT;
     node->return_type = &TYPE_VOID_INST;
     node->scope = create_scope(NULL);
+    node->context = create_context(NULL);
     node->data.op_node.left = create_variable_node(var, NULL, 0);
     node->data.op_node.left->static_type = type_name;
     node->data.op_node.right = value;
@@ -105,8 +113,10 @@ ASTNode* create_func_call_node(char* name, ASTNode** args, int arg_count) {
     node->line = line_num;
     node->type = NODE_FUNC_CALL;
     node->scope = create_scope(NULL);
+    node->context = create_context(NULL);
     node->return_type = &TYPE_OBJECT_INST;
-    node->data.func_node.name = strdup(name);
+    node->data.func_node.name = name;
+    node->data.func_node.checked = 0;
     node->data.func_node.args = malloc(sizeof(ASTNode*) * arg_count);
     for (int i = 0; i < arg_count; i++) {
         node->data.func_node.args[i] = args[i];
@@ -121,8 +131,10 @@ ASTNode* create_func_dec_node(char* name, ASTNode** args, int arg_count, ASTNode
     node->type = NODE_FUNC_DEC;
     node->return_type = &TYPE_VOID_INST;
     node->scope = create_scope(NULL);
+    node->context = create_context(NULL);
     node->static_type = ret_type;
     node->data.func_node.name = name;
+    node->data.func_node.checked = 0;
     node->data.func_node.args = malloc(sizeof(ASTNode*) * arg_count);
     for (int i = 0; i < arg_count; i++) {
         node->data.func_node.args[i] = args[i];
@@ -159,10 +171,17 @@ void free_ast(ASTNode* node) {
                 free_ast(node->data.func_node.args[i]);
             }
             break;
+        case NODE_FUNC_DEC:
+            for (int i = 0; i < node->data.func_node.arg_count; i++) {
+                free_ast(node->data.func_node.args[i]);
+            }
+            free_ast(node->data.func_node.body);
+            break;
         default:
             break;
     }
     destroy_scope(node->scope);
+    destroy_context(node->context);
     free(node);
 }
 

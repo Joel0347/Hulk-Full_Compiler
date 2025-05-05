@@ -23,6 +23,8 @@ int statement_count = 0;
 int statement_capacity = 0;
 
 void add_statement(ASTNode* stmt) {
+    if (stmt == NULL)
+        return;
     if (statement_count >= statement_capacity) {
         statement_capacity = statement_capacity ? statement_capacity * 2 : 16;
         statements = realloc(statements, sizeof(ASTNode*) * statement_capacity);
@@ -81,7 +83,7 @@ program:
 
 input:
     /* empty */
-    | input statement { add_statement($2); }
+    | input statement { if ($2 != NULL) add_statement($2); }
     | input error { 
         if (++error_count >= max_errors) {
             YYABORT;
@@ -96,9 +98,11 @@ input:
 ;
 
 statement:
-      block_expr SEMICOLON { $$ = $1; }
-    | block_expr           { $$ = $1; }
-    | expression SEMICOLON { $$ = $1; }
+    SEMICOLON                        { $$ = NULL }
+    | function_declaration           { $$ = $1; }
+    | function_declaration SEMICOLON { $$ = $1; }
+    | block_expr                     { $$ = $1; }
+    | expression SEMICOLON           { $$ = $1; }
 ;
 
 
@@ -130,19 +134,33 @@ block_expr:
 ;
 
 block_expr_list:
-    expression SEMICOLON {
+    statement {
         $$ = malloc(sizeof(*$$));
-        $$->args = malloc(sizeof(ASTNode *) * 1);
-        $$->args[0] = $1;
-        $$->arg_count = 1;
+
+        if ($1 == NULL) {
+            $$->args = NULL;
+            $$->arg_count = 0;
+        } else {
+            $$->args = malloc(sizeof(ASTNode *) * 1);
+            $$->args[0] = $1;
+            $$->arg_count = 1;
+        }
     }
-    | expression SEMICOLON block_expr_list {
+    | statement block_expr_list {
         $$ = malloc(sizeof(*$$));
-        $$->args = malloc(sizeof(ASTNode *) * ($3->arg_count + 1));
-        $$->args[0] = $1;
-        memcpy($$->args + 1, $3->args, sizeof(ASTNode *) * $3->arg_count);
-        $$->arg_count = $3->arg_count + 1;
-        free($3->args);
+
+        if ($1 == NULL) {
+            $$->args = malloc(sizeof(ASTNode *) * ($2->arg_count));
+            memcpy($$->args, $2->args, sizeof(ASTNode *) * $2->arg_count);
+            $$->arg_count = $2->arg_count;
+            free($2->args);
+        } else {
+            $$->args = malloc(sizeof(ASTNode *) * ($2->arg_count + 1));
+            $$->args[0] = $1;
+            memcpy($$->args + 1, $2->args, sizeof(ASTNode *) * $2->arg_count);
+            $$->arg_count = $2->arg_count + 1;
+            free($2->args);
+        }
     }
 
     | /* empty */ {
@@ -179,10 +197,18 @@ param_list:
 ;
 
 function_declaration:
-    FUNCTION ID LPAREN param_list RPAREN ARROW expression            { $$ = create_func_dec_node($2, $4->args, $4->arg_count, $7, "") }
-    | FUNCTION ID LPAREN param_list RPAREN COLON ID ARROW expression { $$ = create_func_dec_node($2, $4->args, $4->arg_count, $9, $7) }
-    | FUNCTION ID LPAREN param_list RPAREN block_expr                { $$ = create_func_dec_node($2, $4->args, $4->arg_count, $6, "") }
-    | FUNCTION ID LPAREN param_list RPAREN COLON ID block_expr       { $$ = create_func_dec_node($2, $4->args, $4->arg_count, $8, $7) }
+    FUNCTION ID LPAREN param_list RPAREN ARROW expression SEMICOLON  { 
+        $$ = create_func_dec_node($2, $4->args, $4->arg_count, $7, "") 
+    }
+    | FUNCTION ID LPAREN param_list RPAREN COLON ID ARROW expression SEMICOLON { 
+        $$ = create_func_dec_node($2, $4->args, $4->arg_count, $9, $7) 
+    }
+    | FUNCTION ID LPAREN param_list RPAREN block_expr {
+        $$ = create_func_dec_node($2, $4->args, $4->arg_count, $6, "")
+    }
+    | FUNCTION ID LPAREN param_list RPAREN COLON ID block_expr {
+        $$ = create_func_dec_node($2, $4->args, $4->arg_count, $8, $7)
+    }
 
 ;
 
@@ -224,7 +250,7 @@ expression:
     | MINUS expression %prec UMINUS      { $$ = create_unary_op_node(OP_NEGATE, "-", $2, &TYPE_NUMBER_INST); }
     | LPAREN expression RPAREN           { $$ = $2; }
     | variable_declaration               { $$ = $1; }
-    | function_declaration               { $$ = $1; }
+    /* | function_declaration               { $$ = $1; } */
     | ERROR { // Handle any other error
         yyerrok;
         YYABORT;

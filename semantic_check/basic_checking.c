@@ -121,7 +121,9 @@ void visit_binary_op(Visitor* v, ASTNode* node) {
     ASTNode* right = node->data.op_node.right;
 
     left->scope->parent = node->scope;
+    left->context->parent = node->context;
     right->scope->parent = node->scope;
+    right->context->parent = node->context;
 
     accept(v, left);
     accept(v, right);
@@ -161,6 +163,7 @@ void visit_unary_op(Visitor* v, ASTNode* node) {
     ASTNode* left = node->data.op_node.left;
 
     left->scope->parent = node->scope;
+    left->context->parent = node->context;
 
     accept(v, left);
 
@@ -185,10 +188,13 @@ void visit_unary_op(Visitor* v, ASTNode* node) {
 }
 
 void visit_block(Visitor* v, ASTNode* node) {
+    get_context(v, node);
     ASTNode* current = NULL;
+    
     for(int i = 0; i < node->data.program_node.count; i++) {
         current =  node->data.program_node.statements[i];
         current->scope->parent = node->scope;
+        current->context->parent = node->context;
         accept(v, current);
     }
 
