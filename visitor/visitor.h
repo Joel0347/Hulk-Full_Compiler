@@ -5,6 +5,8 @@
 #include "../scope/scope.h"
 #include "../type/type.h"
 #include <string.h>
+#include <stdarg.h>
+
 
 typedef struct Visitor Visitor;
 
@@ -19,6 +21,7 @@ typedef void (*VisitAssignment)(Visitor*, ASTNode*);
 typedef void (*VisitFuncCall)(Visitor*, ASTNode*);
 typedef void (*VisitBlock)(Visitor*, ASTNode*);
 typedef void (*VisitFuncDec)(Visitor*, ASTNode*);
+typedef void (*VisitLetIn)(Visitor*, ASTNode*);
 
 struct Visitor {
     int error_count;
@@ -34,13 +37,14 @@ struct Visitor {
     VisitFuncCall visit_function_call;
     VisitBlock visit_block;
     VisitFuncDec visit_function_dec;
+    VisitLetIn visit_let_in;
 
     char** errors;
 };
 
 void accept(Visitor* visitor, ASTNode* node);
 void get_context(Visitor* visitor, ASTNode* node);
-void add_error(char*** array, int* count, const char* str);
+void report_error(Visitor* v, const char* fmt, ...);
 void free_error(char** array, int count);
 
 #endif

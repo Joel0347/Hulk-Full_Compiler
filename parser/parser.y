@@ -50,7 +50,7 @@ void add_statement(ASTNode* stmt) {
 %token <var> ID
 %token <str> STRING
 %token <str> BOOLEAN
-%token ERROR ARROW FUNCTION
+%token ERROR ARROW FUNCTION DEQUALS LET IN
 %token LPAREN RPAREN EQUALS SEMICOLON COMMA LBRACKET RBRACKET COLON
 
 %left DCONCAT
@@ -65,8 +65,10 @@ void add_statement(ASTNode* stmt) {
 %left POWER
 %left UMINUS
 
-%type <node> expression block_expr statement variable_declaration function_call param function_declaration
-%type <arg_list> list_args block_expr_list param_list
+%type <node> expression block_expr statement destructive_var_decl function_call
+%type <node> param function_declaration simple_var_decl let_in_exp
+
+%type <arg_list> list_args block_expr_list param_list let_definitions
 
 %%
 
@@ -212,9 +214,35 @@ function_declaration:
 
 ;
 
-variable_declaration:
-    ID COLON ID EQUALS expression        { $$ = create_assignment_node($1, $5, $3); }
-    | ID EQUALS expression               { $$ = create_assignment_node($1, $3, ""); }
+let_in_exp:
+    LET let_definitions IN expression { $$ = create_let_in_node($2->args, $2->arg_count, $4); }
+;
+
+let_definitions:
+    simple_var_decl { 
+        $$ = malloc(sizeof(*$$));
+        $$->args = malloc(sizeof(ASTNode *) * 1);
+        $$->args[0] = $1;
+        $$->arg_count = 1;
+    }
+    | simple_var_decl COMMA let_definitions {
+        $$ = malloc(sizeof(*$$));
+        $$->args = malloc(sizeof(ASTNode *) * ($3->arg_count + 1));
+        $$->args[0] = $1;
+        memcpy($$->args + 1, $3->args, sizeof(ASTNode *) * $3->arg_count);
+        $$->arg_count = $3->arg_count + 1;
+        free($3->args);
+    }
+;
+
+destructive_var_decl:
+    ID COLON ID DEQUALS expression        { $$ = create_assignment_node($1, $5, $3, NODE_D_ASSIGNMENT); }
+    | ID DEQUALS expression               { $$ = create_assignment_node($1, $3, "", NODE_D_ASSIGNMENT); }
+;
+
+simple_var_decl:
+    ID COLON ID EQUALS expression        { $$ = create_assignment_node($1, $5, $3, NODE_ASSIGNMENT); }
+    | ID EQUALS expression               { $$ = create_assignment_node($1, $3, "", NODE_ASSIGNMENT); }
 ;
 
 function_call:
@@ -229,6 +257,7 @@ expression:
     | BOOLEAN                            { $$ = create_boolean_node($1); }
     | block_expr                         { $$ = $1; }
     | function_call                      { $$ = $1; }
+    | let_in_exp                         { $$ = $1; }
     | ID                                 { $$ = create_variable_node($1, "", 0); }
     | expression DCONCAT expression      { $$ = create_binary_op_node(OP_DCONCAT, "@@", $1, $3, &TYPE_STRING_INST) }
     | expression CONCAT expression       { $$ = create_binary_op_node(OP_CONCAT, "@", $1, $3, &TYPE_STRING_INST) }
@@ -249,7 +278,8 @@ expression:
     | expression POWER expression        { $$ = create_binary_op_node(OP_POW, "^", $1, $3, &TYPE_NUMBER_INST); }
     | MINUS expression %prec UMINUS      { $$ = create_unary_op_node(OP_NEGATE, "-", $2, &TYPE_NUMBER_INST); }
     | LPAREN expression RPAREN           { $$ = $2; }
-    | variable_declaration               { $$ = $1; }
+    | destructive_var_decl               { $$ = $1; }
+    | simple_var_decl                    { $$ = $1; }
     /* | function_declaration               { $$ = $1; } */
     | ERROR { // Handle any other error
         yyerrok;
@@ -261,17 +291,18 @@ expression:
 
 const char* token_to_str(int token) {
     switch(token) {
-        case NUMBER:       return "number" ; case ID:       return "'identifier'"; case STRING:   return "string";
-        case LPAREN:       return "'('"    ; case RPAREN:   return "')'"         ; case COLON:    return "':'"   ;
-        case LBRACKET:     return "'{'"    ; case RBRACKET: return "'}'"         ; case EQUALS:   return "'='"   ;
-        case SEMICOLON:    return "';'"    ; case PLUS:     return "'+'"         ; case MINUS:    return "'-'"   ;
-        case TIMES:        return "'*'"    ; case DIVIDE:   return "'/'"         ; case MOD:      return "'%'"   ;
-        case POWER:        return "'^'"    ; case CONCAT:   return "'@'"         ; case DCONCAT:  return "'@@'"  ;
-        case AND:          return "'&'"    ; case OR:       return "'|'"         ; case NOT:      return "'!'"   ;
-        case EQUALSEQUALS: return "'=='"   ; case NEQUALS:  return "'!='"        ; case EGREATER: return "'>='"  ;
-        case GREATER:      return "'>'"    ; case ELESS:    return "'<='"        ; case LESS:     return "'<'"   ;
-        case COMMA:        return "','"    ; case PI:       return "'PI'"        ; case E:        return "'E'"   ;
-        case ARROW:        return "'=>'"   ; case FUNCTION: return "'function'"  ;
+        case NUMBER:       return "'number'" ; case ID:       return "'identifier'"; case STRING:   return "'string'";
+        case LPAREN:       return "'('"      ; case RPAREN:   return "')'"         ; case COLON:    return "':'"     ;
+        case LBRACKET:     return "'{'"      ; case RBRACKET: return "'}'"         ; case EQUALS:   return "'='"     ;
+        case SEMICOLON:    return "';'"      ; case PLUS:     return "'+'"         ; case MINUS:    return "'-'"     ;
+        case TIMES:        return "'*'"      ; case DIVIDE:   return "'/'"         ; case MOD:      return "'%'"     ;
+        case POWER:        return "'^'"      ; case CONCAT:   return "'@'"         ; case DCONCAT:  return "'@@'"    ;
+        case AND:          return "'&'"      ; case OR:       return "'|'"         ; case NOT:      return "'!'"     ;
+        case EQUALSEQUALS: return "'=='"     ; case NEQUALS:  return "'!='"        ; case EGREATER: return "'>='"    ;
+        case GREATER:      return "'>'"      ; case ELESS:    return "'<='"        ; case LESS:     return "'<'"     ;
+        case COMMA:        return "','"      ; case PI:       return "'PI'"        ; case E:        return "'E'"     ;
+        case ARROW:        return "'=>'"     ; case FUNCTION: return "'function'"  ; case DEQUALS:  return "':='"    ;
+        case BOOLEAN:      return "'boolean'"; case LET:      return "'let'"       ; case IN:       return "'in'"    ;
 
         default: return "";
     }
@@ -301,7 +332,7 @@ void yyerror(const char *s) {
                 }
         }
 
-        fprintf(stderr, RED". Error in line: %d \n"RESET, line_num);
+        fprintf(stderr, RED". Line: %d. \n"RESET, line_num);
     }
     
     error_count++;

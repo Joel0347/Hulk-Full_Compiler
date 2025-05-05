@@ -94,16 +94,17 @@ ASTNode* create_unary_op_node(Operator op, char* op_name, ASTNode* operand, Type
     return node;
 }
 
-ASTNode* create_assignment_node(char* var, ASTNode* value, char* type_name) {
+ASTNode* create_assignment_node(char* var, ASTNode* value, char* type_name, NodeType type) {
     ASTNode* node = malloc(sizeof(ASTNode));
     node->line = line_num;
-    node->type = NODE_ASSIGNMENT;
+    node->type = type;
     node->return_type = &TYPE_VOID_INST;
     node->scope = create_scope(NULL);
     node->context = create_context(NULL);
     node->data.op_node.left = create_variable_node(var, NULL, 0);
     node->data.op_node.left->static_type = type_name;
     node->data.op_node.right = value;
+    node->value = value;
     return node;
 }
 
@@ -144,6 +145,24 @@ ASTNode* create_func_dec_node(char* name, ASTNode** args, int arg_count, ASTNode
     return node;
 }
 
+ASTNode* create_let_in_node(ASTNode** declarations, int dec_count, ASTNode* body) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->line = line_num;
+    node->type = NODE_LET_IN;
+    node->return_type = &TYPE_OBJECT_INST;
+    node->scope = create_scope(NULL);
+    node->context = create_context(NULL);
+    node->data.func_node.name = "";
+    node->data.func_node.args = malloc(sizeof(ASTNode*) * dec_count);
+    for (int i = 0; i < dec_count; i++) {
+        node->data.func_node.args[i] = declarations[i];
+    }
+    node->data.func_node.arg_count = dec_count;
+    node->data.func_node.body = body;
+    node->value = body;
+    return node;
+}
+
 void free_ast(ASTNode* node) {
     if (!node) {
         return;
@@ -156,6 +175,7 @@ void free_ast(ASTNode* node) {
         case NODE_BINARY_OP:
         case NODE_UNARY_OP:
         case NODE_ASSIGNMENT:
+        case NODE_D_ASSIGNMENT:
             free_ast(node->data.op_node.left);
             free_ast(node->data.op_node.right);
             break;
@@ -172,6 +192,7 @@ void free_ast(ASTNode* node) {
             }
             break;
         case NODE_FUNC_DEC:
+        case NODE_LET_IN:
             for (int i = 0; i < node->data.func_node.arg_count; i++) {
                 free_ast(node->data.func_node.args[i]);
             }
@@ -212,6 +233,10 @@ void print_ast(ASTNode* node, int indent) {
             break;
         case NODE_FUNC_DEC:
             printf("Function_Declaration: %s, returns:\n", node->data.func_node.name);
+            print_ast(node->data.func_node.body, indent + 1);
+            break;
+        case NODE_LET_IN:
+            printf("Let-in: %s\n", node->data.func_node.name);
             print_ast(node->data.func_node.body, indent + 1);
             break;
         case NODE_NUMBER:
@@ -257,6 +282,7 @@ void print_ast(ASTNode* node, int indent) {
             print_ast(node->data.op_node.left, indent + 1);
             break;
         case NODE_ASSIGNMENT:
+        case NODE_D_ASSIGNMENT:
             printf("Assignment:\n");
             print_ast(node->data.op_node.left, indent + 1);
             print_ast(node->data.op_node.right, indent + 1);

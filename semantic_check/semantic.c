@@ -21,6 +21,7 @@ int analyze_semantics(ASTNode* node) {
         .visit_variable = visit_variable,
         .visit_block = visit_block,
         .visit_function_dec = visit_function_dec,
+        .visit_let_in = visit_let_in,
         .error_count = 0,
         .errors = NULL
     };
@@ -63,5 +64,13 @@ void visit_program(Visitor* v, ASTNode* node) {
         child->scope->parent = node->scope;
         child->context->parent = node->context;
         accept(v, child);
+
+        if (child->type == NODE_ASSIGNMENT) {
+            node->return_type = &TYPE_ERROR_INST;
+            report_error(
+                v, "Variable '%s' must be initializated in a 'let' definition. Line: %d", 
+                child->data.op_node.left->data.variable_name, child->line
+            );
+        }
     }
 }

@@ -104,31 +104,26 @@ void visit_function_call(Visitor* v, ASTNode* node) {
     if (!funcData->state->matched) {
         if (!funcData->state->same_name) {
             node->return_type = &TYPE_ERROR_INST;
-            char* str = NULL;
-            asprintf(&str, "Undefined function '%s'. Line: %d.",
+            report_error(
+                v, "Undefined function '%s'. Line: %d.",
                 node->data.func_node.name, node->line
             );
-            add_error(&(v->errors), &(v->error_count), str);
 
         } else if (!funcData->state->same_count) {
-                char* str = NULL;
-                asprintf(&str, "Function '%s' receives %d argument(s), but %d was(were) given. Line: %d.",
-                    node->data.func_node.name, funcData->state->arg1_count, 
-                    funcData->state->arg2_count, node->line
-                );
-                add_error(&(v->errors), &(v->error_count), str);
-
-            // }
+            report_error(
+                v, "Function '%s' receives %d argument(s), but %d was(were) given. Line: %d.",
+                node->data.func_node.name, funcData->state->arg1_count, 
+                funcData->state->arg2_count, node->line
+            );
         } else {
             if (!strcmp(funcData->state->type2_name, "Error"))
                 return;
 
-            char* str = NULL;
-            asprintf(&str, "Function '%s' receives '%s', not '%s' as argument %d. Line: %d.",
+            report_error(
+                v, "Function '%s' receives '%s', not '%s' as argument %d. Line: %d.",
                 node->data.func_node.name, funcData->state->type1_name, 
                 funcData->state->type2_name, funcData->state->pos, node->line
             );
-            add_error(&(v->errors), &(v->error_count), str);
         }
     }
 
@@ -156,11 +151,10 @@ void visit_function_dec(Visitor* v, ASTNode* node) {
         Symbol* param_type = find_defined_type(node->scope, params[i]->static_type);
 
         if (strcmp(params[i]->static_type, "") && !param_type) {
-            char* str = NULL;
-            asprintf(&str, "Parameter '%s' was defined as '%s', which is not a valid type. Line: %d.", 
+            report_error(
+                v, "Parameter '%s' was defined as '%s', which is not a valid type. Line: %d.", 
                 params[i]->data.variable_name, params[i]->static_type, node->line
             );
-            add_error(&(v->errors), &(v->error_count), str);
         }
 
         if (!strcmp(params[i]->static_type, "")) {
@@ -180,31 +174,29 @@ void visit_function_dec(Visitor* v, ASTNode* node) {
     Symbol* defined_type = find_defined_type(node->scope, node->static_type);
 
     if (strcmp(node->static_type, "") && !defined_type) {
-        char* str = NULL;
-        asprintf(&str, "The return type of function '%s' was defined as '%s', which is not a valid type. Line: %d.", 
-            node->data.func_node.name, node->static_type, node->line
+        report_error(
+            v,  "The return type of function '%s' was defined as '%s'"
+            ", which is not a valid type. Line: %d.", node->data.func_node.name,
+            node->static_type, node->line
         );
-        add_error(&(v->errors), &(v->error_count), str);
     }
 
     if (defined_type && !is_ancestor_type(defined_type->type, inferried_type)) {
-        char* str = NULL;
-        asprintf(&str, "The return type of function '%s' was defined as '%s', but inferred as '%s'. Line: %d.", 
-            node->data.func_node.name, node->static_type, 
+        report_error(
+            v, "The return type of function '%s' was defined as '%s', but inferred "
+            "as '%s'. Line: %d.", node->data.func_node.name, node->static_type,
             inferried_type->name, node->line
         );
-        add_error(&(v->errors), &(v->error_count), str);
     }
     
     if (defined_type)
         inferried_type = defined_type->type;
 
     if (type_equals(inferried_type, &TYPE_ANY_INST)) {
-        char* str = NULL;
-        asprintf(&str, "Impossible to infer return type of function '%s'. It must be type annotated. Line: %d.", 
-            node->data.func_node.name, node->line
+        report_error(
+            v, "Impossible to infer return type of function '%s'. It must be "
+            "type annotated. Line: %d.", node->data.func_node.name, node->line
         );
-        add_error(&(v->errors), &(v->error_count), str);
     }
 
     Function* func = find_function_by_name(node->scope, node->data.func_node.name);
@@ -217,11 +209,11 @@ void visit_function_dec(Visitor* v, ASTNode* node) {
             Symbol* param = find_symbol(node->scope, params[i]->data.variable_name);
 
             if (type_equals(param->type, &TYPE_ANY_INST)) {
-                char* str = NULL;
-                asprintf(&str, "Impossible to infer type of parameter '%s' in function '%s'. It must be type annotated. Line: %d.", 
-                    param->name, node->data.func_node.name, node->line
+                report_error(
+                    v, "Impossible to infer type of parameter '%s' in function '%s'."
+                    " It must be type annotated. Line: %d.", param->name,
+                    node->data.func_node.name, node->line
                 );
-                add_error(&(v->errors), &(v->error_count), str);
             }
 
             param_types[i] = param->type;
@@ -233,10 +225,9 @@ void visit_function_dec(Visitor* v, ASTNode* node) {
         );
     } else {
         node->return_type = &TYPE_ERROR_INST;
-        char* str = NULL;
-        asprintf(&str, "Function '%s' already exists. Line: %d.", 
+        report_error(
+            v, "Function '%s' already exists. Line: %d.", 
             node->data.func_node.name, node->line
         );
-        add_error(&(v->errors), &(v->error_count), str);
     }
 }

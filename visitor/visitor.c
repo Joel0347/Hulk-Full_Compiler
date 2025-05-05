@@ -26,6 +26,7 @@ void accept(Visitor* visitor, ASTNode* node) {
             visitor->visit_binary_op(visitor, node);
             break;
         case NODE_ASSIGNMENT:
+        case NODE_D_ASSIGNMENT:
             visitor->visit_assignment(visitor, node);
             break;
         case NODE_VARIABLE:
@@ -39,6 +40,9 @@ void accept(Visitor* visitor, ASTNode* node) {
             break;
         case NODE_FUNC_DEC:
             visitor->visit_function_dec(visitor, node);
+            break;
+        case NODE_LET_IN:
+            visitor->visit_let_in(visitor, node);
             break;
     }
 }
@@ -60,7 +64,16 @@ void add_error(char*** array, int* count, const char* str) {
     (*count)++;
 }
 
-// Liberar memoria
+void report_error(Visitor* v, const char* fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    char* str = NULL;
+    vasprintf(&str, fmt, args);
+    va_end(args);
+    add_error(&(v->errors), &(v->error_count), str);
+}
+
+// Free memory
 void free_error(char** array, int count) {
     for (int i = 0; i < count; i++) {
         free(array[i]);

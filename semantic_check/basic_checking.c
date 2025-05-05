@@ -16,11 +16,10 @@ int unify_member(Visitor* v, ASTNode* node, Type* type) {
             node->return_type = type;
             unified = 1;
         } else {
-            char* str = NULL;
-            asprintf(&str, "Parameter '%s' behaves both as '%s' and '%s'. Line: %d.",
+            report_error(
+                v, "Parameter '%s' behaves both as '%s' and '%s'. Line: %d.",
                 node->data.variable_name, sym->type->name, type->name, node->line
             );
-            add_error(&(v->errors), &(v->error_count), str);
         }
     } else if (type_equals(node->value->return_type, &TYPE_ANY_INST)) {
         unified = unify_member(v, node->value, type);
@@ -103,11 +102,10 @@ void visit_string(Visitor* v, ASTNode* node) {
     {
         if (string[i] == '\\') {
             if (!is_scape_char(string[i + 1])) {
-                char* str = NULL;
-                asprintf(&str, "Invalid scape sequence '\\%c'. Line: %d.", 
+                report_error(
+                    v, "Invalid scape sequence '\\%c'. Line: %d.", 
                     string[i + 1], node->line
                 );
-                add_error(&(v->errors), &(v->error_count), str);
             }
             i++;
         }
@@ -152,10 +150,10 @@ void visit_binary_op(Visitor* v, ASTNode* node) {
     );
 
     if (!find_op_match(&rule)) {
-        char* str = NULL;
-        asprintf(&str, "Operator '%s' can not be used between '%s' and '%s'. Line: %d.",
-            node->data.op_node.op_name, left_type->name, right_type->name, node->line);
-        add_error(&(v->errors), &(v->error_count), str);
+        report_error(
+            v, "Operator '%s' can not be used between '%s' and '%s'. Line: %d.",
+            node->data.op_node.op_name, left_type->name, right_type->name, node->line
+        );
     }
 }
 
@@ -180,10 +178,10 @@ void visit_unary_op(Visitor* v, ASTNode* node) {
     );
 
     if (!find_op_match(&rule)) {
-        char* str = NULL;
-        asprintf(&str, "Operator '%s' can not be used with '%s'. Line: %d.",
-            node->data.op_node.op_name, left_type->name, node->line);
-        add_error(&(v->errors), &(v->error_count), str);
+        report_error(
+            v, "Operator '%s' can not be used with '%s'. Line: %d.",
+            node->data.op_node.op_name, left_type->name, node->line
+        );
     }
 }
 
@@ -191,11 +189,19 @@ void visit_block(Visitor* v, ASTNode* node) {
     get_context(v, node);
     ASTNode* current = NULL;
     
-    for(int i = 0; i < node->data.program_node.count; i++) {
+    for (int i = 0; i < node->data.program_node.count; i++) {
         current =  node->data.program_node.statements[i];
         current->scope->parent = node->scope;
         current->context->parent = node->context;
         accept(v, current);
+
+        if (current->type == NODE_ASSIGNMENT) {
+            node->return_type = &TYPE_ERROR_INST;
+            report_error(
+                v, "Variable '%s' must be initializated in a 'let' definition. Line: %d", 
+                current->data.op_node.left->data.variable_name, current->line
+            );
+        }
     }
 
     if (current) {

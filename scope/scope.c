@@ -45,10 +45,29 @@ void destroy_scope(Scope* scope) {
     free(scope);
 }
 
+Symbol* find_symbol_in_scope(Scope* scope, const char* name) {
+    Symbol* current = scope->symbols;
+    while (current) {
+        if (!strcmp(current->name, name)) {
+            return current;
+        }
+        current = current->next;
+    }
+
+    return NULL;
+}
+
 void declare_symbol(
     Scope* scope, const char* name, Type* type, 
     int is_param, struct ASTNode* value
-) {    
+) {
+    Symbol* s = find_symbol_in_scope(scope, name);
+
+    if (s) {
+        s->type = type;
+        return;
+    }
+
     Symbol* symbol = (Symbol*)malloc(sizeof(Symbol));
     symbol->name = strdup(name);
     symbol->type = type;
@@ -186,13 +205,10 @@ Symbol* find_symbol(Scope* scope, const char* name) {
         return NULL;
     }
 
-    Symbol* current = scope->symbols;
-    while (current) {
-        if (!strcmp(current->name, name)) {
-            return current;
-        }
-        current = current->next;
-    }
+    Symbol* current = find_symbol_in_scope(scope, name);
+
+    if (current)
+        return current;
     
     if (scope->parent) {
         return find_symbol(scope->parent, name);

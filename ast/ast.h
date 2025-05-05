@@ -11,12 +11,14 @@ typedef enum {
     NODE_BINARY_OP,
     NODE_UNARY_OP,
     NODE_ASSIGNMENT,
+    NODE_D_ASSIGNMENT,
     NODE_STRING,
     NODE_BOOLEAN,
     NODE_PROGRAM,
     NODE_FUNC_CALL,
     NODE_BLOCK,
-    NODE_FUNC_DEC
+    NODE_FUNC_DEC,
+    NODE_LET_IN
 } NodeType;
 
 typedef struct ASTNode {
@@ -59,9 +61,10 @@ ASTNode* create_boolean_node(char* value);
 ASTNode* create_variable_node(char* name, char* type, int is_param);
 ASTNode* create_binary_op_node(Operator op, char* op_name, ASTNode* left, ASTNode* right, Type* return_type);
 ASTNode* create_unary_op_node(Operator op, char* op_name, ASTNode* operand, Type* return_type);
-ASTNode* create_assignment_node(char* var, ASTNode* value, char* type_name);
+ASTNode* create_assignment_node(char* var, ASTNode* value, char* type_name, NodeType type);
 ASTNode* create_func_call_node(char* name, ASTNode** args, int arg_count);
-ASTNode* create_func_dec_node(char* name, ASTNode** args, int arg_count, ASTNode* body, char* ret_type);
+ASTNode* create_func_dec_node(char* name, ASTNode** args, int arg_count, ASTNode* body, char* ret_type); 
+ASTNode* create_let_in_node(ASTNode** declarations, int dec_count, ASTNode* body);
 void print_ast(ASTNode* node, int indent);
 
 #endif
