@@ -110,7 +110,6 @@ ASTNode* create_assignment_node(char* var, ASTNode* value, char* type_name, Node
 
 ASTNode* create_func_call_node(char* name, ASTNode** args, int arg_count) {
     ASTNode* node = malloc(sizeof(ASTNode));
-
     node->line = line_num;
     node->type = NODE_FUNC_CALL;
     node->scope = create_scope(NULL);

@@ -32,7 +32,7 @@ void save_context_item(Context* context, struct ASTNode* item) {
     context->first = new;
 }
 
-struct ASTNode* find_context_item(Context* context, char* name) {
+struct ContextItem* find_context_item(Context* context, char* name) {
     if (!context) {
         return NULL;
     }
@@ -40,7 +40,7 @@ struct ASTNode* find_context_item(Context* context, char* name) {
     ContextItem* current = context->first;
     while (current) {
         if (!strcmp(current->declaration->data.func_node.name, name)) {
-            return current->declaration;
+            return current;
         }
         current = current->next;
     }

@@ -3,7 +3,7 @@
 
 // keywords
 char* keywords[] = { 
-    "Number", "String", "Boolean", "Object",
+    "Number", "String", "Boolean", "Object", "Void",
     "true", "false", "PI", "E", "function"
 };
 char scape_chars[] = { 'n', 't', '\\', '\"' };
