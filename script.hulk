@@ -91,24 +91,24 @@ let a = (let b = 6 in b * 7) in print(a);
 print(let b = 6 in b * 7);
 
 let a = 20 in {
-    let a = 42 in print(a);
-    print(a);
+    let a = 42 in print(a); //imprime 42
+    print(a); //imprime 20
 };
 
-let a = 7, a = 7 * 6 in print(a + 1);
+let a = 7, a = 7 * 6 in print(a + 1); //imprime 43
 let a = 7 in
     let a = 7 * 6 in
-        print(a);
+        print(a); //imprime 42
 
 let a = 0 in {
-    print(a);
+    print(a); //imprime 0
     a := 1;
-    print(a);
+    print(a); // imprime 1
 };
 let a = 0 in
     let b = a := 1 in {
-        print(a);
-        print(b);
+        print(a); //imprime 1
+        print(b); //imprime 1
     };
 
 function hola(x:Object, y) { //revisar parametros con igual nombre

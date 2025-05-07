@@ -102,6 +102,23 @@ void visit_function_dec(Visitor* v, ASTNode* node) {
     body->scope->parent = node->scope;
     body->context->parent = node->context;
 
+    for (int i = 0; i < node->data.func_node.arg_count - 1; i++) {
+        for (int j = 1; j < node->data.func_node.arg_count; j++) {
+            if (!strcmp(
+                params[i]->data.variable_name,
+                params[j]->data.variable_name
+            )) {
+                report_error(
+                    v, "Symbol '%s' is used for both argument '%d' and argument '%d' in "
+                    "function '%s' declaration. Line: %d.", params[i]->data.variable_name,
+                    i + 1, j + 1, node->data.func_node.name, node->line
+                );
+                return;
+            }
+        }
+    }
+    
+
     for (int i = 0; i < node->data.func_node.arg_count; i++)
     {
         params[i]->scope->parent = node->scope;
