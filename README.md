@@ -48,6 +48,7 @@ sudo apt install flex bison llvm clang
 │ ├──function_checking.c
 │ ├──semantic.c
 │ ├──semantic.h
+│ ├──unification.c
 │ └──variable_checking.c
 ├── type/ #types
 │ ├──type.c
@@ -61,7 +62,8 @@ sudo apt install flex bison llvm clang
 │
 ├── main.c # Entry point
 ├── Makefile # Build automation
-└──  README.md
+├──  README.md
+└──  script.hulk
 ```
 
 ## **Usage** 🛠

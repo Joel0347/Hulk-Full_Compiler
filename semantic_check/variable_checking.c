@@ -30,6 +30,13 @@ void visit_assignment(Visitor* v, ASTNode* node) {
     accept(v, val_node);
     Type* inferried_type = find_type(v, val_node);
 
+    if (type_equals(inferried_type, &TYPE_ANY_INST) && 
+        defined_type && unify_member(v, val_node, defined_type->type)
+    ) {
+        accept(v, val_node);
+        inferried_type = find_type(v, val_node);
+    }
+
     if (defined_type && !is_ancestor_type(defined_type->type, inferried_type)) {
         report_error(
             v, "Variable '%s' was defined as '%s', but inferred as '%s'. Line: %d.", 
@@ -53,12 +60,15 @@ void visit_assignment(Visitor* v, ASTNode* node) {
             "'let' definition before using operator ':='. Line: %d.",
             var_node->data.variable_name, node->line
         );
-    } else if (sym && sym->is_param) {
-        report_error(
-            v, "Parameter '%s' can not be redefined. Line: %d.", 
-            var_node->data.variable_name, node->line
-        );
-    } else if (node->type == NODE_ASSIGNMENT) {
+    } 
+    // else if (sym && sym->is_param) {
+    //     // report_error(
+    //     //     v, "Parameter '%s' can not be redefined. Line: %d.", 
+    //     //     var_node->data.variable_name, node->line
+    //     // );
+
+    // }
+     else if (node->type == NODE_ASSIGNMENT || (sym && sym->is_param)) {
         declare_symbol(
             node->scope->parent, 
             var_node->data.variable_name, inferried_type,
@@ -66,6 +76,8 @@ void visit_assignment(Visitor* v, ASTNode* node) {
         );
     } else {
         sym->type = inferried_type;
+        sym->value = val_node;
+        sym->is_param = 0;
     }
 
     var_node->return_type = inferried_type;

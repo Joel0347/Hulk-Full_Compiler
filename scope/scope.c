@@ -65,6 +65,8 @@ void declare_symbol(
 
     if (s) {
         s->type = type;
+        s->is_param = is_param;
+        s->value = value;
         return;
     }
 
@@ -122,6 +124,8 @@ void init_builtins(Scope* scope) {
     declare_type(scope, &TYPE_STRING_INST); // string
     declare_type(scope, &TYPE_BOOLEAN_INST); // boolean
     declare_type(scope, &TYPE_OBJECT_INST); // object
+    declare_type(scope, &TYPE_VOID_INST); // void
+
 
     // BUILTIN FUNCTIONS:
 
@@ -217,6 +221,29 @@ Symbol* find_symbol(Scope* scope, const char* name) {
     return NULL;
 }
 
+Symbol* find_parameter(Scope* scope, const char* name) {
+    if (!scope) {
+        return NULL;
+    }
+
+    Symbol* current = scope->symbols;
+    while (current) {
+        if (current->is_param && !strcmp(current->name, name)) {
+            return current;
+        }
+        current = current->next;
+    }
+
+    if (current)
+        return current;
+    
+    if (scope->parent) {
+        return find_parameter(scope->parent, name);
+    }
+    
+    return NULL;
+}
+
 FuncData* find_function(Scope* scope, Function* f, Function* dec) {
     if (!scope) {
         return NULL;
@@ -254,12 +281,6 @@ FuncData* find_function(Scope* scope, Function* f, Function* dec) {
 
     
         return result;
-
-        // if (not_found || data->state->matched) {
-        //     return data;
-        // } else {
-        //     return result;
-        // }
     } 
     
     if (not_found && dec) {

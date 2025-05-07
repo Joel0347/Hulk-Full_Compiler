@@ -42,6 +42,7 @@ typedef struct Scope {
 
 typedef struct ContextItem {
     struct ASTNode* declaration;
+    struct Type* return_type;
     struct ContextItem* next;
 } ContextItem;
 typedef struct Context {
@@ -65,7 +66,8 @@ void init_builtins(Scope* scope);
 Symbol* find_symbol(Scope* scope, const char* name);
 FuncData* find_function(Scope* scope, Function* f, Function* dec);
 Symbol* find_defined_type(Scope* scope, const char* name);
-struct ASTNode* find_context_item(Context* context, char* name);
+struct ContextItem* find_context_item(Context* context, char* name);
+Symbol* find_parameter(Scope* scope, const char* name);
 void free_ast(struct ASTNode* node);
 
 #endif

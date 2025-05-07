@@ -30,7 +30,7 @@
 *.exe
 *.out
 *.app
-*.hulk
+# *.hulk
 
 # Folders
 build/

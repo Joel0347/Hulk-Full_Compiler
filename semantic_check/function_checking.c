@@ -1,49 +1,5 @@
 #include "semantic.h"
 
-IntList* unify_func(Visitor* v, ASTNode** args, Scope* scope, int arg_count, char* f_name) {
-    int count = 0;
-    IntList* unified = NULL;
-    Function* f;
-
-    while (scope)
-    {
-        if (scope->functions) {
-            Function* current = scope->functions->first; 
-            while (current)
-            {
-                if (!strcmp(f_name, current->name) &&
-                    arg_count == current->arg_count
-                ) {
-                    count ++;
-                    if (count > 1) {
-                        return NULL;
-                    }
-
-                    f = current;
-                }
-
-                current = current->next;
-            }
-        }
-
-        scope = scope->parent;
-    }
-
-    if (count) {
-        for (int i = 0; i < arg_count; i++)
-        {
-            if (type_equals(&TYPE_ANY_INST, args[i]->return_type)) {
-                if (unify_member(v, args[i], f->args_types[i])) {
-                    unified = add_int_list(unified, i);
-                } else {
-                    return NULL;
-                }
-            }
-        }
-    }
-    
-    return NULL;
-}
 
 void visit_function_call(Visitor* v, ASTNode* node) {
     ASTNode** args = node->data.func_node.args;
@@ -55,10 +11,12 @@ void visit_function_call(Visitor* v, ASTNode* node) {
         accept(v, args[i]);
     }
 
-    ASTNode* declaration = find_context_item(node->context, node->data.func_node.name);
+    ContextItem* item = find_context_item(
+        node->context, node->data.func_node.name
+    );
 
-    if (declaration) {
-        accept(v, declaration);
+    if (item) {
+        accept(v, item->declaration);
     }
 
     IntList* unified = unify_func(
@@ -83,17 +41,17 @@ void visit_function_call(Visitor* v, ASTNode* node) {
 
     Function* dec = NULL;
 
-    if (declaration) {
-
+    if (item) {
         Type** dec_args_types = find_types(
-            declaration->data.func_node.args, 
-            declaration->data.func_node.arg_count
+            item->declaration->data.func_node.args, 
+            item->declaration->data.func_node.arg_count
         );
 
         dec = (Function*)malloc(sizeof(Function));
-        dec->name = declaration->data.func_node.name;
-        dec->arg_count = declaration->data.func_node.arg_count;
+        dec->name = item->declaration->data.func_node.name;
+        dec->arg_count = item->declaration->data.func_node.arg_count;
         dec->args_types = dec_args_types;
+        dec->result_type = item->return_type ? item->return_type : &TYPE_ANY_INST;
     }
 
     FuncData* funcData = find_function(node->scope, f, dec);
@@ -170,8 +128,25 @@ void visit_function_dec(Visitor* v, ASTNode* node) {
     }
 
     accept(v, body);
+    ContextItem* item = find_context_item(node->context, node->data.func_node.name);
     Type* inferried_type = find_type(v, body);
     Symbol* defined_type = find_defined_type(node->scope, node->static_type);
+
+    if (type_equals(inferried_type, &TYPE_ANY_INST) && 
+        defined_type && unify_member(v, body, defined_type->type)
+    ) {
+        accept(v, body);
+        inferried_type = find_type(v, body);
+    }
+
+    if (item->return_type && !type_equals(inferried_type, item->return_type)) {
+        report_error(
+            v,  "There is a conflict trying to infer return type of function '%s'."
+            " It behaves both as '%s' and '%s'. Line: %d."
+            , node->data.func_node.name, inferried_type->name,
+            item->return_type->name, node->line
+        );
+    }
 
     if (strcmp(node->static_type, "") && !defined_type) {
         report_error(
@@ -206,7 +181,7 @@ void visit_function_dec(Visitor* v, ASTNode* node) {
 
         for (int i = 0; i < node->data.func_node.arg_count; i++)
         {
-            Symbol* param = find_symbol(node->scope, params[i]->data.variable_name);
+            Symbol* param = find_parameter(node->scope, params[i]->data.variable_name);
 
             if (type_equals(param->type, &TYPE_ANY_INST)) {
                 report_error(
