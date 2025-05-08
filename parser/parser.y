@@ -100,7 +100,7 @@ input:
 ;
 
 statement:
-    SEMICOLON                        { $$ = NULL }
+    SEMICOLON                        { $$ = NULL; }
     | function_declaration           { $$ = $1; }
     | function_declaration SEMICOLON { $$ = $1; }
     | block_expr                     { $$ = $1; }
@@ -200,16 +200,16 @@ param_list:
 
 function_declaration:
     FUNCTION ID LPAREN param_list RPAREN ARROW expression SEMICOLON  { 
-        $$ = create_func_dec_node($2, $4->args, $4->arg_count, $7, "") 
+        $$ = create_func_dec_node($2, $4->args, $4->arg_count, $7, ""); 
     }
     | FUNCTION ID LPAREN param_list RPAREN COLON ID ARROW expression SEMICOLON { 
-        $$ = create_func_dec_node($2, $4->args, $4->arg_count, $9, $7) 
+        $$ = create_func_dec_node($2, $4->args, $4->arg_count, $9, $7); 
     }
     | FUNCTION ID LPAREN param_list RPAREN block_expr {
-        $$ = create_func_dec_node($2, $4->args, $4->arg_count, $6, "")
+        $$ = create_func_dec_node($2, $4->args, $4->arg_count, $6, "");
     }
     | FUNCTION ID LPAREN param_list RPAREN COLON ID block_expr {
-        $$ = create_func_dec_node($2, $4->args, $4->arg_count, $8, $7)
+        $$ = create_func_dec_node($2, $4->args, $4->arg_count, $8, $7);
     }
 
 ;
@@ -259,18 +259,18 @@ expression:
     | function_call                      { $$ = $1; }
     | let_in_exp                         { $$ = $1; }
     | ID                                 { $$ = create_variable_node($1, "", 0); }
-    | expression DCONCAT expression      { $$ = create_binary_op_node(OP_DCONCAT, "@@", $1, $3, &TYPE_STRING_INST) }
-    | expression CONCAT expression       { $$ = create_binary_op_node(OP_CONCAT, "@", $1, $3, &TYPE_STRING_INST) }
-    | expression AND expression          { $$ = create_binary_op_node(OP_AND, "&", $1, $3, &TYPE_BOOLEAN_INST)}
-    | expression OR expression           { $$ = create_binary_op_node(OP_OR, "|", $1, $3, &TYPE_BOOLEAN_INST)}
-    | NOT expression                     { $$ = create_unary_op_node(OP_NOT, "!", $2, &TYPE_BOOLEAN_INST)}
-    | expression EQUALSEQUALS expression { $$ = create_binary_op_node(OP_EQ, "==", $1, $3, &TYPE_BOOLEAN_INST)}
-    | expression NEQUALS expression      { $$ = create_binary_op_node(OP_NEQ, "!=", $1, $3, &TYPE_BOOLEAN_INST)}
-    | expression EGREATER expression     { $$ = create_binary_op_node(OP_GRE, ">=", $1, $3, &TYPE_BOOLEAN_INST)}
-    | expression GREATER expression      { $$ = create_binary_op_node(OP_GR, ">", $1, $3, &TYPE_BOOLEAN_INST)}
-    | expression ELESS expression        { $$ = create_binary_op_node(OP_LSE, "<=", $1, $3, &TYPE_BOOLEAN_INST)}
-    | expression LESS expression         { $$ = create_binary_op_node(OP_LS, "<", $1, $3, &TYPE_BOOLEAN_INST)}
-    | expression PLUS expression         { $$ = create_binary_op_node(OP_ADD, "+", $1, $3, &TYPE_NUMBER_INST)}
+    | expression DCONCAT expression      { $$ = create_binary_op_node(OP_DCONCAT, "@@", $1, $3, &TYPE_STRING_INST); }
+    | expression CONCAT expression       { $$ = create_binary_op_node(OP_CONCAT, "@", $1, $3, &TYPE_STRING_INST); }
+    | expression AND expression          { $$ = create_binary_op_node(OP_AND, "&", $1, $3, &TYPE_BOOLEAN_INST); }
+    | expression OR expression           { $$ = create_binary_op_node(OP_OR, "|", $1, $3, &TYPE_BOOLEAN_INST); }
+    | NOT expression                     { $$ = create_unary_op_node(OP_NOT, "!", $2, &TYPE_BOOLEAN_INST); }
+    | expression EQUALSEQUALS expression { $$ = create_binary_op_node(OP_EQ, "==", $1, $3, &TYPE_BOOLEAN_INST); }
+    | expression NEQUALS expression      { $$ = create_binary_op_node(OP_NEQ, "!=", $1, $3, &TYPE_BOOLEAN_INST); }
+    | expression EGREATER expression     { $$ = create_binary_op_node(OP_GRE, ">=", $1, $3, &TYPE_BOOLEAN_INST); }
+    | expression GREATER expression      { $$ = create_binary_op_node(OP_GR, ">", $1, $3, &TYPE_BOOLEAN_INST); }
+    | expression ELESS expression        { $$ = create_binary_op_node(OP_LSE, "<=", $1, $3, &TYPE_BOOLEAN_INST); }
+    | expression LESS expression         { $$ = create_binary_op_node(OP_LS, "<", $1, $3, &TYPE_BOOLEAN_INST); }
+    | expression PLUS expression         { $$ = create_binary_op_node(OP_ADD, "+", $1, $3, &TYPE_NUMBER_INST); }
     | expression MINUS expression        { $$ = create_binary_op_node(OP_SUB, "-", $1, $3, &TYPE_NUMBER_INST); }
     | expression TIMES expression        { $$ = create_binary_op_node(OP_MUL, "*", $1, $3, &TYPE_NUMBER_INST); }
     | expression DIVIDE expression       { $$ = create_binary_op_node(OP_DIV, "/", $1, $3, &TYPE_NUMBER_INST); }
@@ -280,7 +280,6 @@ expression:
     | LPAREN expression RPAREN           { $$ = $2; }
     | destructive_var_decl               { $$ = $1; }
     | simple_var_decl                    { $$ = $1; }
-    /* | function_declaration               { $$ = $1; } */
     | ERROR { // Handle any other error
         yyerrok;
         YYABORT;
