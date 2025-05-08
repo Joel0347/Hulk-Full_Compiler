@@ -8,7 +8,22 @@
 #include <stdio.h>
 #include <string.h>
 
-LLVMValueRef codegen(ASTNode* node) {
+LLVMTypeRef get_llvm_type(Type* type) {
+    printf("estoy en tipo\n");
+    printf("mi tipo es: %s\n", type->name);
+    if (type_equals(type, &TYPE_NUMBER_INST)) {
+        return LLVMDoubleType();
+    } else if (type_equals(type, &TYPE_STRING_INST)) {
+        return LLVMPointerType(LLVMInt8Type(), 0);
+    } else if (type_equals(type, &TYPE_BOOLEAN_INST)) {
+        return LLVMInt1Type();
+    } else if (type_equals(type, &TYPE_VOID_INST)) {
+        return LLVMVoidType();
+    }
+    exit(1);
+}
+
+void generate_main_function(ASTNode* ast, const char* filename) {
     LLVM_Visitor visitor = {
         .visit_program = generate_program,
         .visit_assignment = generate_assignment,
@@ -19,18 +34,19 @@ LLVMValueRef codegen(ASTNode* node) {
         .visit_boolean = generate_boolean,
         .visit_unary_op = generate_unary_operation,
         .visit_variable = generate_variable,
-        .visit_block = generate_block
+        .visit_block = generate_block,
+        .visit_function_dec = generate_function_body
     };
 
-    return accept_gen(&visitor, node);
-}
-
-void generate_main_function(ASTNode* ast, const char* filename) {
     // Inicializar LLVM
     init_llvm();
     
     // Declarar funciones externas
     declare_external_functions();
+
+    find_function_dec(&visitor, ast);
+
+    make_body_function_dec(&visitor, ast);
 
     // Crear el scope
     push_scope();
@@ -44,10 +60,12 @@ void generate_main_function(ASTNode* ast, const char* filename) {
     
     // Generar código para el AST
     if (ast) {
-        codegen(ast);
+        accept_gen(&visitor, ast);
     }
-    
+
     // Retornar 0 de main
+    // LLVMBuildRet(builder, LLVMConstInt(LLVMInt32Type(), 0, 0));
+    LLVMPositionBuilderAtEnd(builder, entry); // Resetear a bloque de main
     LLVMBuildRet(builder, LLVMConstInt(LLVMInt32Type(), 0, 0));
     
     // Escribir a archivo
@@ -65,11 +83,16 @@ void generate_main_function(ASTNode* ast, const char* filename) {
 LLVMValueRef generate_program(LLVM_Visitor* v, ASTNode* node) {
     push_scope();
     LLVMValueRef last = NULL;
+
     for (int i = 0; i < node->data.program_node.count; i++) {
-        last = accept_gen(v, node->data.program_node.statements[i]);
+        ASTNode* stmt = node->data.program_node.statements[i];
+        if (stmt->type != NODE_FUNC_DEC) {
+            last = accept_gen(v, stmt);
+        }
     }
+
     pop_scope();
-    return last;
+    return last ? last : LLVMConstInt(LLVMInt32Type(), 0, 0);
 }
 
 LLVMValueRef generate_number(LLVM_Visitor* v,ASTNode* node) {
@@ -92,13 +115,14 @@ LLVMValueRef generate_block(LLVM_Visitor* v,ASTNode* node) {
     push_scope();
     LLVMValueRef last_val = NULL;
     for (int i = 0; i < node->data.program_node.count; i++) {
-        last_val = accept_gen(v, node->data.program_node.statements[i]);
+        ASTNode* stmt = node->data.program_node.statements[i];
+        // No generar código para declaraciones de función aquí
+        if (stmt->type != NODE_FUNC_DEC) {
+            last_val = accept_gen(v, stmt);
+        }
     }
-    if (last_val)
-    {
-        pop_scope();
-    }
-    return last_val;
+    pop_scope();
+    return last_val ? last_val : LLVMConstInt(LLVMInt32Type(), 0, 0);
 }
 
 LLVMValueRef generate_assignment(LLVM_Visitor* v,ASTNode* node) {
@@ -145,4 +169,128 @@ LLVMValueRef generate_variable(LLVM_Visitor* v,ASTNode* node) {
     }
     LLVMTypeRef var_type = LLVMGetElementType(LLVMTypeOf(alloca));
     return LLVMBuildLoad2(builder, var_type, alloca, "load");
+}
+
+void find_function_dec(LLVM_Visitor* visitor, ASTNode* node) {
+    if (node->type == NODE_PROGRAM || node->type == NODE_BLOCK) {
+        for (int i = 0; i < node->data.program_node.count; i++) {
+            ASTNode* stmt = node->data.program_node.statements[i];
+            if (stmt->type == NODE_FUNC_DEC) {
+                make_function_dec(visitor, stmt);
+            }
+            if (stmt->type == NODE_BLOCK) {
+                find_function_dec(visitor, stmt);
+            }
+        }
+    }
+}
+
+void make_body_function_dec(LLVM_Visitor* visitor, ASTNode* node) {
+    if (node->type == NODE_PROGRAM || node->type == NODE_BLOCK) {
+        for (int i = 0; i < node->data.program_node.count; i++) {
+            ASTNode* stmt = node->data.program_node.statements[i];
+            if (stmt->type == NODE_FUNC_DEC) {
+                accept_gen(visitor, stmt);
+            }
+            if (stmt->type == NODE_BLOCK) {
+                make_body_function_dec(visitor, stmt);
+            }
+        }
+    }
+}
+
+LLVMValueRef make_function_dec(LLVM_Visitor* v, ASTNode* node) {
+    const char* name = node->data.func_node.name;
+    Type* return_type = node->data.func_node.body->return_type;
+    ASTNode** params = node->data.func_node.args;
+    int param_count = node->data.func_node.arg_count;
+
+    printf("mi nombre es: %s\n", name);
+    printf("tengo %d args\n", param_count);
+    printf("mi retorno es: %s\n", return_type);
+
+    // Obtener tipos de parámetros
+    LLVMTypeRef* param_types = malloc(param_count * sizeof(LLVMTypeRef));
+    for (int i = 0; i < param_count; i++) {
+        param_types[i] = get_llvm_type(params[i]->return_type);
+    }
+
+    printf("llegue\n");
+
+    // Crear y registrar la firma de la función
+    LLVMTypeRef func_type = LLVMFunctionType(
+        get_llvm_type(return_type),
+        param_types,
+        param_count,
+        0
+    );
+    
+    LLVMValueRef func = LLVMAddFunction(module, name, func_type);
+    free(param_types);
+    return func;
+}
+
+LLVMValueRef generate_function_body(LLVM_Visitor* v, ASTNode* node) {
+    const char* name = node->data.func_node.name;
+    Type* return_type = node->data.func_node.body->return_type;
+    ASTNode** params = node->data.func_node.args;
+    int param_count = node->data.func_node.arg_count;
+    ASTNode* body = node->data.func_node.body;
+
+    printf("mi nombre es: %s\n", name);
+
+    // Obtener tipos de parámetros
+    LLVMTypeRef* param_types = malloc(param_count * sizeof(LLVMTypeRef));
+    for (int i = 0; i < param_count; i++) {
+        param_types[i] = get_llvm_type(params[i]->return_type);
+    }
+
+    LLVMValueRef func = LLVMGetNamedFunction(module, name);
+    LLVMBasicBlockRef entry = LLVMAppendBasicBlock(func, "entry");
+
+    // Guardar contexto previo del builder
+    LLVMBasicBlockRef prev_block = LLVMGetInsertBlock(builder);
+    LLVMValueRef prev_function = NULL;
+
+    if (prev_block) {
+        prev_function = LLVMGetBasicBlockParent(prev_block);
+    }
+
+    // Configurar builder para la función actual
+    LLVMPositionBuilderAtEnd(builder, entry);
+        
+    // Configurar bloques básicos y generación de código
+    // LLVMBasicBlockRef entry = LLVMAppendBasicBlock(func, "entry");
+    // LLVMPositionBuilderAtEnd(builder, entry);
+    
+    push_scope();
+
+    // Almacenar parámetros en variables locales
+    for (int i = 0; i < param_count; i++) {
+        LLVMValueRef param = LLVMGetParam(func, i);
+        LLVMValueRef alloca = LLVMBuildAlloca(builder, param_types[i], params[i]->data.variable_name);
+        LLVMBuildStore(builder, param, alloca);
+        declare_variable(params[i]->data.variable_name, alloca);
+    }
+
+    // Generar código para el cuerpo
+    LLVMValueRef body_val = accept_gen(v, body);
+
+    // Retornar
+    if (type_equals(return_type, &TYPE_VOID_INST)) {
+        LLVMBuildRetVoid(builder);
+    } else {
+        LLVMBuildRet(builder, body_val);
+    }
+
+    // Restaurar scope
+    pop_scope();
+    free(param_types);
+
+    // Restaurar contexto anterior
+    if (prev_function && LLVMGetBasicBlockParent(entry) != prev_function) {
+        LLVMPositionBuilderAtEnd(builder, prev_block);
+    }
+
+    return func;
 }
