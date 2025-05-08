@@ -10,7 +10,6 @@ Context* create_context(Context* parent) {
 
 void free_context_item(ContextItem* item) {
     if (item) {
-        free_ast(item->declaration);
         free_context_item(item->next);
     }
 

@@ -28,7 +28,7 @@ LLVMValueRef generate_builtin_function(LLVM_Visitor* v, ASTNode* node) {
         return rand_function(v, node);
     }
 
-    exit(1);
+    return generate_user_function_call(v, node);
 }
 
 LLVMValueRef print_function(LLVM_Visitor* v, ASTNode* node) {
@@ -135,4 +135,51 @@ LLVMValueRef basic_functions(
     LLVMValueRef func = LLVMGetNamedFunction(module, name);
     return LLVMBuildCall2(builder, type, func,
             (LLVMValueRef[]){arg}, 1, tmp_name);
+}
+
+LLVMValueRef generate_user_function_call(LLVM_Visitor* v, ASTNode* node) {
+    const char* name = node->data.func_node.name;
+
+    LLVMValueRef func = LLVMGetNamedFunction(module, name);    
+    LLVMTypeRef func_type = LLVMGetElementType(LLVMTypeOf(func));
+    unsigned param_count = LLVMCountParamTypes(func_type);
+
+    int arg_count = node->data.func_node.arg_count;
+    ASTNode** args = node->data.func_node.args;
+    Type* return_type = node->return_type;
+
+    // Obtener tipos de los argumentos
+    LLVMTypeRef* arg_types = malloc(arg_count * sizeof(LLVMTypeRef));
+    LLVMValueRef* arg_values = malloc(arg_count * sizeof(LLVMValueRef));
+    
+    for (int i = 0; i < arg_count; i++) {
+        arg_types[i] = get_llvm_type(args[i]->return_type);
+        arg_values[i] = accept_gen(v, args[i]);
+    }
+
+    // // Obtener/declarar función
+    // LLVMTypeRef func_type = LLVMFunctionType(
+    //     get_llvm_type(return_type),
+    //     arg_types,
+    //     arg_count,
+    //     0
+    // );
+    
+    if (!func) {
+        func = LLVMAddFunction(module, name, func_type);
+    }
+
+    // Construir llamada
+    LLVMValueRef call = LLVMBuildCall2(
+        builder,
+        LLVMGetElementType(LLVMTypeOf(func)),
+        func,
+        arg_values,
+        arg_count,
+        "calltmp"
+    );
+
+    free(arg_types);
+    free(arg_values);
+    return call;
 }

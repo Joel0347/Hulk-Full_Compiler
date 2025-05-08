@@ -209,6 +209,7 @@ void visit_function_dec(Visitor* v, ASTNode* node) {
             }
 
             param_types[i] = param->type;
+            node->data.func_node.args[i]->return_type = param->type;
         }
 
         declare_function(

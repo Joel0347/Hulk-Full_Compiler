@@ -2,8 +2,6 @@
 #define LLVM_VISITOR
 
 #include "../ast/ast.h"
-#include "../scope/scope.h"
-#include "../type/type.h"
 #include <string.h>
 #include <llvm-c/Core.h>
 
@@ -19,6 +17,8 @@ typedef LLVMValueRef (*GenerateUnaryOp)(LLVM_Visitor*, ASTNode*);
 typedef LLVMValueRef (*GenerateAssignment)(LLVM_Visitor*, ASTNode*);
 typedef LLVMValueRef (*GenerateBultinFunc)(LLVM_Visitor*, ASTNode*);
 typedef LLVMValueRef (*GenerateBlock)(LLVM_Visitor*, ASTNode*);
+typedef LLVMValueRef (*GenerateFuncDec)(LLVM_Visitor*, ASTNode*);
+
 
 struct LLVM_Visitor {
     GenerateProgram visit_program;
@@ -31,6 +31,7 @@ struct LLVM_Visitor {
     GenerateAssignment visit_assignment;
     GenerateBultinFunc visit_function_call;
     GenerateBlock visit_block;
+    GenerateFuncDec visit_function_dec;
 };
 
 LLVMValueRef accept_gen(LLVM_Visitor* visitor, ASTNode* node);

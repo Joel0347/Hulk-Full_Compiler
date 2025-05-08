@@ -110,7 +110,7 @@ $(SEMANTIC_DIR)/unification.o: $(SEMANTIC_DIR)/unification.c
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 # Objetivo para compilar y ejecutar output.ll, si existe
-execute: compile
+execute:
 	@if [ -s $(BUILD_DIR)/output.ll ]; then \
         echo "🔄 Compiling output.ll..."; \
         clang $(BUILD_DIR)/output.ll -o $(BUILD_DIR)/program -lm || (echo "❌ clang failed when compiling output.ll"; exit 1); \

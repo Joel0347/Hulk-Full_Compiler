@@ -27,6 +27,8 @@ LLVMValueRef accept_gen(LLVM_Visitor* visitor, ASTNode* node) {
             return visitor->visit_function_call(visitor, node);
         case NODE_BLOCK:
             return visitor->visit_block(visitor, node);
+        case NODE_FUNC_DEC:
+            return visitor->visit_function_dec(visitor, node);
         default:
             exit(1);
     }
