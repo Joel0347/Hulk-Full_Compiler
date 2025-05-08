@@ -97,9 +97,8 @@ LLVMValueRef generate_block(LLVM_Visitor* v,ASTNode* node) {
     if (last_val)
     {
         pop_scope();
-        return last_val;
     }
-    return 1;
+    return last_val;
 }
 
 LLVMValueRef generate_assignment(LLVM_Visitor* v,ASTNode* node) {
