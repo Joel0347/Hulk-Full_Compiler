@@ -156,14 +156,6 @@ LLVMValueRef generate_user_function_call(LLVM_Visitor* v, ASTNode* node) {
         arg_types[i] = get_llvm_type(args[i]->return_type);
         arg_values[i] = accept_gen(v, args[i]);
     }
-
-    // // Obtener/declarar función
-    // LLVMTypeRef func_type = LLVMFunctionType(
-    //     get_llvm_type(return_type),
-    //     arg_types,
-    //     arg_count,
-    //     0
-    // );
     
     if (!func) {
         func = LLVMAddFunction(module, name, func_type);
