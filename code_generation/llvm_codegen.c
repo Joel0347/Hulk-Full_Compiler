@@ -9,8 +9,6 @@
 #include <string.h>
 
 LLVMTypeRef get_llvm_type(Type* type) {
-    printf("estoy en tipo\n");
-    printf("mi tipo es: %s\n", type->name);
     if (type_equals(type, &TYPE_NUMBER_INST)) {
         return LLVMDoubleType();
     } else if (type_equals(type, &TYPE_STRING_INST)) {
@@ -64,7 +62,6 @@ void generate_main_function(ASTNode* ast, const char* filename) {
     }
 
     // Retornar 0 de main
-    // LLVMBuildRet(builder, LLVMConstInt(LLVMInt32Type(), 0, 0));
     LLVMPositionBuilderAtEnd(builder, entry); // Resetear a bloque de main
     LLVMBuildRet(builder, LLVMConstInt(LLVMInt32Type(), 0, 0));
     
@@ -205,17 +202,11 @@ LLVMValueRef make_function_dec(LLVM_Visitor* v, ASTNode* node) {
     ASTNode** params = node->data.func_node.args;
     int param_count = node->data.func_node.arg_count;
 
-    printf("mi nombre es: %s\n", name);
-    printf("tengo %d args\n", param_count);
-    printf("mi retorno es: %s\n", return_type);
-
     // Obtener tipos de parámetros
     LLVMTypeRef* param_types = malloc(param_count * sizeof(LLVMTypeRef));
     for (int i = 0; i < param_count; i++) {
         param_types[i] = get_llvm_type(params[i]->return_type);
     }
-
-    printf("llegue\n");
 
     // Crear y registrar la firma de la función
     LLVMTypeRef func_type = LLVMFunctionType(
@@ -237,8 +228,6 @@ LLVMValueRef generate_function_body(LLVM_Visitor* v, ASTNode* node) {
     int param_count = node->data.func_node.arg_count;
     ASTNode* body = node->data.func_node.body;
 
-    printf("mi nombre es: %s\n", name);
-
     // Obtener tipos de parámetros
     LLVMTypeRef* param_types = malloc(param_count * sizeof(LLVMTypeRef));
     for (int i = 0; i < param_count; i++) {
@@ -258,11 +247,7 @@ LLVMValueRef generate_function_body(LLVM_Visitor* v, ASTNode* node) {
 
     // Configurar builder para la función actual
     LLVMPositionBuilderAtEnd(builder, entry);
-        
-    // Configurar bloques básicos y generación de código
-    // LLVMBasicBlockRef entry = LLVMAppendBasicBlock(func, "entry");
-    // LLVMPositionBuilderAtEnd(builder, entry);
-    
+            
     push_scope();
 
     // Almacenar parámetros en variables locales
@@ -272,7 +257,6 @@ LLVMValueRef generate_function_body(LLVM_Visitor* v, ASTNode* node) {
         LLVMBuildStore(builder, param, alloca);
         declare_variable(params[i]->data.variable_name, alloca);
     }
-
     // Generar código para el cuerpo
     LLVMValueRef body_val = accept_gen(v, body);
 
