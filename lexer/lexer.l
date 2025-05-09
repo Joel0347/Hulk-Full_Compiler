@@ -16,7 +16,7 @@ int line_num = 1;
 [ \t]           { ; }
 ";"             { return SEMICOLON; }
 ","             { return COMMA; }
-[0-9]+          { yylval.val = atoi(yytext); return NUMBER; }
+[0-9]+          { yylval.val = atof(yytext); return NUMBER; }
 [0-9]+\.[0-9]+  { yylval.val = atof(yytext); return NUMBER; }
 "+"             { return PLUS; }
 "-"             { return MINUS; }
