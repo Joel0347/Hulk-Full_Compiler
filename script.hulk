@@ -47,13 +47,18 @@ function g(x, y:String) {
     f(x, y);
 }
 
-function test1(x, y) => test2(x, y) + 1;
+function test1(x, y:Object): Number => k(x, y);
 function test2(x: Number, y:String) => {
     test1(x, y); //test2 debe saber que retorna Void o lo que sea que retorne test1
 };
 
-// test1(2,3) @ 1;
-// test2(2, "sad") + 1;
+function k(x, y:Object) {
+    test2(test1(x, y), x); // no infiere que y es string
+}
+// // k(2);
+
+// // test1(2,3) @ 1;
+// // test2(2, "sad") + 1;
 
 function cot(x) => 1 / tan(x);
 function tan(x) => sin(x) / cos(x);
@@ -119,6 +124,9 @@ function hola(x:Object, y) { //revisar parametros con igual nombre
     };
 }
 
-function suc() => {};
+// function suc() => {};
 // suc()+1;
 // hola("12", true);
+
+// function g(x:Object) => f(x);
+// function f(x:Object):Number => g(x);

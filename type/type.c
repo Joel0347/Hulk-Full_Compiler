@@ -1,21 +1,20 @@
 #include "type.h"
-#include <string.h>
 
 // keywords
 char* keywords[] = { 
     "Number", "String", "Boolean", "Object", "Void",
-    "true", "false", "PI", "E", "function"
+    "true", "false", "PI", "E", "function", "let", "in"
 };
 char scape_chars[] = { 'n', 't', '\\', '\"' };
 
 // Basic types instances
-Type TYPE_OBJECT_INST = { "Object", NULL, NULL };
-Type TYPE_NUMBER_INST = { "Number", NULL, &TYPE_OBJECT_INST };
-Type TYPE_STRING_INST = { "String", NULL, &TYPE_OBJECT_INST };
-Type TYPE_BOOLEAN_INST = { "Boolean", NULL, &TYPE_OBJECT_INST };
-Type TYPE_VOID_INST = { "Void", NULL, &TYPE_OBJECT_INST };
-Type TYPE_ERROR_INST = { "Error", NULL, NULL };
-Type TYPE_ANY_INST = { "Any", NULL, NULL };
+Type TYPE_OBJECT = { "Object", NULL, NULL };
+Type TYPE_NUMBER = { "Number", NULL, &TYPE_OBJECT };
+Type TYPE_STRING = { "String", NULL, &TYPE_OBJECT };
+Type TYPE_BOOLEAN = { "Boolean", NULL, &TYPE_OBJECT };
+Type TYPE_VOID = { "Void", NULL, &TYPE_OBJECT };
+Type TYPE_ERROR = { "Error", NULL, NULL };
+Type TYPE_ANY = { "Any", NULL, NULL };
 
 OperatorTypeRule operator_rules[] = {
 
@@ -24,40 +23,40 @@ OperatorTypeRule operator_rules[] = {
 //      left_type    |      right_type     |   return_type   | operator  
 
     // math binary
-    { &TYPE_NUMBER_INST, &TYPE_NUMBER_INST, &TYPE_NUMBER_INST, OP_ADD },// +
-    { &TYPE_NUMBER_INST, &TYPE_NUMBER_INST, &TYPE_NUMBER_INST, OP_SUB },// -
-    { &TYPE_NUMBER_INST, &TYPE_NUMBER_INST, &TYPE_NUMBER_INST, OP_MUL },// *
-    { &TYPE_NUMBER_INST, &TYPE_NUMBER_INST, &TYPE_NUMBER_INST, OP_DIV },// /
-    { &TYPE_NUMBER_INST, &TYPE_NUMBER_INST, &TYPE_NUMBER_INST, OP_MOD },// %
-    { &TYPE_NUMBER_INST, &TYPE_NUMBER_INST, &TYPE_NUMBER_INST, OP_POW },// ^
+    { &TYPE_NUMBER, &TYPE_NUMBER, &TYPE_NUMBER, OP_ADD },// +
+    { &TYPE_NUMBER, &TYPE_NUMBER, &TYPE_NUMBER, OP_SUB },// -
+    { &TYPE_NUMBER, &TYPE_NUMBER, &TYPE_NUMBER, OP_MUL },// *
+    { &TYPE_NUMBER, &TYPE_NUMBER, &TYPE_NUMBER, OP_DIV },// /
+    { &TYPE_NUMBER, &TYPE_NUMBER, &TYPE_NUMBER, OP_MOD },// %
+    { &TYPE_NUMBER, &TYPE_NUMBER, &TYPE_NUMBER, OP_POW },// ^
     //string binary
-    { &TYPE_NUMBER_INST, &TYPE_STRING_INST, &TYPE_STRING_INST, OP_CONCAT},// @
-    { &TYPE_STRING_INST, &TYPE_STRING_INST, &TYPE_STRING_INST, OP_CONCAT},
-    { &TYPE_STRING_INST, &TYPE_NUMBER_INST, &TYPE_STRING_INST, OP_CONCAT},
-    { &TYPE_NUMBER_INST, &TYPE_STRING_INST, &TYPE_STRING_INST, OP_DCONCAT},// @@
-    { &TYPE_STRING_INST, &TYPE_STRING_INST, &TYPE_STRING_INST, OP_DCONCAT},
-    { &TYPE_STRING_INST, &TYPE_NUMBER_INST, &TYPE_STRING_INST, OP_DCONCAT},
+    { &TYPE_NUMBER, &TYPE_STRING, &TYPE_STRING, OP_CONCAT},// @
+    { &TYPE_STRING, &TYPE_STRING, &TYPE_STRING, OP_CONCAT},
+    { &TYPE_STRING, &TYPE_NUMBER, &TYPE_STRING, OP_CONCAT},
+    { &TYPE_NUMBER, &TYPE_STRING, &TYPE_STRING, OP_DCONCAT},// @@
+    { &TYPE_STRING, &TYPE_STRING, &TYPE_STRING, OP_DCONCAT},
+    { &TYPE_STRING, &TYPE_NUMBER, &TYPE_STRING, OP_DCONCAT},
     //boolean binary
-    { &TYPE_BOOLEAN_INST, &TYPE_BOOLEAN_INST, &TYPE_BOOLEAN_INST, OP_AND },// &
-    { &TYPE_BOOLEAN_INST, &TYPE_BOOLEAN_INST, &TYPE_BOOLEAN_INST, OP_OR },// |
+    { &TYPE_BOOLEAN, &TYPE_BOOLEAN, &TYPE_BOOLEAN, OP_AND },// &
+    { &TYPE_BOOLEAN, &TYPE_BOOLEAN, &TYPE_BOOLEAN, OP_OR },// |
     //comparison
-    { &TYPE_NUMBER_INST, &TYPE_NUMBER_INST, &TYPE_BOOLEAN_INST, OP_EQ },// ==
-    { &TYPE_STRING_INST, &TYPE_STRING_INST, &TYPE_BOOLEAN_INST, OP_EQ },
-    { &TYPE_BOOLEAN_INST, &TYPE_BOOLEAN_INST, &TYPE_BOOLEAN_INST, OP_EQ },
-    { &TYPE_NUMBER_INST, &TYPE_NUMBER_INST, &TYPE_BOOLEAN_INST, OP_NEQ },// !=
-    { &TYPE_STRING_INST, &TYPE_STRING_INST, &TYPE_BOOLEAN_INST, OP_NEQ },
-    { &TYPE_BOOLEAN_INST, &TYPE_BOOLEAN_INST, &TYPE_BOOLEAN_INST, OP_NEQ },
-    { &TYPE_NUMBER_INST, &TYPE_NUMBER_INST, &TYPE_BOOLEAN_INST, OP_GRE },// >=
-    { &TYPE_STRING_INST, &TYPE_STRING_INST, &TYPE_BOOLEAN_INST, OP_GRE },
-    { &TYPE_NUMBER_INST, &TYPE_NUMBER_INST, &TYPE_BOOLEAN_INST, OP_GR },// >
-    { &TYPE_STRING_INST, &TYPE_STRING_INST, &TYPE_BOOLEAN_INST, OP_GR },
-    { &TYPE_NUMBER_INST, &TYPE_NUMBER_INST, &TYPE_BOOLEAN_INST, OP_LSE },// <=
-    { &TYPE_STRING_INST, &TYPE_STRING_INST, &TYPE_BOOLEAN_INST, OP_LSE },
-    { &TYPE_NUMBER_INST, &TYPE_NUMBER_INST, &TYPE_BOOLEAN_INST, OP_LS },// <
-    { &TYPE_STRING_INST, &TYPE_STRING_INST, &TYPE_BOOLEAN_INST, OP_LS },
+    { &TYPE_NUMBER, &TYPE_NUMBER, &TYPE_BOOLEAN, OP_EQ },// ==
+    { &TYPE_STRING, &TYPE_STRING, &TYPE_BOOLEAN, OP_EQ },
+    { &TYPE_BOOLEAN, &TYPE_BOOLEAN, &TYPE_BOOLEAN, OP_EQ },
+    { &TYPE_NUMBER, &TYPE_NUMBER, &TYPE_BOOLEAN, OP_NEQ },// !=
+    { &TYPE_STRING, &TYPE_STRING, &TYPE_BOOLEAN, OP_NEQ },
+    { &TYPE_BOOLEAN, &TYPE_BOOLEAN, &TYPE_BOOLEAN, OP_NEQ },
+    { &TYPE_NUMBER, &TYPE_NUMBER, &TYPE_BOOLEAN, OP_GRE },// >=
+    { &TYPE_STRING, &TYPE_STRING, &TYPE_BOOLEAN, OP_GRE },
+    { &TYPE_NUMBER, &TYPE_NUMBER, &TYPE_BOOLEAN, OP_GR },// >
+    { &TYPE_STRING, &TYPE_STRING, &TYPE_BOOLEAN, OP_GR },
+    { &TYPE_NUMBER, &TYPE_NUMBER, &TYPE_BOOLEAN, OP_LSE },// <=
+    { &TYPE_STRING, &TYPE_STRING, &TYPE_BOOLEAN, OP_LSE },
+    { &TYPE_NUMBER, &TYPE_NUMBER, &TYPE_BOOLEAN, OP_LS },// <
+    { &TYPE_STRING, &TYPE_STRING, &TYPE_BOOLEAN, OP_LS },
     //unary
-    { &TYPE_BOOLEAN_INST, NULL, &TYPE_BOOLEAN_INST, OP_NOT },// !
-    { &TYPE_NUMBER_INST, NULL, &TYPE_NUMBER_INST, OP_NEGATE },// (-)
+    { &TYPE_BOOLEAN, NULL, &TYPE_BOOLEAN, OP_NOT },// !
+    { &TYPE_NUMBER, NULL, &TYPE_NUMBER, OP_NEGATE },// (-)
 };
 
 
@@ -123,10 +122,10 @@ int op_rule_equals(OperatorTypeRule* op1, OperatorTypeRule* op2) {
             (type_equals(op1->left_type, op2->left_type) &&
              type_equals(op1->right_type, op2->right_type)
             ) ||
-            type_equals(op2->left_type, &TYPE_ERROR_INST)||
-            type_equals(op2->right_type, &TYPE_ANY_INST) ||
-            type_equals(op2->right_type, &TYPE_ERROR_INST)||
-            type_equals(op2->left_type, &TYPE_ANY_INST)
+            type_equals(op2->left_type, &TYPE_ERROR)||
+            type_equals(op2->right_type, &TYPE_ANY) ||
+            type_equals(op2->right_type, &TYPE_ERROR)||
+            type_equals(op2->left_type, &TYPE_ANY)
            ) &&
             type_equals(op1->result_type, op2->result_type) &&
             op1->op == op2->op;

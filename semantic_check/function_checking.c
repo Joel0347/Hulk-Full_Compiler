@@ -51,7 +51,7 @@ void visit_function_call(Visitor* v, ASTNode* node) {
         dec->name = item->declaration->data.func_node.name;
         dec->arg_count = item->declaration->data.func_node.arg_count;
         dec->args_types = dec_args_types;
-        dec->result_type = item->return_type ? item->return_type : &TYPE_ANY_INST;
+        dec->result_type = item->return_type ? item->return_type : &TYPE_ANY;
     }
 
     FuncData* funcData = find_function(node->scope, f, dec);
@@ -61,7 +61,7 @@ void visit_function_call(Visitor* v, ASTNode* node) {
 
     if (!funcData->state->matched) {
         if (!funcData->state->same_name) {
-            node->return_type = &TYPE_ERROR_INST;
+            node->return_type = &TYPE_ERROR;
             report_error(
                 v, "Undefined function '%s'. Line: %d.",
                 node->data.func_node.name, node->line
@@ -133,7 +133,7 @@ void visit_function_dec(Visitor* v, ASTNode* node) {
         }
 
         if (!strcmp(params[i]->static_type, "")) {
-            params[i]->return_type = &TYPE_ANY_INST;
+            params[i]->return_type = &TYPE_ANY;
         } else if (param_type) {
             params[i]->return_type = param_type->type;
         }
@@ -149,16 +149,22 @@ void visit_function_dec(Visitor* v, ASTNode* node) {
     Type* inferried_type = find_type(v, body);
     Symbol* defined_type = find_defined_type(node->scope, node->static_type);
 
-    if (type_equals(inferried_type, &TYPE_ANY_INST) && 
+    if (type_equals(inferried_type, &TYPE_ANY) && 
         defined_type && unify_member(v, body, defined_type->type)
     ) {
         accept(v, body);
         inferried_type = find_type(v, body);
     }
 
-    if (item->return_type && !type_equals(inferried_type, item->return_type)) {
+    if (!defined_type && item->return_type &&
+        !type_equals(inferried_type, item->return_type) &&
+        !type_equals(&TYPE_ERROR, item->return_type) &&
+        !type_equals(&TYPE_ANY, item->return_type) &&
+        !type_equals(&TYPE_ERROR, inferried_type) &&
+        !type_equals(&TYPE_ANY, inferried_type)
+    ) {
         report_error(
-            v,  "There is a conflict trying to infer return type of function '%s'."
+            v,  "Impossible to infer return type of function '%s'."
             " It behaves both as '%s' and '%s'. Line: %d."
             , node->data.func_node.name, inferried_type->name,
             item->return_type->name, node->line
@@ -184,7 +190,7 @@ void visit_function_dec(Visitor* v, ASTNode* node) {
     if (defined_type)
         inferried_type = defined_type->type;
 
-    if (type_equals(inferried_type, &TYPE_ANY_INST)) {
+    if (type_equals(inferried_type, &TYPE_ANY)) {
         report_error(
             v, "Impossible to infer return type of function '%s'. It must be "
             "type annotated. Line: %d.", node->data.func_node.name, node->line
@@ -195,12 +201,11 @@ void visit_function_dec(Visitor* v, ASTNode* node) {
     Type** param_types = find_types(params, node->data.func_node.arg_count);
     
     if (!func) {
-
         for (int i = 0; i < node->data.func_node.arg_count; i++)
         {
             Symbol* param = find_parameter(node->scope, params[i]->data.variable_name);
 
-            if (type_equals(param->type, &TYPE_ANY_INST)) {
+            if (type_equals(param->type, &TYPE_ANY)) {
                 report_error(
                     v, "Impossible to infer type of parameter '%s' in function '%s'."
                     " It must be type annotated. Line: %d.", param->name,
@@ -215,12 +220,6 @@ void visit_function_dec(Visitor* v, ASTNode* node) {
         declare_function(
             node->scope->parent, node->data.func_node.arg_count,
             param_types, inferried_type, node->data.func_node.name
-        );
-    } else {
-        node->return_type = &TYPE_ERROR_INST;
-        report_error(
-            v, "Function '%s' already exists. Line: %d.", 
-            node->data.func_node.name, node->line
         );
     }
 }

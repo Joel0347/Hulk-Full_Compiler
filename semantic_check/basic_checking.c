@@ -35,7 +35,7 @@ void visit_binary_op(Visitor* v, ASTNode* node) {
     accept(v, left);
     accept(v, right);
 
-    int unified = unify(
+    int unified = unify_op(
         v, left, right, node->data.op_node.op, 
         node->data.op_node.op_name
     );
@@ -74,7 +74,7 @@ void visit_unary_op(Visitor* v, ASTNode* node) {
 
     accept(v, left);
 
-    if (unify(v, left, NULL, node->data.op_node.op, node->data.op_node.op_name)) {
+    if (unify_op(v, left, NULL, node->data.op_node.op, node->data.op_node.op_name)) {
         accept(v, left);
     }
 
@@ -105,9 +105,9 @@ void visit_block(Visitor* v, ASTNode* node) {
         accept(v, current);
 
         if (current->type == NODE_ASSIGNMENT) {
-            node->return_type = &TYPE_ERROR_INST;
+            node->return_type = &TYPE_ERROR;
             report_error(
-                v, "Variable '%s' must be initializated in a 'let' definition. Line: %d", 
+                v, "Variable '%s' must be initializated in a 'let' definition. Line: %d.", 
                 current->data.op_node.left->data.variable_name, current->line
             );
         }
@@ -117,6 +117,6 @@ void visit_block(Visitor* v, ASTNode* node) {
         node->return_type = find_type(v, current);
         node->value = current;
     } else {
-        node->return_type = &TYPE_VOID_INST;
+        node->return_type = &TYPE_VOID;
     }
 }

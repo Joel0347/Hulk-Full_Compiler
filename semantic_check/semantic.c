@@ -27,12 +27,17 @@ int analyze_semantics(ASTNode* node) {
     };
     
     accept(&visitor, node);
+
+    StrList* errors = to_set(visitor.errors, visitor.error_count);
     
-    for (int i = 0; i < visitor.error_count; i++) {
-        printf(RED "!!SEMANTIC ERROR: %s\n" RESET, visitor.errors[i]);
+    while (errors)
+    {
+        printf(RED "!!SEMANTIC ERROR: %s\n" RESET, errors->value);
+        errors = errors->next;
     }
 
     free_error(visitor.errors, visitor.error_count);
+    free_str_list(errors);
 
     return visitor.error_count;
 }
@@ -66,9 +71,9 @@ void visit_program(Visitor* v, ASTNode* node) {
         accept(v, child);
 
         if (child->type == NODE_ASSIGNMENT) {
-            node->return_type = &TYPE_ERROR_INST;
+            node->return_type = &TYPE_ERROR;
             report_error(
-                v, "Variable '%s' must be initializated in a 'let' definition. Line: %d", 
+                v, "Variable '%s' must be initializated in a 'let' definition. Line: %d.", 
                 child->data.op_node.left->data.variable_name, child->line
             );
         }

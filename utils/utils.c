@@ -32,12 +32,48 @@ IntList* add_int_list(IntList* list, int number) {
     return element;
 }
 
+StrList* add_str_list(StrList* list, char* s) {
+    StrList* element = (StrList*)malloc(sizeof(StrList));
+    element->value = s;
+    element->next = list;
+
+    return element;
+}
+
+int contains_str(StrList* l, char* s) {
+    while (l)
+    {
+        if (!strcmp(l->value, s))
+            return 1;
+
+        l = l->next;
+    }
+    
+    return 0;
+}
+
+StrList* to_set(char**list, int len) {
+    StrList* result = NULL;
+    for (int i = len - 1; i >= 0; i--)
+    {
+        if (!contains_str(result, list[i]))
+            result = add_str_list(result, list[i]);
+    }
+    
+    return result;
+}
+
 void free_int_list(IntList* list) {
     if (list && list->next)
         free_int_list(list->next);
     free(list);
 }
 
+void free_str_list(StrList* list) {
+    if (list && list->next)
+        free_str_list(list->next);
+    free(list);
+}
 
 void free_tuple(Tuple* tuple) {
     free(tuple);
