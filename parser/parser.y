@@ -259,24 +259,24 @@ expression:
     | function_call                      { $$ = $1; }
     | let_in_exp                         { $$ = $1; }
     | ID                                 { $$ = create_variable_node($1, "", 0); }
-    | expression DCONCAT expression      { $$ = create_binary_op_node(OP_DCONCAT, "@@", $1, $3, &TYPE_STRING_INST); }
-    | expression CONCAT expression       { $$ = create_binary_op_node(OP_CONCAT, "@", $1, $3, &TYPE_STRING_INST); }
-    | expression AND expression          { $$ = create_binary_op_node(OP_AND, "&", $1, $3, &TYPE_BOOLEAN_INST); }
-    | expression OR expression           { $$ = create_binary_op_node(OP_OR, "|", $1, $3, &TYPE_BOOLEAN_INST); }
-    | NOT expression                     { $$ = create_unary_op_node(OP_NOT, "!", $2, &TYPE_BOOLEAN_INST); }
-    | expression EQUALSEQUALS expression { $$ = create_binary_op_node(OP_EQ, "==", $1, $3, &TYPE_BOOLEAN_INST); }
-    | expression NEQUALS expression      { $$ = create_binary_op_node(OP_NEQ, "!=", $1, $3, &TYPE_BOOLEAN_INST); }
-    | expression EGREATER expression     { $$ = create_binary_op_node(OP_GRE, ">=", $1, $3, &TYPE_BOOLEAN_INST); }
-    | expression GREATER expression      { $$ = create_binary_op_node(OP_GR, ">", $1, $3, &TYPE_BOOLEAN_INST); }
-    | expression ELESS expression        { $$ = create_binary_op_node(OP_LSE, "<=", $1, $3, &TYPE_BOOLEAN_INST); }
-    | expression LESS expression         { $$ = create_binary_op_node(OP_LS, "<", $1, $3, &TYPE_BOOLEAN_INST); }
-    | expression PLUS expression         { $$ = create_binary_op_node(OP_ADD, "+", $1, $3, &TYPE_NUMBER_INST); }
-    | expression MINUS expression        { $$ = create_binary_op_node(OP_SUB, "-", $1, $3, &TYPE_NUMBER_INST); }
-    | expression TIMES expression        { $$ = create_binary_op_node(OP_MUL, "*", $1, $3, &TYPE_NUMBER_INST); }
-    | expression DIVIDE expression       { $$ = create_binary_op_node(OP_DIV, "/", $1, $3, &TYPE_NUMBER_INST); }
-    | expression MOD expression          { $$ = create_binary_op_node(OP_MOD, "%", $1, $3, &TYPE_NUMBER_INST); }
-    | expression POWER expression        { $$ = create_binary_op_node(OP_POW, "^", $1, $3, &TYPE_NUMBER_INST); }
-    | MINUS expression %prec UMINUS      { $$ = create_unary_op_node(OP_NEGATE, "-", $2, &TYPE_NUMBER_INST); }
+    | expression DCONCAT expression      { $$ = create_binary_op_node(OP_DCONCAT, "@@", $1, $3, &TYPE_STRING); }
+    | expression CONCAT expression       { $$ = create_binary_op_node(OP_CONCAT, "@", $1, $3, &TYPE_STRING); }
+    | expression AND expression          { $$ = create_binary_op_node(OP_AND, "&", $1, $3, &TYPE_BOOLEAN); }
+    | expression OR expression           { $$ = create_binary_op_node(OP_OR, "|", $1, $3, &TYPE_BOOLEAN); }
+    | NOT expression                     { $$ = create_unary_op_node(OP_NOT, "!", $2, &TYPE_BOOLEAN); }
+    | expression EQUALSEQUALS expression { $$ = create_binary_op_node(OP_EQ, "==", $1, $3, &TYPE_BOOLEAN); }
+    | expression NEQUALS expression      { $$ = create_binary_op_node(OP_NEQ, "!=", $1, $3, &TYPE_BOOLEAN); }
+    | expression EGREATER expression     { $$ = create_binary_op_node(OP_GRE, ">=", $1, $3, &TYPE_BOOLEAN); }
+    | expression GREATER expression      { $$ = create_binary_op_node(OP_GR, ">", $1, $3, &TYPE_BOOLEAN); }
+    | expression ELESS expression        { $$ = create_binary_op_node(OP_LSE, "<=", $1, $3, &TYPE_BOOLEAN); }
+    | expression LESS expression         { $$ = create_binary_op_node(OP_LS, "<", $1, $3, &TYPE_BOOLEAN); }
+    | expression PLUS expression         { $$ = create_binary_op_node(OP_ADD, "+", $1, $3, &TYPE_NUMBER); }
+    | expression MINUS expression        { $$ = create_binary_op_node(OP_SUB, "-", $1, $3, &TYPE_NUMBER); }
+    | expression TIMES expression        { $$ = create_binary_op_node(OP_MUL, "*", $1, $3, &TYPE_NUMBER); }
+    | expression DIVIDE expression       { $$ = create_binary_op_node(OP_DIV, "/", $1, $3, &TYPE_NUMBER); }
+    | expression MOD expression          { $$ = create_binary_op_node(OP_MOD, "%", $1, $3, &TYPE_NUMBER); }
+    | expression POWER expression        { $$ = create_binary_op_node(OP_POW, "^", $1, $3, &TYPE_NUMBER); }
+    | MINUS expression %prec UMINUS      { $$ = create_unary_op_node(OP_NEGATE, "-", $2, &TYPE_NUMBER); }
     | LPAREN expression RPAREN           { $$ = $2; }
     | destructive_var_decl               { $$ = $1; }
     | simple_var_decl                    { $$ = $1; }

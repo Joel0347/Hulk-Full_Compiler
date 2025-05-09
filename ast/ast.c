@@ -23,7 +23,7 @@ ASTNode* create_number_node(double value) {
     node->type = NODE_NUMBER;
     node->scope = create_scope(NULL);
     node->context = create_context(NULL);
-    node->return_type = &TYPE_NUMBER_INST;
+    node->return_type = &TYPE_NUMBER;
     node->data.number_value = value;
     return node;
 }
@@ -34,7 +34,7 @@ ASTNode* create_string_node(char* value) {
     node->type = NODE_STRING;
     node->scope = create_scope(NULL);
     node->context = create_context(NULL);
-    node->return_type = &TYPE_STRING_INST;
+    node->return_type = &TYPE_STRING;
     node->data.string_value = value;
     return node;
 }
@@ -45,7 +45,7 @@ ASTNode* create_boolean_node(char* value) {
     node->type = NODE_BOOLEAN;
     node->scope = create_scope(NULL);
     node->context = create_context(NULL);
-    node->return_type = &TYPE_BOOLEAN_INST;
+    node->return_type = &TYPE_BOOLEAN;
     node->data.string_value = value;
     return node;
 }
@@ -57,7 +57,7 @@ ASTNode* create_variable_node(char* name, char* type, int is_param) {
     node->type = NODE_VARIABLE;
     node->scope = create_scope(NULL);
     node->context = create_context(NULL);
-    node->return_type = &TYPE_OBJECT_INST;
+    node->return_type = &TYPE_OBJECT;
     node->data.variable_name = name;
 
     if (type)
@@ -98,7 +98,7 @@ ASTNode* create_assignment_node(char* var, ASTNode* value, char* type_name, Node
     ASTNode* node = malloc(sizeof(ASTNode));
     node->line = line_num;
     node->type = type;
-    node->return_type = &TYPE_VOID_INST;
+    node->return_type = &TYPE_VOID;
     node->scope = create_scope(NULL);
     node->context = create_context(NULL);
     node->data.op_node.left = create_variable_node(var, NULL, 0);
@@ -114,7 +114,7 @@ ASTNode* create_func_call_node(char* name, ASTNode** args, int arg_count) {
     node->type = NODE_FUNC_CALL;
     node->scope = create_scope(NULL);
     node->context = create_context(NULL);
-    node->return_type = &TYPE_OBJECT_INST;
+    node->return_type = &TYPE_OBJECT;
     node->data.func_node.name = name;
     node->data.func_node.checked = 0;
     node->data.func_node.args = malloc(sizeof(ASTNode*) * arg_count);
@@ -129,7 +129,7 @@ ASTNode* create_func_dec_node(char* name, ASTNode** args, int arg_count, ASTNode
     ASTNode* node = malloc(sizeof(ASTNode));
     node->line = line_num;
     node->type = NODE_FUNC_DEC;
-    node->return_type = &TYPE_VOID_INST;
+    node->return_type = &TYPE_VOID;
     node->scope = create_scope(NULL);
     node->context = create_context(NULL);
     node->static_type = ret_type;
@@ -148,7 +148,7 @@ ASTNode* create_let_in_node(ASTNode** declarations, int dec_count, ASTNode* body
     ASTNode* node = malloc(sizeof(ASTNode));
     node->line = line_num;
     node->type = NODE_LET_IN;
-    node->return_type = &TYPE_OBJECT_INST;
+    node->return_type = &TYPE_OBJECT;
     node->scope = create_scope(NULL);
     node->context = create_context(NULL);
     node->data.func_node.name = "";

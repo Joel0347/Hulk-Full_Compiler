@@ -24,11 +24,26 @@ void destroy_context(Context* context) {
     free(context);
 }
 
-void save_context_item(Context* context, struct ASTNode* item) {
+int save_context_item(Context* context, struct ASTNode* item) {
+    ContextItem* func = find_context_item(context, item->data.func_node.name);
+
+    if (func) {
+        func->return_type = &TYPE_ANY;
+        return 0;
+    }
+    
     ContextItem* new = (ContextItem*)malloc(sizeof(ContextItem));
     new->declaration = item;
+
+    Symbol* defined_type = find_defined_type(item->scope, item->static_type);
+
+    if (defined_type)
+        new->return_type = defined_type->type;
+
     new->next = context->first;
     context->first = new;
+
+    return 1;
 }
 
 struct ContextItem* find_context_item(Context* context, char* name) {

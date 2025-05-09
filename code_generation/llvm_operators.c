@@ -12,7 +12,7 @@ LLVMValueRef generate_binary_operation(LLVM_Visitor* v, ASTNode* node) {
     // Manejo de operaciones con strings (concatenación)
     if (node->data.op_node.op == OP_CONCAT || node->data.op_node.op == OP_DCONCAT) {
         // Convertir números a strings si es necesario
-        if (type_equals(node->data.op_node.left->return_type, &TYPE_NUMBER_INST)) {
+        if (type_equals(node->data.op_node.left->return_type, &TYPE_NUMBER)) {
             LLVMTypeRef snprintf_type = LLVMFunctionType(LLVMInt32Type(),
                 (LLVMTypeRef[]){
                     LLVMPointerType(LLVMInt8Type(), 0),
@@ -39,7 +39,7 @@ LLVMValueRef generate_binary_operation(LLVM_Visitor* v, ASTNode* node) {
             L = buffer_ptr;
         }
 
-        if (type_equals(node->data.op_node.right->return_type, &TYPE_NUMBER_INST)) {
+        if (type_equals(node->data.op_node.right->return_type, &TYPE_NUMBER)) {
             LLVMTypeRef snprintf_type = LLVMFunctionType(LLVMInt32Type(),
                 (LLVMTypeRef[]){
                     LLVMPointerType(LLVMInt8Type(), 0),
@@ -69,7 +69,7 @@ LLVMValueRef generate_binary_operation(LLVM_Visitor* v, ASTNode* node) {
     }
 
     // Si los operandos son números
-    if (type_equals(node->data.op_node.left->return_type, &TYPE_NUMBER_INST)) {
+    if (type_equals(node->data.op_node.left->return_type, &TYPE_NUMBER)) {
         switch (node->data.op_node.op) {
             case OP_ADD: return LLVMBuildFAdd(builder, L, R, "add_tmp");
             case OP_SUB: return LLVMBuildFSub(builder, L, R, "sub_tmp");
@@ -106,7 +106,7 @@ LLVMValueRef generate_binary_operation(LLVM_Visitor* v, ASTNode* node) {
     }
 
     // Operadores lógicos
-    if (type_equals(node->data.op_node.left->return_type, &TYPE_BOOLEAN_INST)) {
+    if (type_equals(node->data.op_node.left->return_type, &TYPE_BOOLEAN)) {
         switch (node->data.op_node.op) {
             case OP_AND:
                 return LLVMBuildAnd(builder, L, R, "and_tmp");
@@ -118,7 +118,7 @@ LLVMValueRef generate_binary_operation(LLVM_Visitor* v, ASTNode* node) {
     }
 
     // Comparación de strings
-    if (type_equals(node->data.op_node.left->return_type, &TYPE_STRING_INST)) {
+    if (type_equals(node->data.op_node.left->return_type, &TYPE_STRING)) {
         LLVMTypeRef strcmp_type = LLVMFunctionType(LLVMInt32Type(),
             (LLVMTypeRef[]){
                 LLVMPointerType(LLVMInt8Type(), 0),
@@ -160,12 +160,12 @@ LLVMValueRef generate_unary_operation(LLVM_Visitor* v, ASTNode* node) {
     
     switch (node->data.op_node.op) {
         case OP_NEGATE: 
-            if (type_equals(node->data.op_node.left->return_type, &TYPE_NUMBER_INST)) {
+            if (type_equals(node->data.op_node.left->return_type, &TYPE_NUMBER)) {
                 return LLVMBuildFNeg(builder, operand, "neg_tmp");
             }
             break;
         case OP_NOT:
-            if (type_equals(node->data.op_node.left->return_type, &TYPE_BOOLEAN_INST)) {
+            if (type_equals(node->data.op_node.left->return_type, &TYPE_BOOLEAN)) {
                 return LLVMBuildNot(builder, operand, "not_tmp");
             }
             break;

@@ -4,7 +4,6 @@
 #include "../ast/ast.h"
 #include "../scope/scope.h"
 #include "../type/type.h"
-#include <string.h>
 #include <stdarg.h>
 
 

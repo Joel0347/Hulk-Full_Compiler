@@ -53,7 +53,12 @@ void get_context(Visitor* visitor, ASTNode* node) {
         if (child->type == NODE_FUNC_DEC) {
             child->context->parent = node->context;
             child->scope->parent = node->scope;
-            save_context_item(node->context, child);
+            if (!save_context_item(node->context, child)) {
+                report_error(
+                    visitor, "Function '%s' already exists. Line: %d.", 
+                    child->data.func_node.name, child->line
+                );
+            }
         }
     }
 }

@@ -3,7 +3,6 @@
 #include "../type/type.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 
 LLVMValueRef generate_builtin_function(LLVM_Visitor* v, ASTNode* node) {
     if (!strcmp(node->data.func_node.name, "print")) {
@@ -54,19 +53,19 @@ LLVMValueRef print_function(LLVM_Visitor* v, ASTNode* node) {
     int num_args = 2;      // Default to 2 args (format string + value)
 
     // Seleccionar formato según el tipo del argumento
-    if (type_equals(arg_node->return_type, &TYPE_NUMBER_INST)) {
+    if (type_equals(arg_node->return_type, &TYPE_NUMBER)) {
         format = "%g\n";
         format_str = LLVMBuildGlobalStringPtr(builder, format, "fmt");
         args[0] = format_str;
         args[1] = arg;
-    } else if (type_equals(arg_node->return_type, &TYPE_BOOLEAN_INST)) {
+    } else if (type_equals(arg_node->return_type, &TYPE_BOOLEAN)) {
         format_str = LLVMBuildGlobalStringPtr(builder, "%s\n", "fmt");
         LLVMValueRef true_str = LLVMBuildGlobalStringPtr(builder, "true", "true_str");
         LLVMValueRef false_str = LLVMBuildGlobalStringPtr(builder, "false", "false_str");
         LLVMValueRef cond_str = LLVMBuildSelect(builder, arg, true_str, false_str, "bool_str");
         args[0] = format_str;
         args[1] = cond_str;
-    } else if (type_equals(arg_node->return_type, &TYPE_STRING_INST)) {
+    } else if (type_equals(arg_node->return_type, &TYPE_STRING)) {
         format = "%s\n";
         format_str = LLVMBuildGlobalStringPtr(builder, format, "fmt");
         args[0] = format_str;
@@ -161,7 +160,7 @@ LLVMValueRef generate_user_function_call(LLVM_Visitor* v, ASTNode* node) {
         func = LLVMAddFunction(module, name, func_type);
     }
 
-    char* calltmp = type_equals(return_type, &TYPE_VOID_INST) ? "" : "calltmp";
+    char* calltmp = type_equals(return_type, &TYPE_VOID) ? "" : "calltmp";
 
     // Construir llamada
     LLVMValueRef call = LLVMBuildCall2(

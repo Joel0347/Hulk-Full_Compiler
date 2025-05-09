@@ -6,7 +6,7 @@ int unify_member(Visitor* v, ASTNode* node, Type* type) {
     if (node->type == NODE_VARIABLE  && node->is_param == 1) {
         Symbol* sym = find_parameter(node->scope, node->data.variable_name);
         
-        if (type_equals(sym->type, &TYPE_ANY_INST)) {
+        if (type_equals(sym->type, &TYPE_ANY)) {
             sym->type = type;
             node->return_type = type;
         } else if (!type_equals(sym->type, type)) {
@@ -19,7 +19,7 @@ int unify_member(Visitor* v, ASTNode* node, Type* type) {
 
         unified = 1;
     } else if (node->type == NODE_FUNC_CALL &&
-        type_equals(node->return_type, &TYPE_ANY_INST)
+        type_equals(node->return_type, &TYPE_ANY)
     ) {
         ContextItem* item = find_context_item(node->context, node->data.func_node.name);
         if (item) {
@@ -29,7 +29,7 @@ int unify_member(Visitor* v, ASTNode* node, Type* type) {
         }
     }
     
-    else if (node->value && type_equals(node->value->return_type, &TYPE_ANY_INST)) {
+    else if (node->value && type_equals(node->value->return_type, &TYPE_ANY)) {
         unified = unify_member(v, node->value, type);
         if (unified) {
             node->return_type = type;
@@ -39,13 +39,13 @@ int unify_member(Visitor* v, ASTNode* node, Type* type) {
     return unified;
 }
 
-int unify(Visitor* v, ASTNode* left, ASTNode* right, Operator op, char* op_name) {
+int unify_op(Visitor* v, ASTNode* left, ASTNode* right, Operator op, char* op_name) {
     int count = 0;
     int unified = 0; // 0: not unfied, 1: unified right, 2: unified left, 3: unified both
     OperatorTypeRule* rule;
 
-    if (right && type_equals(left->return_type, &TYPE_ANY_INST) && 
-        type_equals(right->return_type, &TYPE_ANY_INST)) {
+    if (right && type_equals(left->return_type, &TYPE_ANY) && 
+        type_equals(right->return_type, &TYPE_ANY)) {
         
         for (int i = 0; i < op_rules_count; i++)
         {
@@ -64,7 +64,7 @@ int unify(Visitor* v, ASTNode* left, ASTNode* right, Operator op, char* op_name)
 
             unified = (u_left && u_right) ? 3 : 0;
         }
-    } else if (type_equals(left->return_type, &TYPE_ANY_INST)) {
+    } else if (type_equals(left->return_type, &TYPE_ANY)) {
         for (int i = 0; i < op_rules_count; i++)
         {
             if (operator_rules[i].op == op && (!right ||
@@ -81,7 +81,7 @@ int unify(Visitor* v, ASTNode* left, ASTNode* right, Operator op, char* op_name)
         if (count) {
             unified = unify_member(v, left, rule->left_type) ? 2 : 0;
         }
-    } else if (right && type_equals(right->return_type, &TYPE_ANY_INST)) {
+    } else if (right && type_equals(right->return_type, &TYPE_ANY)) {
         for (int i = 0; i < op_rules_count; i++)
         {
             if (operator_rules[i].op == op && 
@@ -135,7 +135,7 @@ IntList* unify_func(Visitor* v, ASTNode** args, Scope* scope, int arg_count, cha
     if (count) {
         for (int i = 0; i < arg_count; i++)
         {
-            if (type_equals(&TYPE_ANY_INST, args[i]->return_type)) {
+            if (type_equals(&TYPE_ANY, args[i]->return_type)) {
                 if (unify_member(v, args[i], f->args_types[i])) {
                     unified = add_int_list(unified, i);
                 } else {

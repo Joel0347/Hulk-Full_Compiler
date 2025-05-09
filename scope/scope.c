@@ -120,64 +120,64 @@ void declare_type(Scope* scope, Type* type) {
 void init_builtins(Scope* scope) {
     // BUILTIN TYPES:
 
-    declare_type(scope, &TYPE_NUMBER_INST); //number
-    declare_type(scope, &TYPE_STRING_INST); // string
-    declare_type(scope, &TYPE_BOOLEAN_INST); // boolean
-    declare_type(scope, &TYPE_OBJECT_INST); // object
-    declare_type(scope, &TYPE_VOID_INST); // void
+    declare_type(scope, &TYPE_NUMBER); //number
+    declare_type(scope, &TYPE_STRING); // string
+    declare_type(scope, &TYPE_BOOLEAN); // boolean
+    declare_type(scope, &TYPE_OBJECT); // object
+    declare_type(scope, &TYPE_VOID); // void
 
 
     // BUILTIN FUNCTIONS:
 
     //print
     declare_function(
-        scope, 0, NULL, &TYPE_VOID_INST, "print"
+        scope, 0, NULL, &TYPE_VOID, "print"
     );
     declare_function(
-        scope, 1, (Type*[]){ &TYPE_NUMBER_INST }, &TYPE_VOID_INST, "print"
+        scope, 1, (Type*[]){ &TYPE_NUMBER }, &TYPE_VOID, "print"
     );
     declare_function(
-        scope, 1, (Type*[]){ &TYPE_BOOLEAN_INST }, &TYPE_VOID_INST, "print"
+        scope, 1, (Type*[]){ &TYPE_BOOLEAN }, &TYPE_VOID, "print"
     );
     declare_function(
-        scope, 1, (Type*[]){ &TYPE_STRING_INST }, &TYPE_VOID_INST, "print"
+        scope, 1, (Type*[]){ &TYPE_STRING }, &TYPE_VOID, "print"
     );
     // sqrt
     declare_function(
-        scope, 1, (Type*[]){ &TYPE_NUMBER_INST }, &TYPE_NUMBER_INST, "sqrt"
+        scope, 1, (Type*[]){ &TYPE_NUMBER }, &TYPE_NUMBER, "sqrt"
     );
     // sin
     declare_function(
-        scope, 1, (Type*[]){ &TYPE_NUMBER_INST }, &TYPE_NUMBER_INST, "sin"
+        scope, 1, (Type*[]){ &TYPE_NUMBER }, &TYPE_NUMBER, "sin"
     );
     // cos
     declare_function(
-        scope, 1, (Type*[]){ &TYPE_NUMBER_INST }, &TYPE_NUMBER_INST, "cos"
+        scope, 1, (Type*[]){ &TYPE_NUMBER }, &TYPE_NUMBER, "cos"
     );
     // exp
     declare_function(
-        scope, 1, (Type*[]){ &TYPE_NUMBER_INST }, &TYPE_NUMBER_INST, "exp"
+        scope, 1, (Type*[]){ &TYPE_NUMBER }, &TYPE_NUMBER, "exp"
     );
     // log
     declare_function(
-        scope, 1, (Type*[]){ &TYPE_NUMBER_INST }, &TYPE_NUMBER_INST, "log"
+        scope, 1, (Type*[]){ &TYPE_NUMBER }, &TYPE_NUMBER, "log"
     );
     declare_function(
-        scope, 2, (Type*[]){ &TYPE_NUMBER_INST, &TYPE_NUMBER_INST }, &TYPE_NUMBER_INST, "log"
+        scope, 2, (Type*[]){ &TYPE_NUMBER, &TYPE_NUMBER }, &TYPE_NUMBER, "log"
     );
     // rand
     declare_function(
-        scope, 0, NULL, &TYPE_NUMBER_INST, "rand"
+        scope, 0, NULL, &TYPE_NUMBER, "rand"
     );
 }
 
 Tuple* args_type_equals(Type** args1, Type** args2, int count) {
     for (int i = 0; i < count; i++)
     {
-        if ((!type_equals(args2[i], &TYPE_ERROR_INST) &&
-            !type_equals(args2[i], &TYPE_ANY_INST)
+        if ((!type_equals(args2[i], &TYPE_ERROR) &&
+            !type_equals(args2[i], &TYPE_ANY)
             ) &&
-            (!type_equals(args1[i], &TYPE_ANY_INST) &&
+            (!type_equals(args1[i], &TYPE_ANY) &&
             !is_ancestor_type(args1[i], args2[i])
             )
         ) {
@@ -281,7 +281,7 @@ FuncData* find_function(Scope* scope, Function* f, Function* dec) {
 
     
         return result;
-    } 
+    }
     
     if (not_found && dec) {
         result->state = func_equals(dec, f);

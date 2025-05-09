@@ -30,7 +30,7 @@ void visit_assignment(Visitor* v, ASTNode* node) {
     accept(v, val_node);
     Type* inferried_type = find_type(v, val_node);
 
-    if (type_equals(inferried_type, &TYPE_ANY_INST) && 
+    if (type_equals(inferried_type, &TYPE_ANY) && 
         defined_type && unify_member(v, val_node, defined_type->type)
     ) {
         accept(v, val_node);
@@ -60,14 +60,7 @@ void visit_assignment(Visitor* v, ASTNode* node) {
             "'let' definition before using operator ':='. Line: %d.",
             var_node->data.variable_name, node->line
         );
-    } 
-    // else if (sym && sym->is_param) {
-    //     // report_error(
-    //     //     v, "Parameter '%s' can not be redefined. Line: %d.", 
-    //     //     var_node->data.variable_name, node->line
-    //     // );
-
-    // }
+    }
      else if (node->type == NODE_ASSIGNMENT || (sym && sym->is_param)) {
         declare_symbol(
             node->scope->parent, 
@@ -90,8 +83,8 @@ void visit_variable(Visitor* v, ASTNode* node) {
         node->return_type = sym->type;
         node->is_param = sym->is_param;
         node->value = sym->value;
-    } else if (!type_equals(node->return_type, &TYPE_ERROR_INST)) {
-        node->return_type = &TYPE_ERROR_INST;
+    } else if (!type_equals(node->return_type, &TYPE_ERROR)) {
+        node->return_type = &TYPE_ERROR;
         report_error(
             v, "Undefined variable '%s'. Line: %d", 
             node->data.variable_name, node->line

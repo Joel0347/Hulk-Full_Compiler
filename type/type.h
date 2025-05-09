@@ -41,13 +41,13 @@ typedef struct OperatorTypeRule {
 extern char* keywords[]; // keywords of the language
 extern char scape_chars[]; //scapes characters defined
 
-extern Type TYPE_NUMBER_INST;
-extern Type TYPE_STRING_INST;
-extern Type TYPE_BOOLEAN_INST;
-extern Type TYPE_VOID_INST;
-extern Type TYPE_OBJECT_INST;
-extern Type TYPE_ERROR_INST;
-extern Type TYPE_ANY_INST;
+extern Type TYPE_NUMBER;
+extern Type TYPE_STRING;
+extern Type TYPE_BOOLEAN;
+extern Type TYPE_VOID;
+extern Type TYPE_OBJECT;
+extern Type TYPE_ERROR;
+extern Type TYPE_ANY;
 
 extern int op_rules_count;
 extern OperatorTypeRule operator_rules[];

@@ -60,7 +60,7 @@ void declare_function(
     Type* result_type, char* name
 );
 void declare_type(Scope* scope, Type* type);
-void save_context_item(Context* context, struct ASTNode* item);
+int save_context_item(Context* context, struct ASTNode* item);
 Function* find_function_by_name(Scope* scope, char* name);
 void init_builtins(Scope* scope);
 Symbol* find_symbol(Scope* scope, const char* name);

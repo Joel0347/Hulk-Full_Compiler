@@ -6,18 +6,18 @@
 #include "llvm_builtins.h"
 #include "../type/type.h"
 #include <stdio.h>
-#include <string.h>
 
 LLVMTypeRef get_llvm_type(Type* type) {
-    if (type_equals(type, &TYPE_NUMBER_INST)) {
+    if (type_equals(type, &TYPE_NUMBER)) {
         return LLVMDoubleType();
-    } else if (type_equals(type, &TYPE_STRING_INST)) {
+    } else if (type_equals(type, &TYPE_STRING)) {
         return LLVMPointerType(LLVMInt8Type(), 0);
-    } else if (type_equals(type, &TYPE_BOOLEAN_INST)) {
+    } else if (type_equals(type, &TYPE_BOOLEAN)) {
         return LLVMInt1Type();
-    } else if (type_equals(type, &TYPE_VOID_INST)) {
+    } else if (type_equals(type, &TYPE_VOID)) {
         return LLVMVoidType();
     }
+
     exit(1);
 }
 
@@ -127,9 +127,9 @@ LLVMValueRef generate_assignment(LLVM_Visitor* v,ASTNode* node) {
     LLVMValueRef value = accept_gen(v, node->data.op_node.right);
     
     LLVMTypeRef new_type;
-    if (type_equals(node->data.op_node.right->return_type, &TYPE_STRING_INST)) {
+    if (type_equals(node->data.op_node.right->return_type, &TYPE_STRING)) {
         new_type = LLVMPointerType(LLVMInt8Type(), 0);
-    } else if (type_equals(node->data.op_node.right->return_type, &TYPE_BOOLEAN_INST)) {
+    } else if (type_equals(node->data.op_node.right->return_type, &TYPE_BOOLEAN)) {
         new_type = LLVMInt1Type();
     } else {
         new_type = LLVMDoubleType();
@@ -261,7 +261,7 @@ LLVMValueRef generate_function_body(LLVM_Visitor* v, ASTNode* node) {
     LLVMValueRef body_val = accept_gen(v, body);
 
     // Retornar
-    if (type_equals(return_type, &TYPE_VOID_INST)) {
+    if (type_equals(return_type, &TYPE_VOID)) {
         LLVMBuildRetVoid(builder);
     } else {
         LLVMBuildRet(builder, body_val);
