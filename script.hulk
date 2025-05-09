@@ -47,10 +47,10 @@ function g(x, y:String) {
     f(x, y);
 }
 
-// function test1(x, y):Void => print(test2(x, y));
-// function test2(x: Number, y:String):Number => {
-//     let n = test1(x, y) in n; //unificar tambien el retorno de las funciones
-// };
+function test1(x, y) => test2(x, y) + 1;
+function test2(x: Number, y:String) => {
+    test1(x, y); //test2 debe saber que retorna Void o lo que sea que retorne test1
+};
 
 // test1(2,3) @ 1;
 // test2(2, "sad") + 1;

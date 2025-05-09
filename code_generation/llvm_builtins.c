@@ -161,6 +161,8 @@ LLVMValueRef generate_user_function_call(LLVM_Visitor* v, ASTNode* node) {
         func = LLVMAddFunction(module, name, func_type);
     }
 
+    char* calltmp = type_equals(return_type, &TYPE_VOID_INST) ? "" : "calltmp";
+
     // Construir llamada
     LLVMValueRef call = LLVMBuildCall2(
         builder,
@@ -168,7 +170,7 @@ LLVMValueRef generate_user_function_call(LLVM_Visitor* v, ASTNode* node) {
         func,
         arg_values,
         arg_count,
-        "calltmp"
+        calltmp
     );
 
     free(arg_types);
