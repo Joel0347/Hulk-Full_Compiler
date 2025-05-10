@@ -3,6 +3,12 @@
 #include "./code_generation/llvm_codegen.h"
 #include "./semantic_check/semantic.h"
 
+#define GREEN "\033[32m"
+#define BLUE "\033[34m"
+#define RESET "\033[0m"
+#define RED "\033[31m"
+#define CYAN "\033[36m"
+
 extern int yyparse(void);
 extern FILE *yyin;
 extern ASTNode* root;
@@ -17,13 +23,12 @@ int main() {
     if (!yyparse() && !analyze_semantics(root)) {
         fclose(yyin);
         
-        // Añadir esta línea para imprimir el AST
-        printf("\n🌳 Abstract Syntax Tree:\n");
+        printf(BLUE "\n🌳 Abstract Syntax Tree:\n" RESET);
         print_ast(root, 0);
         
-        printf("\nGenerando código LLVM...\n");
+        printf(CYAN "\nGenerating LLVM code...\n" RESET);
         generate_main_function(root, "./build/output.ll");
-        printf("✅ Código LLVM generado en output.ll\n");
+        printf(GREEN "✅ LLVM code generated succesfully in output.ll\n" RESET);
         
         free_ast(root);
         root = NULL;
