@@ -1,6 +1,6 @@
 # Hulk-Full_Compiler 🚀  
 
-A compiler for the **HULK** programming language made with C language, featuring lexer, parser, AST generation, and LLVM code generation.  
+A compiler for the **HULK** programming language made with **C**, featuring lexer, parser, AST generation, and LLVM code generation.  
 
 ## **Requirements** 📋  
 
