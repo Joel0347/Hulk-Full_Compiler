@@ -1,3 +1,11 @@
+# Definir códigos de color
+RED := \033[31m
+GREEN := \033[32m
+YELLOW := \033[33m
+BLUE := \033[34m
+CYAN := \033[36m
+RESET := \033[0m
+
 CC = clang
 CFLAGS = -Wall -g -I. $(shell llvm-config --cflags) -O0
 LDFLAGS = $(shell llvm-config --ldflags --libs core) -lm
@@ -39,17 +47,19 @@ $(EXEC): lex.yy.o y.tab.o $(AST_DIR)/ast.o $(SRC_DIR)/main.o \
     $(SEMANTIC_DIR)/unification.o $(SEMANTIC_DIR)/function_checking.o $(SEMANTIC_DIR)/variable_checking.o \
 	$(SEMANTIC_DIR)/basic_checking.o $(SEMANTIC_DIR)/semantic.o $(SCOPE_DIR)/scope.o $(SCOPE_DIR)/context.o\
 	$(VISITOR_DIR)/visitor.o $(TYPE_DIR)/type.o | $(BUILD_DIR)
-	@echo "🔗 Getting ready..."
+
+	@printf "$(CYAN)🔗 Getting ready...$(RESET)\n";
 	@$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
-	@echo "🔄 Compiling..."
+	@printf "$(CYAN)🔄 Compiling...$(RESET)\n";
+
 
 # Reglas para generar el parser y lexer
 y.tab.c y.tab.h: $(PARSER_DIR)/parser.y
-	@echo "Generating parser..."
+	@printf "$(CYAN)🔄 Generating parser...$(RESET)\n";
 	@$(YACC) $(YFLAGS) $< || (echo "Bison failed to process parser.y"; exit 1)
 
 lex.yy.c: $(LEXER_DIR)/lexer.l y.tab.h
-	@echo "Generating lexer..."
+	@printf "$(CYAN)🔄 Generating lexer...$(RESET)\n";
 	@$(LEX) $(LEXFLAGS) $< || (echo "Flex failed to process lexer.l"; exit 1)
 
 $(VISITOR_DIR)/llvm_visitor.o: $(VISITOR_DIR)/llvm_visitor.c $(VISITOR_DIR)/llvm_visitor.h
@@ -106,19 +116,19 @@ $(SEMANTIC_DIR)/unification.o: $(SEMANTIC_DIR)/unification.c
 
 # Regla genérica para compilar cualquier archivo .c en .o
 %.o: %.c
-	@echo "🔨 Compiling $<..."
+	@printf "$(CYAN)🔨 Compiling $<...$(RESET)\n";
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 # Objetivo para compilar y ejecutar output.ll, si existe
-execute:
+execute: compile
 	@if [ -s $(BUILD_DIR)/output.ll ]; then \
-        echo "🔄 Compiling output.ll..."; \
-        clang $(BUILD_DIR)/output.ll -o $(BUILD_DIR)/program -lm || (echo "❌ clang failed when compiling output.ll"; exit 1); \
-        echo "💻 Executing compiled program:"; \
-        $(BUILD_DIR)/program; \
-    else \
-        echo "⚠️  output.ll does not exist or is empty - nothing to be executed"; \
-    fi
+		printf "$(CYAN)🔄 Compiling output.ll...$(RESET)\n"; \
+		clang $(BUILD_DIR)/output.ll -o $(BUILD_DIR)/program -lm || { printf "$(RED)❌ clang failed when compiling output.ll$(RESET)\n"; exit 0; }; \
+		printf "\n$(BLUE)------------💻 Executing compiled program------------$(RESET)\n"; \
+		$(BUILD_DIR)/program; \
+	else \
+		printf "$(YELLOW)⚠️  output.ll does not exist or is empty - nothing to be executed$(RESET)\n"; \
+	fi
 
 # Debugging con gdb
 debug:

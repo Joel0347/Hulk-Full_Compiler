@@ -1,9 +1,12 @@
 #include "llvm_core.h"
 #include <stdio.h>
+#include <stdlib.h>
 
 LLVMModuleRef module;
 LLVMBuilderRef builder;
 LLVMContextRef context;
+LLVMValueRef current_stack_depth_var;
+const int MAX_STACK_DEPTH = 10000;
 
 void init_llvm(void) {
     LLVMInitializeNativeTarget();
@@ -12,6 +15,11 @@ void init_llvm(void) {
     context = LLVMGetGlobalContext();
     module = LLVMModuleCreateWithNameInContext("program", context);
     builder = LLVMCreateBuilderInContext(context);
+
+    // Inicializar la variable global de profundidad de stack
+    current_stack_depth_var = LLVMAddGlobal(module, LLVMInt32Type(), "current_stack_depth");
+    LLVMSetInitializer(current_stack_depth_var, LLVMConstInt(LLVMInt32Type(), 0, 0));
+    LLVMSetLinkage(current_stack_depth_var, LLVMPrivateLinkage);
     
     // Declare external functions right after initialization
     declare_external_functions();
@@ -20,6 +28,7 @@ void init_llvm(void) {
 void free_llvm_resources(void) {
     LLVMDisposeBuilder(builder);
     LLVMDisposeModule(module);
+    current_stack_depth_var = NULL;
 }
 
 void declare_external_functions(void) {
@@ -88,4 +97,18 @@ void declare_external_functions(void) {
         (LLVMTypeRef[]){LLVMPointerType(LLVMInt8Type(), 0)}, 1, 1);
     LLVMValueRef printf_func = LLVMAddFunction(module, "printf", printf_type);
     LLVMSetLinkage(printf_func, LLVMExternalLinkage);
+
+    // Asegurar que exit() está declarado
+    if (!LLVMGetNamedFunction(module, "exit")) {
+        LLVMTypeRef exit_type = LLVMFunctionType(LLVMVoidType(), 
+            (LLVMTypeRef[]){LLVMInt32Type()}, 1, 0);
+        LLVMAddFunction(module, "exit", exit_type);
+    }
+
+    // Asegurar que puts() está declarado
+    if (!LLVMGetNamedFunction(module, "puts")) {
+        LLVMTypeRef puts_type = LLVMFunctionType(LLVMInt32Type(), 
+            (LLVMTypeRef[]){LLVMPointerType(LLVMInt8Type(), 0)}, 1, 0);
+        LLVMAddFunction(module, "puts", puts_type);
+    }
 }

@@ -236,17 +236,32 @@ LLVMValueRef generate_function_body(LLVM_Visitor* v, ASTNode* node) {
 
     LLVMValueRef func = LLVMGetNamedFunction(module, name);
     LLVMBasicBlockRef entry = LLVMAppendBasicBlock(func, "entry");
+    LLVMBasicBlockRef exit_block = LLVMAppendBasicBlock(func, "function_exit");
 
-    // Guardar contexto previo del builder
-    LLVMBasicBlockRef prev_block = LLVMGetInsertBlock(builder);
-    LLVMValueRef prev_function = NULL;
-
-    if (prev_block) {
-        prev_function = LLVMGetBasicBlockParent(prev_block);
-    }
-
-    // Configurar builder para la función actual
+    // Configurar builder
     LLVMPositionBuilderAtEnd(builder, entry);
+    
+    // 1. Manejo de stack depth
+    // Incrementar contador
+    LLVMValueRef depth_val = LLVMBuildLoad(builder, current_stack_depth_var, "load_depth");
+    LLVMValueRef new_depth = LLVMBuildAdd(builder, depth_val, LLVMConstInt(LLVMInt32Type(), 1, 0), "inc_depth");
+    LLVMBuildStore(builder, new_depth, current_stack_depth_var);
+    
+    // Verificar overflow
+    LLVMValueRef cmp = LLVMBuildICmp(builder, LLVMIntSGT, new_depth, 
+                                    LLVMConstInt(LLVMInt32Type(), MAX_STACK_DEPTH, 0), "cmp_overflow");
+    
+    // Crear bloques para manejo de error
+    LLVMBasicBlockRef error_block = LLVMAppendBasicBlock(func, "stack_overflow");
+    LLVMBasicBlockRef continue_block = LLVMAppendBasicBlock(func, "func_body");
+    LLVMBuildCondBr(builder, cmp, error_block, continue_block);
+    
+    // Bloque de error
+    LLVMPositionBuilderAtEnd(builder, error_block);
+    handle_stack_overflow(builder, module, current_stack_depth_var, node);
+    
+    // Continuar con función normal
+    LLVMPositionBuilderAtEnd(builder, continue_block);
             
     push_scope();
 
@@ -257,9 +272,25 @@ LLVMValueRef generate_function_body(LLVM_Visitor* v, ASTNode* node) {
         LLVMBuildStore(builder, param, alloca);
         declare_variable(params[i]->data.variable_name, alloca);
     }
+
     // Generar código para el cuerpo
     LLVMValueRef body_val = accept_gen(v, body);
 
+    // Branch al bloque de salida
+    if (!type_equals(return_type, &TYPE_VOID)) {
+        LLVMBuildBr(builder, exit_block);
+    } else {
+        LLVMBuildBr(builder, exit_block);
+    }
+
+    // Bloque de salida
+    LLVMPositionBuilderAtEnd(builder, exit_block);
+    
+    // Decrementar contador antes de retornar
+    LLVMValueRef final_depth = LLVMBuildLoad(builder, current_stack_depth_var, "load_depth_final");
+    LLVMValueRef dec_depth = LLVMBuildSub(builder, final_depth, LLVMConstInt(LLVMInt32Type(), 1, 0), "dec_depth");
+    LLVMBuildStore(builder, dec_depth, current_stack_depth_var);
+    
     // Retornar
     if (type_equals(return_type, &TYPE_VOID)) {
         LLVMBuildRetVoid(builder);
@@ -267,14 +298,8 @@ LLVMValueRef generate_function_body(LLVM_Visitor* v, ASTNode* node) {
         LLVMBuildRet(builder, body_val);
     }
 
-    // Restaurar scope
     pop_scope();
     free(param_types);
-
-    // Restaurar contexto anterior
-    if (prev_function && LLVMGetBasicBlockParent(entry) != prev_function) {
-        LLVMPositionBuilderAtEnd(builder, prev_block);
-    }
 
     return func;
 }
