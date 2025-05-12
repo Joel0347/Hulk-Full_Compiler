@@ -1,5 +1,4 @@
 #include "visitor.h"
-#include <stdlib.h>
 
 void accept(Visitor* visitor, ASTNode* node) {
     if (!node) {
