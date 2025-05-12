@@ -35,7 +35,8 @@ void generate_main_function(ASTNode* ast, const char* filename) {
         .visit_unary_op = generate_unary_operation,
         .visit_variable = generate_variable,
         .visit_block = generate_block,
-        .visit_function_dec = generate_function_body
+        .visit_function_dec = generate_function_body,
+        .visit_let_in = generate_let_in
     };
 
     // Inicializar LLVM
@@ -124,7 +125,7 @@ LLVMValueRef generate_block(LLVM_Visitor* v,ASTNode* node) {
     return last_val ? last_val : LLVMConstInt(LLVMInt32Type(), 0, 0);
 }
 
-LLVMValueRef generate_assignment(LLVM_Visitor* v,ASTNode* node) {
+LLVMValueRef generate_assignment(LLVM_Visitor* v, ASTNode* node) {
     const char* var_name = node->data.op_node.left->data.variable_name;
     LLVMValueRef value = accept_gen(v, node->data.op_node.right);
     
@@ -145,6 +146,10 @@ LLVMValueRef generate_assignment(LLVM_Visitor* v,ASTNode* node) {
     LLVMValueRef alloca;
 
     if (existing_alloca) {
+        // Para asignación destructiva (:=), actualizar en todos los scopes
+        if (node->type == NODE_D_ASSIGNMENT) {
+            update_variable(var_name, existing_alloca);
+        }
         LLVMTypeRef existing_type = LLVMGetElementType(LLVMTypeOf(existing_alloca));
         if (existing_type != LLVMTypeOf(value)) {
             alloca = LLVMBuildAlloca(builder, new_type, var_name);
@@ -158,7 +163,13 @@ LLVMValueRef generate_assignment(LLVM_Visitor* v,ASTNode* node) {
     }
 
     LLVMPositionBuilderAtEnd(builder, current_block);
-    return LLVMBuildStore(builder, value, alloca);
+    LLVMBuildStore(builder, value, alloca);
+    
+    // Para asignación destructiva (:=), retornar el valor asignado
+    if (node->type == NODE_D_ASSIGNMENT) {
+        return value;
+    }
+    return NULL;
 }
 
 LLVMValueRef generate_variable(LLVM_Visitor* v,ASTNode* node) {
@@ -304,4 +315,39 @@ LLVMValueRef generate_function_body(LLVM_Visitor* v, ASTNode* node) {
     free(param_types);
 
     return func;
+}
+
+LLVMValueRef generate_let_in(LLVM_Visitor* v, ASTNode* node) {
+    push_scope();
+    
+    // Procesar las declaraciones
+    ASTNode** declarations = node->data.func_node.args;
+    int dec_count = node->data.func_node.arg_count;
+    
+    // Evaluar y almacenar cada declaración
+    for (int i = 0; i < dec_count; i++) {
+        ASTNode* decl = declarations[i];
+        const char* var_name = decl->data.op_node.left->data.variable_name;
+        LLVMValueRef value = accept_gen(v, decl->data.op_node.right);
+        
+        // Crear alloca para la variable
+        LLVMTypeRef var_type;
+        if (type_equals(decl->data.op_node.right->return_type, &TYPE_STRING)) {
+            var_type = LLVMPointerType(LLVMInt8Type(), 0);
+        } else if (type_equals(decl->data.op_node.right->return_type, &TYPE_BOOLEAN)) {
+            var_type = LLVMInt1Type();
+        } else {
+            var_type = LLVMDoubleType();
+        }
+        
+        LLVMValueRef alloca = LLVMBuildAlloca(builder, var_type, var_name);
+        LLVMBuildStore(builder, value, alloca);
+        declare_variable(var_name, alloca);
+    }
+    
+    // Evaluar el cuerpo
+    LLVMValueRef result = accept_gen(v, node->data.func_node.body);
+    
+    pop_scope();
+    return result;
 }

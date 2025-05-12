@@ -72,51 +72,45 @@
 //     print(x / y);
 // }
 
-// let msg = "Hello World" in print(msg);
-// let number = 42, text = "The meaning of life is" in print(text@@number);
-// let number = 42, text = "The meaning of life is " in print(text@number);
-// let number = 42 in (
-//     let text = "The meaning of life is " in (
-//         print(text@number)
-//     )
-// );
+ let msg = "Hello World" in print(msg);
+ let number = 42, text = "The meaning of life is" in print(text@@number);
+ let number = 42, text = "The meaning of life is " in print(text@number);
+ let number = 42 in (
+     let text = "The meaning of life is " in (
+         print(text@number)
+     )
+ );
 
-// let a = 6, b = a * 7 in print(b);
-// let a = 6 in
-//     let b = a * 7 in
-//         print(b);
-
-// let a = 5, b = 10, c = 20 in {
-//     print(a+b);
-//     print(b*c);
-//     print(c/a);
-// };
-
-// let a = (let b = 6 in b * 7) in print(a);
-// print(let b = 6 in b * 7);
-
-// let a = 20 in {
-//     let a = 42 in print(a); //imprime 42
-//     print(a); //imprime 20
-// };
-
-// let a = 7, a = 7 * 6 in print(a + 1); //imprime 43
-// let a = 7 in
-//     let a = 7 * 6 in
-//         print(a); //imprime 42
-
-// let a = 0 in {
-//     print(a); //imprime 0
-//     a := 1;
-//     print(a); // imprime 1
-// };
-// let a = 0 in
-//     let b = a := 1 in {
-//         print(a); //imprime 1
-//         print(b); //imprime 1
-//     };
-
-// function hola(x:Object, y) { //revisar parametros con igual nombre
+ let a = 6, b = a * 7 in print(b);
+ let a = 6 in
+     let b = a * 7 in
+         print(b);
+ let a = 5, b = 10, c = 20 in {
+     print(a+b);
+     print(b*c);
+     print(c/a);
+ };
+ let a = (let b = 6 in b * 7) in print(a);
+ print(let b = 6 in b * 7);
+ let a = 20 in {
+     let a = 42 in print(a); //imprime 42
+     print(a); //imprime 20
+ };
+ let a = 7, a = 7 * 6 in print(a + 1); //imprime 43
+ let a = 7 in
+     let a = 7 * 6 in
+         print(a); //imprime 4
+ let a = 0 in {
+     print(a); //imprime 0
+     a := 1;
+     print(a); // imprime 1
+ };
+ let a = 0 in
+     let b = a := 1 in {
+         print(a); //imprime 1
+         print(b); //imprime 1
+     };
+//function hola(x:Object, y) { //revisar parametros con igual nombre
 //     let x = x in {
 //         x := y;
 //         y := x;
@@ -124,15 +118,15 @@
 //     };
 // }
 
-// // function suc() => {};
-// // suc()+1;
-// // hola("12", true);
+// function suc() => {};
+// suc()+1;
+// hola("12", true);
 
-function g(x:Number):Number => f(x);
-function f(x:Number):Number => f(x);
+//function g(x:Number):Number => f(x);
+//function f(x:Number):Number => f(x);
 
-print(f(3));
-print(f(3));
-print(f(3));
-print(f(3));
-print(f(3));
+//print(f(3));
+//print(f(3));
+//print(f(3));
+//print(f(3));
+//print(f(3));

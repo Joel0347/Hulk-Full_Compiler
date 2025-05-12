@@ -20,6 +20,7 @@ LLVMValueRef accept_gen(LLVM_Visitor* visitor, ASTNode* node) {
         case NODE_BINARY_OP:
             return visitor->visit_binary_op(visitor, node);
         case NODE_ASSIGNMENT:
+        case NODE_D_ASSIGNMENT:
             return visitor->visit_assignment(visitor, node);
         case NODE_VARIABLE:
             return visitor->visit_variable(visitor, node);
@@ -29,6 +30,8 @@ LLVMValueRef accept_gen(LLVM_Visitor* visitor, ASTNode* node) {
             return visitor->visit_block(visitor, node);
         case NODE_FUNC_DEC:
             return visitor->visit_function_dec(visitor, node);
+        case NODE_LET_IN:
+            return visitor->visit_let_in(visitor, node);
         default:
             exit(1);
     }
