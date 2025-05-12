@@ -1,4 +1,6 @@
 #include "ast/ast.h"
+#include <string.h>
+#include <stdlib.h>
 
 Context* create_context(Context* parent) {
     Context* context = (Context*)malloc(sizeof(Context));

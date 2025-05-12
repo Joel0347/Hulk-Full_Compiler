@@ -6,6 +6,8 @@
 #include "llvm_builtins.h"
 #include "../type/type.h"
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
 
 LLVMTypeRef get_llvm_type(Type* type) {
     if (type_equals(type, &TYPE_NUMBER)) {

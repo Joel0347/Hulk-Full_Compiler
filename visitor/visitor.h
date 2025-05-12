@@ -5,6 +5,8 @@
 #include "../scope/scope.h"
 #include "../type/type.h"
 #include <stdarg.h>
+#include <stdlib.h>
+#include <stdio.h>
 
 
 typedef struct Visitor Visitor;
