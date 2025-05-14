@@ -43,6 +43,9 @@ void accept(Visitor* visitor, ASTNode* node) {
         case NODE_LET_IN:
             visitor->visit_let_in(visitor, node);
             break;
+        case NODE_CONDITIONAL:
+            visitor->visit_conditional(visitor, node);
+            break;
     }
 }
 

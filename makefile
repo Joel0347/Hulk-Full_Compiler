@@ -44,9 +44,9 @@ $(EXEC): lex.yy.o y.tab.o $(AST_DIR)/ast.o $(SRC_DIR)/main.o \
     $(CODE_GEN_DIR)/llvm_builtins.o $(CODE_GEN_DIR)/llvm_core.o $(VISITOR_DIR)/llvm_visitor.o \
 	$(CODE_GEN_DIR)/llvm_codegen.o $(SCOPE_DIR)/llvm_scope.o $(CODE_GEN_DIR)/llvm_string.o  $(VISITOR_DIR)/llvm_visitor.o\
 	$(CODE_GEN_DIR)/llvm_operators.o $(UTILS_DIR)/utils.o $(VISITOR_DIR)/llvm_visitor.o \
-    $(SEMANTIC_DIR)/unification.o $(SEMANTIC_DIR)/function_checking.o $(SEMANTIC_DIR)/variable_checking.o \
-	$(SEMANTIC_DIR)/basic_checking.o $(SEMANTIC_DIR)/semantic.o $(SCOPE_DIR)/scope.o $(SCOPE_DIR)/context.o\
-	$(VISITOR_DIR)/visitor.o $(TYPE_DIR)/type.o | $(BUILD_DIR)
+    $(SEMANTIC_DIR)/unification.o $(SEMANTIC_DIR)/cond_loop_checking.o $(SEMANTIC_DIR)/function_checking.o \
+	$(SEMANTIC_DIR)/variable_checking.o $(SEMANTIC_DIR)/basic_checking.o $(SEMANTIC_DIR)/semantic.o \
+	$(SCOPE_DIR)/scope.o $(SCOPE_DIR)/context.o $(VISITOR_DIR)/visitor.o $(TYPE_DIR)/type.o | $(BUILD_DIR)
 
 	@printf "$(CYAN)🔗 Getting ready...$(RESET)\n";
 	@$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
@@ -114,6 +114,9 @@ $(SEMANTIC_DIR)/function_checking.o: $(SEMANTIC_DIR)/function_checking.c
 $(SEMANTIC_DIR)/unification.o: $(SEMANTIC_DIR)/unification.c
 	@$(CC) $(CFLAGS) -c $< -o $@
 
+$(SEMANTIC_DIR)/cond_loop_checking.o: $(SEMANTIC_DIR)/cond_loop_checking.c
+	@$(CC) $(CFLAGS) -c $< -o $@
+
 # Regla genérica para compilar cualquier archivo .c en .o
 %.o: %.c
 	@printf "$(CYAN)🔨 Compiling $<...$(RESET)\n";
@@ -137,7 +140,7 @@ debug:
 
 # Regla para limpiar todos los archivos generados
 clean:
-	@echo "🧹 Cleaning project..."
+	@echo "$(CYAN)🧹 Cleaning project...$(RESET)"
 	@rm -rf $(BUILD_DIR)
 	@rm -f *.o $(EXEC) y.tab.* lex.yy.c *.output y.* output.ll program
 	@rm -f $(AST_DIR)/*.o

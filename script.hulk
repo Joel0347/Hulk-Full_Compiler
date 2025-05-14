@@ -122,11 +122,19 @@
 // suc()+1;
 // hola("12", true);
 
-//function g(x:Number):Number => f(x);
-//function f(x:Number):Number => f(x);
+// function g(x:Number):Number => f(x);
+// function f(x:Number):Number => f(x);
 
-//print(f(3));
-//print(f(3));
-//print(f(3));
-//print(f(3));
-//print(f(3));
+// print(f(3));
+// print(f(3));
+// print(f(3));
+// print(f(3));
+// print(f(3));
+
+if (3) {
+	5;
+} elif (3 < 5) {
+	4;
+} else {
+	3;
+};

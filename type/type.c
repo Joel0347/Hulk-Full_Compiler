@@ -103,6 +103,25 @@ int is_ancestor_type(Type* ancestor, Type* type) {
     return is_ancestor_type(ancestor, type->parent);
 }
 
+Type* get_common_ancestor(Type* true_type, Type* false_type) {
+    if (type_equals(true_type, &TYPE_ANY) ||
+        type_equals(false_type, &TYPE_ANY)
+    ) {
+        return &TYPE_ANY;
+    } else if (type_equals(true_type, &TYPE_ERROR) ||
+        type_equals(false_type, &TYPE_ERROR)
+    ) {
+        return &TYPE_ERROR;
+    }
+
+    if (is_ancestor_type(true_type, false_type))
+        return true_type;
+    if (is_ancestor_type(false_type, true_type))
+        return false_type;
+
+    return get_common_ancestor(true_type->parent, false_type->parent);
+}
+
 int type_equals(Type* type1, Type* type2) {
     if (!type1 && !type2)
         return 1;
