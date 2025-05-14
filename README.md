@@ -44,6 +44,7 @@ sudo apt install flex bison llvm clang
 │ ├──scope.c
 │ └──scope.h
 ├── semantic_check/ #semantic check
+│ ├──cond_loop_checking.c
 │ ├──basic_checking.c
 │ ├──function_checking.c
 │ ├──semantic.c

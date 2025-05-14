@@ -23,6 +23,7 @@ typedef void (*VisitFuncCall)(Visitor*, ASTNode*);
 typedef void (*VisitBlock)(Visitor*, ASTNode*);
 typedef void (*VisitFuncDec)(Visitor*, ASTNode*);
 typedef void (*VisitLetIn)(Visitor*, ASTNode*);
+typedef void (*VisitConditional)(Visitor*, ASTNode*);
 
 struct Visitor {
     int error_count;
@@ -39,6 +40,7 @@ struct Visitor {
     VisitBlock visit_block;
     VisitFuncDec visit_function_dec;
     VisitLetIn visit_let_in;
+    VisitConditional visit_conditional;
 
     char** errors;
 };

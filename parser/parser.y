@@ -50,7 +50,7 @@ void add_statement(ASTNode* stmt) {
 %token <var> ID
 %token <str> STRING
 %token <str> BOOLEAN
-%token ERROR ARROW FUNCTION DEQUALS LET IN
+%token ERROR ARROW FUNCTION DEQUALS LET IN IF ELIF ELSE
 %token LPAREN RPAREN EQUALS SEMICOLON COMMA LBRACKET RBRACKET COLON
 
 %left DCONCAT
@@ -66,7 +66,8 @@ void add_statement(ASTNode* stmt) {
 %left UMINUS
 
 %type <node> expression block_expr statement destructive_var_decl function_call
-%type <node> param function_declaration simple_var_decl let_in_exp
+%type <node> param function_declaration simple_var_decl let_in_exp conditional
+%type <node> elif_branch
 
 %type <arg_list> list_args block_expr_list param_list let_definitions
 
@@ -249,6 +250,18 @@ function_call:
     ID LPAREN list_args RPAREN           { $$ = create_func_call_node($1, $3->args, $3->arg_count); }
 ;
 
+conditional:
+    IF LPAREN expression RPAREN expression                   { $$ = create_conditional_node($3, $5, NULL); }
+    | IF LPAREN expression RPAREN expression elif_branch     { $$ = create_conditional_node($3, $5, $6); }
+    | IF LPAREN expression RPAREN expression ELSE expression { $$ = create_conditional_node($3, $5, $7); }
+;
+
+elif_branch:
+    ELIF LPAREN expression RPAREN expression                   { $$ = create_conditional_node($3, $5, NULL); }
+    | ELIF LPAREN expression RPAREN expression ELSE expression { $$ = create_conditional_node($3, $5, $7); }
+    | ELIF LPAREN expression RPAREN expression elif_branch     { $$ = create_conditional_node($3, $5, $6); }
+;
+
 expression:
     NUMBER                               { $$ = create_number_node($1); }
     | PI                                 { $$ = create_number_node(M_PI); }
@@ -280,6 +293,7 @@ expression:
     | LPAREN expression RPAREN           { $$ = $2; }
     | destructive_var_decl               { $$ = $1; }
     | simple_var_decl                    { $$ = $1; }
+    | conditional                        { $$ = $1; }
     | ERROR { // Handle any other error
         yyerrok;
         YYABORT;
@@ -302,6 +316,7 @@ const char* token_to_str(int token) {
         case COMMA:        return "','"      ; case PI:       return "'PI'"        ; case E:        return "'E'"     ;
         case ARROW:        return "'=>'"     ; case FUNCTION: return "'function'"  ; case DEQUALS:  return "':='"    ;
         case BOOLEAN:      return "'boolean'"; case LET:      return "'let'"       ; case IN:       return "'in'"    ;
+        case IF:           return "'if'"     ; case ELIF:     return "'elif'"      ; case ELSE:     return "'else'"  ;
 
         default: return "";
     }

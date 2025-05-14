@@ -50,6 +50,9 @@ int line_num = 1;
 "function"      { return FUNCTION; }
 "let"           { return LET; }
 "in"            { return IN; }
+"if"            { return IF; }
+"elif"          { return ELIF; }
+"else"          { return ELSE; }
 
 [a-zA-ZñÑ][a-zA-ZñÑ0-9_]*  { yylval.var = strdup(yytext); return ID; }
 "//"[^\n]*?   { /* COMMENT */ }

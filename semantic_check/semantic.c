@@ -22,6 +22,7 @@ int analyze_semantics(ASTNode* node) {
         .visit_block = visit_block,
         .visit_function_dec = visit_function_dec,
         .visit_let_in = visit_let_in,
+        .visit_conditional = visit_conditional,
         .error_count = 0,
         .errors = NULL
     };

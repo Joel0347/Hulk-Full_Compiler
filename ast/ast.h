@@ -18,7 +18,8 @@ typedef enum {
     NODE_FUNC_CALL,
     NODE_BLOCK,
     NODE_FUNC_DEC,
-    NODE_LET_IN
+    NODE_LET_IN,
+    NODE_CONDITIONAL
 } NodeType;
 
 typedef struct ASTNode {
@@ -51,6 +52,11 @@ typedef struct ASTNode {
             struct ASTNode *body;
             int checked;
         } func_node;
+        struct {
+            struct ASTNode *cond;
+            struct ASTNode *body_true;
+            struct ASTNode *body_false;
+        } cond_node;
     } data;
 } ASTNode;
 
@@ -65,6 +71,7 @@ ASTNode* create_assignment_node(char* var, ASTNode* value, char* type_name, Node
 ASTNode* create_func_call_node(char* name, ASTNode** args, int arg_count);
 ASTNode* create_func_dec_node(char* name, ASTNode** args, int arg_count, ASTNode* body, char* ret_type); 
 ASTNode* create_let_in_node(ASTNode** declarations, int dec_count, ASTNode* body);
+ASTNode* create_conditional_node(ASTNode* condition, ASTNode* body_true, ASTNode* body_false);
 void print_ast(ASTNode* node, int indent);
 
 #endif

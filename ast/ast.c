@@ -162,6 +162,19 @@ ASTNode* create_let_in_node(ASTNode** declarations, int dec_count, ASTNode* body
     return node;
 }
 
+ASTNode* create_conditional_node(ASTNode* condition, ASTNode* body_true, ASTNode* body_false) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->line = line_num;
+    node->type = NODE_CONDITIONAL;
+    node->return_type = &TYPE_OBJECT;
+    node->scope = create_scope(NULL);
+    node->context = create_context(NULL);
+    node->data.cond_node.cond = condition;
+    node->data.cond_node.body_true = body_true;
+    node->data.cond_node.body_false = body_false;
+    return node;
+}
+
 void free_ast(ASTNode* node) {
     if (!node) {
         return;
@@ -196,6 +209,11 @@ void free_ast(ASTNode* node) {
                 free_ast(node->data.func_node.args[i]);
             }
             free_ast(node->data.func_node.body);
+            break;
+        case NODE_CONDITIONAL:
+            free_ast(node->data.cond_node.body_true);
+            free_ast(node->data.cond_node.body_false);
+            free_ast(node->data.cond_node.cond);
             break;
         default:
             break;
@@ -286,5 +304,16 @@ void print_ast(ASTNode* node, int indent) {
             print_ast(node->data.op_node.left, indent + 1);
             print_ast(node->data.op_node.right, indent + 1);
             break;
+        case NODE_CONDITIONAL:
+            printf("Conditional:\n");
+            for (int i = 0; i < indent+1; i++) printf("  ");
+            printf("Condition:\n");
+            print_ast(node->data.cond_node.cond, indent + 2);
+            for (int i = 0; i < indent+1; i++) printf("  ");
+            printf("If part:\n");
+            print_ast(node->data.cond_node.body_true, indent + 2);
+            for (int i = 0; i < indent+1; i++) printf("  ");
+            printf("elif/else part:\n");
+            print_ast(node->data.cond_node.body_false, indent + 2);
     }
 }

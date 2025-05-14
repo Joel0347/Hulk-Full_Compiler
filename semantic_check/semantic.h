@@ -20,3 +20,4 @@ void visit_function_call(Visitor* v, ASTNode* node);
 void visit_block(Visitor* v, ASTNode* node);
 void visit_function_dec(Visitor* v, ASTNode* node);
 void visit_let_in(Visitor* v, ASTNode* node);
+void visit_conditional(Visitor* v, ASTNode* node);
