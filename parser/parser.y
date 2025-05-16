@@ -103,6 +103,7 @@ input:
 statement:
     SEMICOLON                        { $$ = NULL; }
     | function_declaration           { $$ = $1; }
+    | conditional                    { $$ = $1; }
     | function_declaration SEMICOLON { $$ = $1; }
     | block_expr                     { $$ = $1; }
     | expression SEMICOLON           { $$ = $1; }
