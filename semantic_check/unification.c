@@ -27,10 +27,24 @@ int unify_member(Visitor* v, ASTNode* node, Type* type) {
             node->return_type = type;
             unified = 1;
         }
-    } else if (node->type == NODE_CONDITIONAL && type_equals(node->value->return_type, &TYPE_ANY)) {
+    } else if (
+        node->type == NODE_CONDITIONAL &&
+        (type_equals(
+            node->data.cond_node.body_true->return_type, &TYPE_ANY
+        ) ||
+        (node->data.cond_node.body_false &&
+        type_equals(
+            node->data.cond_node.body_false->return_type, &TYPE_ANY
+        )))
+    ) {
         int unified_true = unify_member(v, node->data.cond_node.body_true, type);
-        int unified_false = unify_member(v, node->data.cond_node.body_false, type);
+        int unified_false = 0;
+
+        if (node->data.cond_node.body_false)
+            unified_false = unify_member(v, node->data.cond_node.body_false, type);
+
         unified = unified_true || unified_false;
+        
         if (unified) {
             node->return_type = type;
         }
