@@ -157,7 +157,7 @@ void visit_function_dec(Visitor* v, ASTNode* node) {
     }
 
     if (!defined_type && item->return_type &&
-        !type_equals(inferried_type, item->return_type) &&
+        !is_ancestor_type(item->return_type, inferried_type) &&
         !type_equals(&TYPE_ERROR, item->return_type) &&
         !type_equals(&TYPE_ANY, item->return_type) &&
         !type_equals(&TYPE_ERROR, inferried_type) &&

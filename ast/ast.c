@@ -313,7 +313,7 @@ void print_ast(ASTNode* node, int indent) {
             printf("If part:\n");
             print_ast(node->data.cond_node.body_true, indent + 2);
             for (int i = 0; i < indent+1; i++) printf("  ");
-            printf("elif/else part:\n");
+            printf("else part:\n");
             print_ast(node->data.cond_node.body_false, indent + 2);
     }
 }
