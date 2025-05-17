@@ -25,5 +25,7 @@ LLVMValueRef generate_assignment(LLVM_Visitor* v, ASTNode* node);
 LLVMValueRef generate_variable(LLVM_Visitor* v, ASTNode* node);
 LLVMValueRef generate_let_in(LLVM_Visitor* v, ASTNode* node);
 LLVMValueRef make_function_dec(LLVM_Visitor* v, ASTNode* node);
+LLVMValueRef generate_conditional(LLVM_Visitor* v, ASTNode* node);
+LLVMValueRef generate_loop(LLVM_Visitor* v, ASTNode* node);
 
 #endif // LLVM_CODEGEN_H

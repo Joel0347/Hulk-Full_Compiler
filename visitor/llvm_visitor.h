@@ -19,6 +19,8 @@ typedef LLVMValueRef (*GenerateBultinFunc)(LLVM_Visitor*, ASTNode*);
 typedef LLVMValueRef (*GenerateBlock)(LLVM_Visitor*, ASTNode*);
 typedef LLVMValueRef (*GenerateFuncDec)(LLVM_Visitor*, ASTNode*);
 typedef LLVMValueRef (*GenerateLetIn)(LLVM_Visitor*, ASTNode*);
+typedef LLVMValueRef (*GenerateConditional)(LLVM_Visitor*, ASTNode*);
+typedef LLVMValueRef (*GenerateLoop)(LLVM_Visitor*, ASTNode*);
 
 struct LLVM_Visitor {
     GenerateProgram visit_program;
@@ -33,6 +35,8 @@ struct LLVM_Visitor {
     GenerateBlock visit_block;
     GenerateFuncDec visit_function_dec;
     GenerateLetIn visit_let_in;
+    GenerateConditional visit_conditional;
+    GenerateLoop visit_loop;
 };
 
 LLVMValueRef accept_gen(LLVM_Visitor* visitor, ASTNode* node);
