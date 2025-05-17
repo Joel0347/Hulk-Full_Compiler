@@ -33,19 +33,19 @@ in {
 
 f(1, "Ads");
 
-function f(x:Number, y) {
-    let t = 1 in
-        x @ y  @ t;
-}
-{
-    function h(x, y) {
-        g(x, y);
-    }
-    h(2, 2@"");
-}
-function g(x, y:String) {
-    f(x, y);
-}
+// function f(x:Number, y) {
+//     let t = 1 in
+//         x @ y  @ t;
+// }
+// {
+//     function h(x, y) {
+//         g(x, y);
+//     }
+//     h(2, 2@"");
+// }
+// function g(x, y:String) {
+//     f(x, y);
+// }
 
 // function test1(x, y:Object): Number => k(x, y);
 // function test2(x: Number, y:String) => {
@@ -72,40 +72,40 @@ function operate(x, y) {
     print(x / y);
 }
 
- let msg = "Hello World" in print(msg);
- let number = 42, text = "The meaning of life is" in print(text@@number);
- let number = 42, text = "The meaning of life is " in print(text@number);
- let number = 42 in (
+let msg = "Hello World" in print(msg);
+let number = 42, text = "The meaning of life is" in print(text@@number);
+let number = 42, text = "The meaning of life is " in print(text@number);
+let number = 42 in (
     let text = "The meaning of life is " in (
         print(text@number)
     )
- );
+);
 
- let a = 6, b = a * 7 in print(b);
- let a = 6 in
-    let b = a * 7 in
-        print(b);
- let a = 5, b = 10, c = 20 in {
+let a = 6, b = a * 7 in print(b);
+let a = 6 in
+let b = a * 7 in
+    print(b);
+let a = 5, b = 10, c = 20 in {
     print(a+b);
     print(b*c);
     print(c/a);
- };
- let a = (let b = 6 in b * 7) in print(a);
- print(let b = 6 in b * 7);
- let a = 20 in {
+};
+let a = (let b = 6 in b * 7) in print(a);
+print(let b = 6 in b * 7);
+let a = 20 in {
     let a = 42 in print(a); //imprime 42
     print(a); //imprime 20
- };
- let a = 7, a = 7 * 6 in print(a + 1); //imprime 43
- let a = 7 in
+};
+let a = 7, a = 7 * 6 in print(a + 1); //imprime 43
+let a = 7 in
     let a = 7 * 6 in
         print(a); //imprime 42
- let a = 0 in {
+let a = 0 in {
     print(a); //imprime 0
     a := 1;
     print(a); // imprime 1
- };
- let a = 0 in
+};
+let a = 0 in
     let b = a := 1 in {
         print(a); //imprime 1
         print(b); //imprime 1
@@ -118,63 +118,61 @@ function hola(x:Number, y) { //revisar parametros con igual nombre
     };
 }
 
-// function suc() => {};
-// suc()+1;
+function suc() => {};
+suc()+1;
 print(hola(12, 2));
 
-// function g(x:Number):Number => f(x);
-// function f(x:Number):Number => f(x);
+function g(x:Number):Number => f(x);
+function f(x:Number):Number => f(x);
 
-// print(f(3));
-// print(f(3));
-// print(f(3));
-// print(f(3));
-// print(f(3));
+print(f(3));
+print(f(3));
+print(f(3));
+print(f(3));
+print(f(3));
 
-// if (3<1) {
-// 	5;
-// } elif (3 < 5) {
-// 	4;
-// } elif (false) {
+if (3<1) {
+	5;
+} elif (3 < 5) {
+	4;
+} elif (false) {
 
-// } elif (3 < 8) {
+} elif (3 < 8) {
 
-// } else {
-// 	3;
-// }
-// function test1(x) {
-//     function test2(y) {
-//         x + y;
-//     }
-//     x + test2(x);
-// }
-// let x:Void = {} in x;
-// function fib(n) {
-//     1+if (n)
-//         1
-//     elif (n)
-//         fib(n-1)
-//     else {true;};
-//         // fib(n-1) + fib(n-1)
-// }
+} else {
+	3;
+}
+function test1(x) {
+    function test2(y) {
+        x + y;
+    }
+    x + test2(x);
+}
+let x:Void = {} in x;
+function fib(n) {
+    if (n == 0 | n == 1)
+        1
+    else
+        fib(n-1) + fib(n-1)
+}
 
-// fib("As")@1;
+fib("As")@1;
 
-// function test3(n) {
-//     if (true)
-//         "asd"
-//     elif (false)
-//         test3(n+1)
-//     else test3(n)+1;
-// }
+function test3(n) {
+    if (true)
+        "asd"
+    elif (false)
+        test3(n+1)
+    else test3(n)+1;
+}
 
-// test3("AS")@1;
+test3("AS")@1;
 
-// function fact(n) {
-//     if (n == 1 | n == 0)
-//         1
-//     else 
-//         fact(n - 1) * n;
-// }
+function fact(n) {
+    if (n == 1 | n == 0)
+        1
+    else 
+        fact(n-1) * 1;
+}
 
-// fact(2);
+fact(2);

@@ -6,7 +6,7 @@ int analyze_semantics(ASTNode* node);
 Type* find_type(Visitor* v, ASTNode* node);
 Type** find_types(ASTNode** args, int args_count);
 int unify_op(Visitor* v, ASTNode* left, ASTNode* right, Operator op, char* op_name);
-IntList* unify_func(Visitor* v, ASTNode** args, Scope* scope, int arg_count, char* f_name);
+IntList* unify_func(Visitor* v, ASTNode** args, Scope* scope, int arg_count, char* f_name, ContextItem* item);
 int unify_member(Visitor* v, ASTNode* node, Type* type);
 void visit_program(Visitor* v, ASTNode* node);
 void visit_assignment(Visitor* v, ASTNode* node);

@@ -101,7 +101,7 @@ int unify_op(Visitor* v, ASTNode* left, ASTNode* right, Operator op, char* op_na
 
         if (count) {
             unified = unify_member(v, left, rule->left_type) ? 2 : 0;
-        } else {
+        } else if (!type_equals(right->return_type, &TYPE_ERROR)) {
             report_error(
                 v, "Operator '%s' can not be used with '%s' as right side. Line: %d.",
                 op_name, right->return_type->name, right->line
@@ -123,7 +123,7 @@ int unify_op(Visitor* v, ASTNode* left, ASTNode* right, Operator op, char* op_na
 
         if (count) {
             unified = unify_member(v, right, rule->right_type) ? 1 : 0;
-        } else {
+        } else if (!type_equals(left->return_type, &TYPE_ERROR)) {
             report_error(
                 v, "Operator '%s' can not be used with '%s' as left side. Line: %d.",
                 op_name, left->return_type->name, left->line
@@ -134,7 +134,7 @@ int unify_op(Visitor* v, ASTNode* left, ASTNode* right, Operator op, char* op_na
     return unified;
 }
 
-IntList* unify_func(Visitor* v, ASTNode** args, Scope* scope, int arg_count, char* f_name) {
+IntList* unify_func(Visitor* v, ASTNode** args, Scope* scope, int arg_count, char* f_name, ContextItem* item) {
     int count = 0;
     IntList* unified = NULL;
     Function* f;
@@ -172,6 +172,18 @@ IntList* unify_func(Visitor* v, ASTNode** args, Scope* scope, int arg_count, cha
                 } else {
                     return NULL;
                 }
+            }
+        }
+    } else if (item && item->declaration->data.func_node.arg_count == arg_count) {
+        for (int i = 0; i < item->declaration->data.func_node.arg_count; i++)
+        {
+            if (unify_member(
+                v, item->declaration->data.func_node.args[i],
+                args[i]->return_type
+            )) {
+                unified = add_int_list(unified, i);
+            } else {
+                return NULL;
             }
         }
     }
