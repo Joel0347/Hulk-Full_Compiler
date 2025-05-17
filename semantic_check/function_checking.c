@@ -21,7 +21,7 @@ void visit_function_call(Visitor* v, ASTNode* node) {
 
     IntList* unified = unify_func(
         v, args, node->scope, node->data.func_node.arg_count, 
-        node->data.func_node.name
+        node->data.func_node.name, item
     );
 
     for (IntList* current = unified; current != NULL; current = current->next)

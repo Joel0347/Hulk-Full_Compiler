@@ -103,15 +103,23 @@ int is_ancestor_type(Type* ancestor, Type* type) {
     return is_ancestor_type(ancestor, type->parent);
 }
 
-Type* get_common_ancestor(Type* true_type, Type* false_type) {
-    if (type_equals(true_type, &TYPE_ANY) ||
-        type_equals(true_type, &TYPE_ERROR)
+Type* get_lca(Type* true_type, Type* false_type) {
+    if (type_equals(true_type, &TYPE_ANY) &&
+        type_equals(false_type, &TYPE_ANY)
     ) {
-        return false_type;
-    } else if (type_equals(false_type, &TYPE_ANY) ||
+        return &TYPE_ANY;
+    } else if (type_equals(true_type, &TYPE_ERROR) &&
         type_equals(false_type, &TYPE_ERROR)
     ) {
-        return true_type;
+        return &TYPE_ERROR;
+    }else if (type_equals(true_type, &TYPE_ANY) ||
+        type_equals(false_type, &TYPE_ANY)
+    ) {
+        return &TYPE_OBJECT;
+    } else if (type_equals(true_type, &TYPE_ERROR) ||
+        type_equals(false_type, &TYPE_ERROR)
+    ) {
+        return &TYPE_OBJECT;
     }
 
     if (is_ancestor_type(true_type, false_type))
@@ -119,7 +127,7 @@ Type* get_common_ancestor(Type* true_type, Type* false_type) {
     if (is_ancestor_type(false_type, true_type))
         return false_type;
 
-    return get_common_ancestor(true_type->parent, false_type->parent);
+    return get_lca(true_type->parent, false_type->parent);
 }
 
 int type_equals(Type* type1, Type* type2) {

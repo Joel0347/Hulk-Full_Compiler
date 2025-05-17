@@ -44,20 +44,5 @@ void visit_conditional(Visitor* v, ASTNode* node) {
         false_type = find_type(v, true_body);
     }
 
-    if (type_equals(true_type, &TYPE_ANY) &&
-        !type_equals(false_type, &TYPE_ANY)
-    ) {
-        if (unify_member(v, true_body, false_type)) {
-            accept(v, true_body);
-        }
-    } else if (
-        type_equals(false_type, &TYPE_ANY) &&
-        !type_equals(true_type, &TYPE_ANY)
-    ) {
-        if (unify_member(v, false_body, true_type)) {
-            accept(v, false_body);
-        }
-    }
-
-    node->return_type = get_common_ancestor(true_type, false_type);
+    node->return_type = get_lca(true_type, false_type);
 }
