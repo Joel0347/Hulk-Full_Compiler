@@ -5,6 +5,55 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+LLVMValueRef handle_object_operation(LLVMValueRef left, LLVMValueRef right, int op) {
+    // Obtener el tipo ID de los operandos
+    LLVMValueRef left_type_id = LLVMBuildExtractValue(builder, left, 0, "left_type_id");
+    LLVMValueRef right_type_id = LLVMBuildExtractValue(builder, right, 0, "right_type_id");
+    
+    // Crear bloques para el manejo dinámico de tipos
+    LLVMBasicBlockRef current_block = LLVMGetInsertBlock(builder);
+    LLVMValueRef current_function = LLVMGetBasicBlockParent(current_block);
+    
+    // Bloque para operación numérica
+    LLVMBasicBlockRef number_block = LLVMAppendBasicBlock(current_function, "number_op");
+    LLVMBasicBlockRef string_block = LLVMAppendBasicBlock(current_function, "string_op");
+    LLVMBasicBlockRef merge_block = LLVMAppendBasicBlock(current_function, "merge");
+    
+    // Comparar tipos y bifurcar
+    LLVMValueRef is_number = LLVMBuildICmp(builder, LLVMIntEQ, left_type_id, 
+        LLVMConstInt(LLVMInt32Type(), 1, 0), "is_number"); // 1 = NUMBER_TYPE_ID
+    LLVMBuildCondBr(builder, is_number, number_block, string_block);
+    
+    // Bloque de operación numérica
+    LLVMPositionBuilderAtEnd(builder, number_block);
+    LLVMValueRef num_result;
+    switch(op) {
+        case OP_ADD:
+            num_result = LLVMBuildFAdd(builder, left, right, "add");
+            break;
+        case OP_SUB:
+            num_result = LLVMBuildFSub(builder, left, right, "sub");
+            break;
+        // ... otros casos ...
+    }
+    LLVMBuildBr(builder, merge_block);
+    
+    // Bloque de operación de string
+    LLVMPositionBuilderAtEnd(builder, string_block);
+    LLVMValueRef str_result;
+    // Manejar operaciones de string
+    LLVMBuildBr(builder, merge_block);
+    
+    // Bloque de merge
+    LLVMPositionBuilderAtEnd(builder, merge_block);
+    LLVMValueRef phi = LLVMBuildPhi(builder, LLVMDoubleType(), "result");
+    LLVMValueRef incoming_values[] = {num_result, str_result};
+    LLVMBasicBlockRef incoming_blocks[] = {number_block, string_block};
+    LLVMAddIncoming(phi, incoming_values, incoming_blocks, 2);
+    
+    return phi;
+}
+
 LLVMValueRef generate_binary_operation(LLVM_Visitor* v, ASTNode* node) {
     LLVMValueRef L = accept_gen(v, node->data.op_node.left);
     LLVMValueRef R = accept_gen(v, node->data.op_node.right);
@@ -152,6 +201,13 @@ LLVMValueRef generate_binary_operation(LLVM_Visitor* v, ASTNode* node) {
                 break;
         }
     }
+
+    // Manejo de operaciones con objetos
+    if (type_equals(node->data.op_node.left->return_type, &TYPE_OBJECT) ||
+        type_equals(node->data.op_node.right->return_type, &TYPE_OBJECT)) {
+        return handle_object_operation(L, R, node->data.op_node.op);
+    }
+
     exit(1);
 }
 

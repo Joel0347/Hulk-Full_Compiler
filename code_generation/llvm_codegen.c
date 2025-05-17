@@ -18,8 +18,12 @@ LLVMTypeRef get_llvm_type(Type* type) {
         return LLVMInt1Type();
     } else if (type_equals(type, &TYPE_VOID)) {
         return LLVMVoidType();
+    } else if (type_equals(type, &TYPE_OBJECT)) {
+        // usamos un puntero void* que puede apuntar a cualquier tipo
+        return LLVMPointerType(LLVMInt8Type(), 0);
     }
 
+    fprintf(stderr, "Error: Tipo desconocido %s\n", type->name);
     exit(1);
 }
 
@@ -36,47 +40,52 @@ void generate_main_function(ASTNode* ast, const char* filename) {
         .visit_variable = generate_variable,
         .visit_block = generate_block,
         .visit_function_dec = generate_function_body,
-        .visit_let_in = generate_let_in
+        .visit_let_in = generate_let_in,
+        .visit_conditional = generate_conditional,
+        .visit_loop = generate_loop
     };
 
-    // Inicializar LLVM
+    // Initialize LLVM
     init_llvm();
     
-    // Declarar funciones externas
+    // Declare external functions
     declare_external_functions();
 
     find_function_dec(&visitor, ast);
-
     make_body_function_dec(&visitor, ast);
 
-    // Crear el scope
+    // Create scope
     push_scope();
-    // Crear función main
+    
+    // Create main function
     LLVMTypeRef main_type = LLVMFunctionType(LLVMInt32Type(), NULL, 0, 0);
     LLVMValueRef main_func = LLVMAddFunction(module, "main", main_type);
     
-    // Crear bloque de entrada
+    // Create entry block
     LLVMBasicBlockRef entry = LLVMAppendBasicBlock(main_func, "entry");
     LLVMPositionBuilderAtEnd(builder, entry);
     
-    // Generar código para el AST
+    // Generate code for AST
     if (ast) {
         accept_gen(&visitor, ast);
     }
 
-    // Retornar 0 de main
-    LLVMPositionBuilderAtEnd(builder, entry); // Resetear a bloque de main
-    LLVMBuildRet(builder, LLVMConstInt(LLVMInt32Type(), 0, 0));
+    // Make sure we're in the right block for the return
+    LLVMBasicBlockRef current_block = LLVMGetInsertBlock(builder);
+    if (!LLVMGetBasicBlockTerminator(current_block)) {
+        // Return 0 from main if the block isn't already terminated
+        LLVMBuildRet(builder, LLVMConstInt(LLVMInt32Type(), 0, 0));
+    }
     
-    // Escribir a archivo
+    // Write to file
     char* error = NULL;
     if (LLVMPrintModuleToFile(module, filename, &error)) {
-        fprintf(stderr, "Error escribiendo IR: %s\n", error);
+        fprintf(stderr, "Error writing IR: %s\n", error);
         LLVMDisposeMessage(error);
         exit(1);
     }
     
-    // Liberar recursos
+    // Free resources
     free_llvm_resources();
 }
 
@@ -254,10 +263,11 @@ LLVMValueRef generate_function_body(LLVM_Visitor* v, ASTNode* node) {
     // Configurar builder
     LLVMPositionBuilderAtEnd(builder, entry);
     
-    // 1. Manejo de stack depth
-    // Incrementar contador
-    LLVMValueRef depth_val = LLVMBuildLoad(builder, current_stack_depth_var, "load_depth");
-    LLVMValueRef new_depth = LLVMBuildAdd(builder, depth_val, LLVMConstInt(LLVMInt32Type(), 1, 0), "inc_depth");
+    // 1. Stack depth handling
+    // Increment counter
+    LLVMTypeRef int32_type = LLVMInt32Type();
+    LLVMValueRef depth_val = LLVMBuildLoad2(builder, int32_type, current_stack_depth_var, "load_depth");
+    LLVMValueRef new_depth = LLVMBuildAdd(builder, depth_val, LLVMConstInt(int32_type, 1, 0), "inc_depth");
     LLVMBuildStore(builder, new_depth, current_stack_depth_var);
     
     // Verificar overflow
@@ -290,25 +300,26 @@ LLVMValueRef generate_function_body(LLVM_Visitor* v, ASTNode* node) {
     LLVMValueRef body_val = accept_gen(v, body);
 
     // Branch al bloque de salida
-    if (!type_equals(return_type, &TYPE_VOID)) {
-        LLVMBuildBr(builder, exit_block);
-    } else {
-        LLVMBuildBr(builder, exit_block);
-    }
+    LLVMBuildBr(builder, exit_block);
 
     // Bloque de salida
     LLVMPositionBuilderAtEnd(builder, exit_block);
     
     // Decrementar contador antes de retornar
-    LLVMValueRef final_depth = LLVMBuildLoad(builder, current_stack_depth_var, "load_depth_final");
-    LLVMValueRef dec_depth = LLVMBuildSub(builder, final_depth, LLVMConstInt(LLVMInt32Type(), 1, 0), "dec_depth");
+    LLVMValueRef final_depth = LLVMBuildLoad2(builder, int32_type, current_stack_depth_var, "load_depth_final");
+    LLVMValueRef dec_depth = LLVMBuildSub(builder, final_depth, LLVMConstInt(int32_type, 1, 0), "dec_depth");
     LLVMBuildStore(builder, dec_depth, current_stack_depth_var);
     
-    // Retornar
+    // Return value handling
     if (type_equals(return_type, &TYPE_VOID)) {
-        LLVMBuildRetVoid(builder);
-    } else {
+        // For void functions, return 0.0 as double
+        LLVMBuildRet(builder, LLVMConstReal(LLVMDoubleType(), 0.0));
+    } else if (body_val) {
+        // If we have a return value, use it
         LLVMBuildRet(builder, body_val);
+    } else {
+        // Default return 0.0 as double
+        LLVMBuildRet(builder, LLVMConstReal(LLVMDoubleType(), 0.0));
     }
 
     pop_scope();
@@ -337,9 +348,99 @@ LLVMValueRef generate_let_in(LLVM_Visitor* v, ASTNode* node) {
         declare_variable(var_name, alloca);
     }
     
+    // Obtener el bloque actual antes de evaluar el cuerpo
+    LLVMBasicBlockRef current_block = LLVMGetInsertBlock(builder);
+    
     // Evaluar el cuerpo
     LLVMValueRef result = accept_gen(v, node->data.func_node.body);
     
+    // Asegurar que estamos en el bloque correcto después de la evaluación
+    LLVMPositionBuilderAtEnd(builder, LLVMGetInsertBlock(builder));
+    
     pop_scope();
     return result;
+}
+
+LLVMValueRef generate_conditional(LLVM_Visitor* v, ASTNode* node) {
+    ASTNode* condition = node->data.cond_node.cond;
+    ASTNode* true_body = node->data.cond_node.body_true;
+    ASTNode* false_body = node->data.cond_node.body_false;
+
+    // Get current function
+    LLVMValueRef current_function = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
+
+    // Create basic blocks
+    LLVMBasicBlockRef then_block = LLVMAppendBasicBlock(current_function, "then");
+    LLVMBasicBlockRef else_block = false_body ? LLVMAppendBasicBlock(current_function, "else") : NULL;
+    LLVMBasicBlockRef merge_block = LLVMAppendBasicBlock(current_function, "merge");
+
+    // Generate condition code
+    LLVMValueRef cond_val = accept_gen(v, condition);
+
+    // Create conditional branch
+    LLVMBuildCondBr(builder, cond_val, then_block, else_block ? else_block : merge_block);
+
+    // Generate 'then' block
+    LLVMPositionBuilderAtEnd(builder, then_block);
+    LLVMValueRef then_val = accept_gen(v, true_body);
+    LLVMBuildBr(builder, merge_block);
+
+    // Get updated then_block for PHI
+    then_block = LLVMGetInsertBlock(builder);
+
+    // Generate 'else' block if it exists
+    LLVMValueRef else_val = NULL;
+    if (false_body) {
+        LLVMPositionBuilderAtEnd(builder, else_block);
+        else_val = accept_gen(v, false_body);
+        LLVMBuildBr(builder, merge_block);
+        else_block = LLVMGetInsertBlock(builder);
+    }
+
+    // Generate merge block with PHI node if needed
+    LLVMPositionBuilderAtEnd(builder, merge_block);
+    
+    if (type_equals(node->return_type, &TYPE_VOID)) {
+        return NULL;
+    }
+    
+    // Create PHI node to merge values
+    LLVMTypeRef phi_type = get_llvm_type(node->return_type);
+    LLVMValueRef phi = LLVMBuildPhi(builder, phi_type, "if_result");
+    
+    // Add incoming values to PHI
+    LLVMValueRef incoming_values[] = {then_val, else_val ? else_val : LLVMConstNull(phi_type)};
+    LLVMBasicBlockRef incoming_blocks[] = {then_block, else_block ? else_block : merge_block};
+    LLVMAddIncoming(phi, incoming_values, incoming_blocks, else_block ? 2 : 1);
+    
+    return phi;
+}
+
+LLVMValueRef generate_loop(LLVM_Visitor* v, ASTNode* node) {
+    // Get current function
+    LLVMValueRef current_function = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
+
+    // Create basic blocks
+    LLVMBasicBlockRef cond_block = LLVMAppendBasicBlock(current_function, "while.cond");
+    LLVMBasicBlockRef loop_block = LLVMAppendBasicBlock(current_function, "while.body");
+    LLVMBasicBlockRef merge_block = LLVMAppendBasicBlock(current_function, "while.end");
+
+    // Branch to condition block
+    LLVMBuildBr(builder, cond_block);
+
+    // Generate condition
+    LLVMPositionBuilderAtEnd(builder, cond_block);
+    LLVMValueRef cond_val = accept_gen(v, node->data.op_node.left);
+    LLVMBuildCondBr(builder, cond_val, loop_block, merge_block);
+
+    // Generate loop body
+    LLVMPositionBuilderAtEnd(builder, loop_block);
+    accept_gen(v, node->data.op_node.right);
+    LLVMBuildBr(builder, cond_block);
+
+    // Continue with merge block
+    LLVMPositionBuilderAtEnd(builder, merge_block);
+
+    // Return 0.0 as double (default return value for HULK)
+    return LLVMConstReal(LLVMDoubleType(), 0.0);
 }
