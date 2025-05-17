@@ -52,7 +52,7 @@ void visit_binary_op(Visitor* v, ASTNode* node) {
     Type* left_type = find_type(v, left);
     Type* right_type = find_type(v, right);
 
-    OperatorTypeRule rule = create_op_rule ( 
+    OperatorTypeRule rule = create_op_rule( 
         left_type, right_type, 
         node->return_type, 
         node->data.op_node.op 

@@ -6,10 +6,12 @@ int unify_member(Visitor* v, ASTNode* node, Type* type) {
     if (node->type == NODE_VARIABLE  && node->is_param == 1) {
         Symbol* sym = find_parameter(node->scope, node->data.variable_name);
         
-        if (type_equals(sym->type, &TYPE_ANY)) {
+        if (type_equals(sym->type, &TYPE_ANY) ||
+            is_ancestor_type(sym->type, type)
+        ) {
             sym->type = type;
             node->return_type = type;
-        } else if (!type_equals(sym->type, type)) {
+        } else if (!is_ancestor_type(type, sym->type)) {
             report_error(
                 v, "Parameter '%s' behaves both as '%s' and '%s'. Line: %d.",
                 node->data.variable_name, sym->type->name, type->name, node->line
@@ -99,6 +101,11 @@ int unify_op(Visitor* v, ASTNode* left, ASTNode* right, Operator op, char* op_na
 
         if (count) {
             unified = unify_member(v, left, rule->left_type) ? 2 : 0;
+        } else {
+            report_error(
+                v, "Operator '%s' can not be used with '%s' as right side. Line: %d.",
+                op_name, right->return_type->name, right->line
+            );
         }
     } else if (right && type_equals(right->return_type, &TYPE_ANY)) {
         for (int i = 0; i < op_rules_count; i++)
@@ -116,6 +123,11 @@ int unify_op(Visitor* v, ASTNode* left, ASTNode* right, Operator op, char* op_na
 
         if (count) {
             unified = unify_member(v, right, rule->right_type) ? 1 : 0;
+        } else {
+            report_error(
+                v, "Operator '%s' can not be used with '%s' as left side. Line: %d.",
+                op_name, left->return_type->name, left->line
+            );
         }
     }
 

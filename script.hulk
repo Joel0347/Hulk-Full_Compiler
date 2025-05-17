@@ -131,17 +131,17 @@ print(hola(12, 2));
 // print(f(3));
 // print(f(3));
 
-if (3<1) {
-	5;
-} elif (3 < 5) {
-	4;
-} elif (false) {
+// if (3<1) {
+// 	5;
+// } elif (3 < 5) {
+// 	4;
+// } elif (false) {
 
-} elif (3 < 8) {
+// } elif (3 < 8) {
 
-} else {
-	3;
-}
+// } else {
+// 	3;
+// }
 // function test1(x) {
 //     function test2(y) {
 //         x + y;
@@ -149,24 +149,32 @@ if (3<1) {
 //     x + test2(x);
 // }
 // let x:Void = {} in x;
-function fib(n) {
-    1+if (n)
-        1
-    elif (n)
-        fib(n-1)
-    else {true;};
-        // fib(n-1) + fib(n-1)
-}
+// function fib(n) {
+//     1+if (n)
+//         1
+//     elif (n)
+//         fib(n-1)
+//     else {true;};
+//         // fib(n-1) + fib(n-1)
+// }
 
-fib("As")@1;
+// fib("As")@1;
 
-function test3(n) {
-    1+if (true)
-        n
-    elif (false)
-        n+1
-    else {true;};
-        // fib(n-1) + fib(n-1)
-}
+// function test3(n) {
+//     if (true)
+//         "asd"
+//     elif (false)
+//         test3(n+1)
+//     else test3(n)+1;
+// }
 
-test3("AS")@1;
+// test3("AS")@1;
+
+// function fact(n) {
+//     if (n == 1 | n == 0)
+//         1
+//     else 
+//         fact(n - 1) * n;
+// }
+
+// fact(2);

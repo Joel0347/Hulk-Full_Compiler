@@ -331,15 +331,7 @@ LLVMValueRef generate_let_in(LLVM_Visitor* v, ASTNode* node) {
         LLVMValueRef value = accept_gen(v, decl->data.op_node.right);
         
         // Crear alloca para la variable
-        LLVMTypeRef var_type;
-        if (type_equals(decl->data.op_node.right->return_type, &TYPE_STRING)) {
-            var_type = LLVMPointerType(LLVMInt8Type(), 0);
-        } else if (type_equals(decl->data.op_node.right->return_type, &TYPE_BOOLEAN)) {
-            var_type = LLVMInt1Type();
-        } else {
-            var_type = LLVMDoubleType();
-        }
-        
+        LLVMTypeRef var_type = get_llvm_type(decl->data.op_node.right->return_type);
         LLVMValueRef alloca = LLVMBuildAlloca(builder, var_type, var_name);
         LLVMBuildStore(builder, value, alloca);
         declare_variable(var_name, alloca);
