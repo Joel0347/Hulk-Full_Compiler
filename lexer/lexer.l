@@ -28,6 +28,15 @@ int line_num = 1;
 ")"             { return RPAREN; }
 "{"             { return LBRACKET; }
 "}"             { return RBRACKET; }
+"+="            { return PLUSEQUAL; }
+"-="            { return MINUSEQUAL; }
+"*="            { return TIMESEQUAL; }
+"/="            { return DIVEQUAL; }
+"%="            { return MODEQUAL; }
+"^="            { return POWEQUAL; }
+"&="            { return ANDEQUAL; }
+"|="            { return OREQUAL; }
+"@="            { return CONCATEQUAL; }
 ":="            { return DEQUALS; }
 ":"             { return COLON; }      
 "=="            { return EQUALSEQUALS; }
@@ -53,6 +62,7 @@ int line_num = 1;
 "if"            { return IF; }
 "elif"          { return ELIF; }
 "else"          { return ELSE; }
+"while"         { return WHILE; }
 
 [a-zA-ZñÑ][a-zA-ZñÑ0-9_]*  { yylval.var = strdup(yytext); return ID; }
 "//"[^\n]*?   { /* COMMENT */ }
@@ -64,7 +74,7 @@ int line_num = 1;
 }
 
 .           { 
-                fprintf(stderr, RED"!!LEXICAL ERROR: Invalid character '%s' in line: %d \n"RESET, yytext, line_num);
+                fprintf(stderr, RED"!!LEXICAL ERROR: Invalid character '%s'. Line: %d \n"RESET, yytext, line_num);
                 return ERROR;
             }
 

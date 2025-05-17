@@ -46,3 +46,34 @@ void visit_conditional(Visitor* v, ASTNode* node) {
 
     node->return_type = get_lca(true_type, false_type);
 }
+
+void visit_loop(Visitor* v, ASTNode* node) {
+    ASTNode* condition = node->data.op_node.left;
+    ASTNode* body = node->data.op_node.right;
+
+    condition->context->parent = node->context;
+    body->context->parent = node->context;
+    condition->scope->parent = node->scope;
+    body->scope->parent = node->scope;
+
+    accept(v, condition);
+
+    if (unify_member(v, condition, &TYPE_BOOLEAN)) {
+        accept(v, condition);
+    }
+
+    Type* condition_type = find_type(v, condition);
+
+    if (!type_equals(condition_type, &TYPE_ERROR) &&
+        !type_equals(condition_type, &TYPE_BOOLEAN)
+    ) {
+        report_error(
+            v, "Condition in 'while' expression must return "
+            "'Boolean', not '%s'. Line: %d", 
+            condition_type->name, condition->line
+        );
+    }
+
+    accept(v, body);
+    node->return_type = find_type(v, body);
+}

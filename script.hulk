@@ -1,178 +1,198 @@
 // KENDRY TODO ESTO TIENE QUE PINCHAR
-let w = 2 == 3 & !(3<4), x = 1+2, z = exp(x) in {
-    print(x-2);
-    print(w);
-    print(x);
-    print(z);
-    print(1);
-    print(log(E));
-    print(log(2, x));
-    print(cos(PI/2));
-    print(sin(PI));
-    print(exp(2) + z);
-    print(sqrt(z));
-    print(rand());
-};
-
-let p="JOEL"@@ {
-    "PONTE\t\\\\"@ {
-            2;
-            "A PINCHAR QUE SINO EL BARCA\nNO GANA LA SEXTA \n";
-        };
-    },x = 2 in {
-    print(p);
-    p:Number := 3;
-    let a = 2+x in a + p;
-};
-let
-    x: Boolean = true,
-    y: Boolean = false
-in {
-    print(x&y);
-};
-
-f(1, "Ads");
-
-// function f(x:Number, y) {
-//     let t = 1 in
-//         x @ y  @ t;
-// }
-// {
-//     function h(x, y) {
-//         g(x, y);
-//     }
-//     h(2, 2@"");
-// }
-// function g(x, y:String) {
-//     f(x, y);
-// }
-
-// function test1(x, y:Object): Number => k(x, y);
-// function test2(x: Number, y:String) => {
-//     test1(x, y); //test2 debe saber que retorna Void o lo que sea que retorne test1
+// let w = 2 == 3 & !(3<4), x = 1+2, z = exp(x) in {
+//     print(x-2);
+//     print(w);
+//     print(x);
+//     print(z);
+//     print(1);
+//     print(log(E));
+//     print(log(2, x));
+//     print(cos(PI/2));
+//     print(sin(PI));
+//     print(exp(2) + z);
+//     print(sqrt(z));
+//     print(rand());
 // };
 
-// function k(x, y:Object) {
-//     test2(test1(x, y), x); // no infiere que y es string
+// let p="JOEL"@@ {
+//     "PONTE\t\\\\"@ {
+//             2;
+//             "A PINCHAR QUE SINO EL BARCA\nNO GANA LA SEXTA \n";
+//         };
+//     },x = 2 in {
+//     print(p);
+//     p:Number := 3;
+//     let a = 2+x in a + p;
+// };
+// let
+//     x: Boolean = true,
+//     y: Boolean = false
+// in {
+//     print(x&y);
+// };
+
+// f(1, "Ads");
+
+// // function f(x:Number, y) {
+// //     let t = 1 in
+// //         x @ y  @ t;
+// // }
+// // {
+// //     function h(x, y) {
+// //         g(x, y);
+// //     }
+// //     h(2, 2@"");
+// // }
+// // function g(x, y:String) {
+// //     f(x, y);
+// // }
+
+// // function test1(x, y:Object): Number => k(x, y);
+// // function test2(x: Number, y:String) => {
+// //     test1(x, y); //test2 debe saber que retorna Void o lo que sea que retorne test1
+// // };
+
+// // function k(x, y:Object) {
+// //     test2(test1(x, y), x); // no infiere que y es string
+// // }
+// // // k(2);
+
+// // // test1(2,3) @ 1;
+// // // test2(2, "sad") + 1;
+
+// function cot(x) => 1 / tan(x);
+// function tan(x) => sin(x) / cos(x);
+
+// print(tan(PI)^2 + cot(PI)^2);
+
+// function operate(x, y) {
+//     print(x + y);
+//     print(x - y);
+//     print(x * y);
+//     print(x / y);
 // }
-// // k(2);
 
-// // test1(2,3) @ 1;
-// // test2(2, "sad") + 1;
+// let msg = "Hello World" in print(msg);
+// let number = 42, text = "The meaning of life is" in print(text@@number);
+// let number = 42, text = "The meaning of life is " in print(text@number);
+// let number = 42 in (
+//     let text = "The meaning of life is " in (
+//         print(text@number)
+//     )
+// );
 
-function cot(x) => 1 / tan(x);
-function tan(x) => sin(x) / cos(x);
+// let a = 6, b = a * 7 in print(b);
+// let a = 6 in
+// let b = a * 7 in
+//     print(b);
+// let a = 5, b = 10, c = 20 in {
+//     print(a+b);
+//     print(b*c);
+//     print(c/a);
+// };
+// let a = (let b = 6 in b * 7) in print(a);
+// print(let b = 6 in b * 7);
+// let a = 20 in {
+//     let a = 42 in print(a); //imprime 42
+//     print(a); //imprime 20
+// };
+// let a = 7, a = 7 * 6 in print(a + 1); //imprime 43
+// let a = 7 in
+//     let a = 7 * 6 in
+//         print(a); //imprime 42
+// let a = 0 in {
+//     print(a); //imprime 0
+//     a := 1;
+//     print(a); // imprime 1
+// };
+// let a = 0 in
+//     let b = a := 1 in {
+//         print(a); //imprime 1
+//         print(b); //imprime 1
+//     };
+// function hola(x:Number, y) { //revisar parametros con igual nombre
+//     let x = x in {
+//         x := y;
+//         y := x;
+//         x - y;;
+//     };
+// }
 
-print(tan(PI)^2 + cot(PI)^2);
+// function suc() => {};
+// suc()+1;
+// print(hola(12, 2));
 
-function operate(x, y) {
-    print(x + y);
-    print(x - y);
-    print(x * y);
-    print(x / y);
-}
+// function g(x:Number):Number => f(x);
+// function f(x:Number):Number => f(x);
 
-let msg = "Hello World" in print(msg);
-let number = 42, text = "The meaning of life is" in print(text@@number);
-let number = 42, text = "The meaning of life is " in print(text@number);
-let number = 42 in (
-    let text = "The meaning of life is " in (
-        print(text@number)
-    )
-);
+// print(f(3));
+// print(f(3));
+// print(f(3));
+// print(f(3));
+// print(f(3));
 
-let a = 6, b = a * 7 in print(b);
-let a = 6 in
-let b = a * 7 in
-    print(b);
-let a = 5, b = 10, c = 20 in {
-    print(a+b);
-    print(b*c);
-    print(c/a);
+// if (3<1) {
+// 	5;
+// } elif (3 < 5) {
+// 	4;
+// } elif (false) {
+
+// } elif (3 < 8) {
+
+// } else {
+// 	3;
+// }
+// function test1(x) {
+//     function test2(y) {
+//         x + y;
+//     }
+//     x + test2(x);
+// }
+// let x:Void = {} in x;
+// function fib(n) {
+//     if (n == 0 | n == 1)
+//         1
+//     else
+//         fib(n-1) + fib(n-1)
+// }
+
+// fib("As")@1;
+
+// function test3(n) {
+//     if (test3(n))
+//         "asd"
+//     elif (false)
+//         test3(n+1)
+//     else test3(n)+1;
+// }
+
+// test3("AS")@1;
+
+// function fact(n) {
+//     // if (n == 1 | n == 0)
+//     //     1
+//     // else 
+//     //     fact(n-1) * 1;
+
+//     let i = 1, total = 1 in while (i <= n) {
+//         total := total * i;
+//         i := i + 1;
+//         total;
+//     };
+// }
+
+// fact("as");
+
+let i = 0 in while (i<4) {
+    print("hola");
+    i += 1;
 };
-let a = (let b = 6 in b * 7) in print(a);
-print(let b = 6 in b * 7);
-let a = 20 in {
-    let a = 42 in print(a); //imprime 42
-    print(a); //imprime 20
-};
-let a = 7, a = 7 * 6 in print(a + 1); //imprime 43
-let a = 7 in
-    let a = 7 * 6 in
-        print(a); //imprime 42
-let a = 0 in {
-    print(a); //imprime 0
-    a := 1;
-    print(a); // imprime 1
-};
-let a = 0 in
-    let b = a := 1 in {
-        print(a); //imprime 1
-        print(b); //imprime 1
+// let i =1, p = i+=2<1 in print(p+i);
+function j(x) {
+    let i = 1 in while (i < 10) {
+        print(i);
+        i += x;
     };
-function hola(x:Number, y) { //revisar parametros con igual nombre
-    let x = x in {
-        x := y;
-        y := x;
-        x - y;;
-    };
 }
 
-function suc() => {};
-suc()+1;
-print(hola(12, 2));
-
-function g(x:Number):Number => f(x);
-function f(x:Number):Number => f(x);
-
-print(f(3));
-print(f(3));
-print(f(3));
-print(f(3));
-print(f(3));
-
-if (3<1) {
-	5;
-} elif (3 < 5) {
-	4;
-} elif (false) {
-
-} elif (3 < 8) {
-
-} else {
-	3;
-}
-function test1(x) {
-    function test2(y) {
-        x + y;
-    }
-    x + test2(x);
-}
-let x:Void = {} in x;
-function fib(n) {
-    if (n == 0 | n == 1)
-        1
-    else
-        fib(n-1) + fib(n-1)
-}
-
-fib("As")@1;
-
-function test3(n) {
-    if (true)
-        "asd"
-    elif (false)
-        test3(n+1)
-    else test3(n)+1;
-}
-
-test3("AS")@1;
-
-function fact(n) {
-    if (n == 1 | n == 0)
-        1
-    else 
-        fact(n-1) * 1;
-}
-
-fact(2);
+j("as");
