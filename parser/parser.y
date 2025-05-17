@@ -50,8 +50,11 @@ void add_statement(ASTNode* stmt) {
 %token <var> ID
 %token <str> STRING
 %token <str> BOOLEAN
-%token ERROR ARROW FUNCTION DEQUALS LET IN IF ELIF ELSE
+%token ERROR ARROW FUNCTION DEQUALS LET IN IF ELIF ELSE WHILE
 %token LPAREN RPAREN EQUALS SEMICOLON COMMA LBRACKET RBRACKET COLON
+
+%token CONCATEQUAL ANDEQUAL OREQUAL PLUSEQUAL MINUSEQUAL
+%token TIMESEQUAL DIVEQUAL MODEQUAL POWEQUAL
 
 %left DCONCAT
 %left CONCAT
@@ -67,7 +70,7 @@ void add_statement(ASTNode* stmt) {
 
 %type <node> expression block_expr statement destructive_var_decl function_call
 %type <node> param function_declaration simple_var_decl let_in_exp conditional
-%type <node> elif_branch
+%type <node> elif_branch while_loop compound_operator
 
 %type <arg_list> list_args block_expr_list param_list let_definitions
 
@@ -104,6 +107,7 @@ statement:
     SEMICOLON                        { $$ = NULL; }
     | function_declaration           { $$ = $1; }
     | conditional                    { $$ = $1; }
+    | while_loop                     { $$ = $1; }
     | function_declaration SEMICOLON { $$ = $1; }
     | block_expr                     { $$ = $1; }
     | expression SEMICOLON           { $$ = $1; }
@@ -263,6 +267,85 @@ elif_branch:
     | ELIF LPAREN expression RPAREN expression elif_branch     { $$ = create_conditional_node($3, $5, $6); }
 ;
 
+while_loop:
+    WHILE LPAREN expression RPAREN expression { $$ = create_loop_node($3, $5); }
+;
+
+compound_operator:
+    ID PLUSEQUAL expression {
+        $$ = create_assignment_node(
+            $1, create_binary_op_node(
+                OP_ADD, "+", create_variable_node($1, "", 0), $3, &TYPE_NUMBER
+            ),
+            "", NODE_D_ASSIGNMENT
+        );
+    }
+    | ID MINUSEQUAL expression {
+        $$ = create_assignment_node(
+            $1, create_binary_op_node(
+                OP_SUB, "-", create_variable_node($1, "", 0), $3, &TYPE_NUMBER
+            ),
+            "", NODE_D_ASSIGNMENT
+        );
+    }
+    | ID TIMESEQUAL expression {
+        $$ = create_assignment_node(
+            $1, create_binary_op_node(
+                OP_MUL, "*", create_variable_node($1, "", 0), $3, &TYPE_NUMBER
+            ),
+            "", NODE_D_ASSIGNMENT
+        );
+    }
+    | ID DIVEQUAL expression {
+        $$ = create_assignment_node(
+            $1, create_binary_op_node(
+                OP_DIV, "/", create_variable_node($1, "", 0), $3, &TYPE_NUMBER
+            ),
+            "", NODE_D_ASSIGNMENT
+        );
+    }
+    | ID MODEQUAL expression {
+        $$ = create_assignment_node(
+            $1, create_binary_op_node(
+                OP_MOD, "%", create_variable_node($1, "", 0), $3, &TYPE_NUMBER
+            ),
+            "", NODE_D_ASSIGNMENT
+        );
+    }
+    | ID POWEQUAL expression {
+        $$ = create_assignment_node(
+            $1, create_binary_op_node(
+                OP_POW, "^", create_variable_node($1, "", 0), $3, &TYPE_NUMBER
+            ),
+            "", NODE_D_ASSIGNMENT
+        );
+    }
+    | ID CONCATEQUAL expression {
+        $$ = create_assignment_node(
+            $1, create_binary_op_node(
+                OP_CONCAT, "@", create_variable_node($1, "", 0), $3, &TYPE_STRING
+            ),
+            "", NODE_D_ASSIGNMENT
+        );
+    }
+    | ID ANDEQUAL expression {
+        $$ = create_assignment_node(
+            $1, create_binary_op_node(
+                OP_AND, "&", create_variable_node($1, "", 0), $3, &TYPE_BOOLEAN
+            ),
+            "", NODE_D_ASSIGNMENT
+        );
+    }
+    | ID OREQUAL expression {
+        $$ = create_assignment_node(
+            $1, create_binary_op_node(
+                OP_OR, "|", create_variable_node($1, "", 0), $3, &TYPE_BOOLEAN
+            ),
+            "", NODE_D_ASSIGNMENT
+        );
+    }
+;
+
 expression:
     NUMBER                               { $$ = create_number_node($1); }
     | PI                                 { $$ = create_number_node(M_PI); }
@@ -295,6 +378,8 @@ expression:
     | destructive_var_decl               { $$ = $1; }
     | simple_var_decl                    { $$ = $1; }
     | conditional                        { $$ = $1; }
+    | while_loop                         { $$ = $1; }
+    | compound_operator                  { $$ = $1; }
     | ERROR { // Handle any other error
         yyerrok;
         YYABORT;
@@ -305,19 +390,23 @@ expression:
 
 const char* token_to_str(int token) {
     switch(token) {
-        case NUMBER:       return "'number'" ; case ID:       return "'identifier'"; case STRING:   return "'string'";
-        case LPAREN:       return "'('"      ; case RPAREN:   return "')'"         ; case COLON:    return "':'"     ;
-        case LBRACKET:     return "'{'"      ; case RBRACKET: return "'}'"         ; case EQUALS:   return "'='"     ;
-        case SEMICOLON:    return "';'"      ; case PLUS:     return "'+'"         ; case MINUS:    return "'-'"     ;
-        case TIMES:        return "'*'"      ; case DIVIDE:   return "'/'"         ; case MOD:      return "'%'"     ;
-        case POWER:        return "'^'"      ; case CONCAT:   return "'@'"         ; case DCONCAT:  return "'@@'"    ;
-        case AND:          return "'&'"      ; case OR:       return "'|'"         ; case NOT:      return "'!'"     ;
-        case EQUALSEQUALS: return "'=='"     ; case NEQUALS:  return "'!='"        ; case EGREATER: return "'>='"    ;
-        case GREATER:      return "'>'"      ; case ELESS:    return "'<='"        ; case LESS:     return "'<'"     ;
-        case COMMA:        return "','"      ; case PI:       return "'PI'"        ; case E:        return "'E'"     ;
-        case ARROW:        return "'=>'"     ; case FUNCTION: return "'function'"  ; case DEQUALS:  return "':='"    ;
-        case BOOLEAN:      return "'boolean'"; case LET:      return "'let'"       ; case IN:       return "'in'"    ;
-        case IF:           return "'if'"     ; case ELIF:     return "'elif'"      ; case ELSE:     return "'else'"  ;
+        case NUMBER:       return "'number'" ; case ID:       return "'identifier'"; case STRING:     return "'string'";
+        case LPAREN:       return "'('"      ; case RPAREN:   return "')'"         ; case COLON:      return "':'"     ;
+        case LBRACKET:     return "'{'"      ; case RBRACKET: return "'}'"         ; case EQUALS:     return "'='"     ;
+        case SEMICOLON:    return "';'"      ; case PLUS:     return "'+'"         ; case MINUS:      return "'-'"     ;
+        case TIMES:        return "'*'"      ; case DIVIDE:   return "'/'"         ; case MOD:        return "'%'"     ;
+        case POWER:        return "'^'"      ; case CONCAT:   return "'@'"         ; case DCONCAT:    return "'@@'"    ;
+        case AND:          return "'&'"      ; case OR:       return "'|'"         ; case NOT:        return "'!'"     ;
+        case EQUALSEQUALS: return "'=='"     ; case NEQUALS:  return "'!='"        ; case EGREATER:   return "'>='"    ;
+        case GREATER:      return "'>'"      ; case ELESS:    return "'<='"        ; case LESS:       return "'<'"     ;
+        case COMMA:        return "','"      ; case PI:       return "'PI'"        ; case E:          return "'E'"     ;
+        case ARROW:        return "'=>'"     ; case FUNCTION: return "'function'"  ; case DEQUALS:    return "':='"    ;
+        case BOOLEAN:      return "'boolean'"; case LET:      return "'let'"       ; case IN:         return "'in'"    ;
+        case IF:           return "'if'"     ; case ELIF:     return "'elif'"      ; case ELSE:       return "'else'"  ;
+        case PLUSEQUAL:    return "'+='"     ; case DIVEQUAL: return "'/='"        ; case POWEQUAL:   return "'^='"    ;
+        case MINUSEQUAL:   return "'-='"     ; case ANDEQUAL: return "'&='"        ; case OREQUAL:    return "'|='"    ;
+        case CONCATEQUAL:  return "'@='"     ; case MODEQUAL: return "'%='"        ; case TIMESEQUAL: return "'*='"    ;
+        case WHILE:        return "'while'"  ;
 
         default: return "";
     }

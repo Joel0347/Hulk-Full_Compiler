@@ -23,6 +23,7 @@ int analyze_semantics(ASTNode* node) {
         .visit_function_dec = visit_function_dec,
         .visit_let_in = visit_let_in,
         .visit_conditional = visit_conditional,
+        .visit_loop = visit_loop,
         .error_count = 0,
         .errors = NULL
     };

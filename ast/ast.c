@@ -175,6 +175,19 @@ ASTNode* create_conditional_node(ASTNode* condition, ASTNode* body_true, ASTNode
     return node;
 }
 
+ASTNode* create_loop_node(ASTNode* condition, ASTNode* body) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->line = line_num;
+    node->type = NODE_LOOP;
+    node->return_type = &TYPE_OBJECT;
+    node->scope = create_scope(NULL);
+    node->context = create_context(NULL);
+    node->data.op_node.left = condition;
+    node->data.op_node.right = body;
+    node->value = body;
+    return node;
+}
+
 void free_ast(ASTNode* node) {
     if (!node) {
         return;
@@ -188,6 +201,7 @@ void free_ast(ASTNode* node) {
         case NODE_UNARY_OP:
         case NODE_ASSIGNMENT:
         case NODE_D_ASSIGNMENT:
+        case NODE_LOOP:
             free_ast(node->data.op_node.left);
             free_ast(node->data.op_node.right);
             break;
@@ -315,5 +329,15 @@ void print_ast(ASTNode* node, int indent) {
             for (int i = 0; i < indent+1; i++) printf("  ");
             printf("else part:\n");
             print_ast(node->data.cond_node.body_false, indent + 2);
+            break;
+        case NODE_LOOP:
+            printf("Loop:\n");
+            for (int i = 0; i < indent+1; i++) printf("  ");
+            printf("Condition:\n");
+            print_ast(node->data.op_node.left, indent + 2);
+            for (int i = 0; i < indent+1; i++) printf("  ");
+            printf("Body:\n");
+            print_ast(node->data.op_node.right, indent + 2);
+            break;
     }
 }

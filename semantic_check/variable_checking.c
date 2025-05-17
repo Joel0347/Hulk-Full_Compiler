@@ -57,7 +57,7 @@ void visit_assignment(Visitor* v, ASTNode* node) {
     if (!sym && node->type == NODE_D_ASSIGNMENT) {
         report_error(
             v, "Variable '%s' needs to be initializated in a "
-            "'let' definition before using operator ':='. Line: %d.",
+            "'let' definition before being reassigned. Line: %d.",
             var_node->data.variable_name, node->line
         );
     }
