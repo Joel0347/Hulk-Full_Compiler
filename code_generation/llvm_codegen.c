@@ -50,10 +50,7 @@ void generate_main_function(ASTNode* ast, const char* filename) {
     
     // Declare external functions
     declare_external_functions();
-
     find_function_dec(&visitor, ast);
-    make_body_function_dec(&visitor, ast);
-
     // Create scope
     push_scope();
     
@@ -70,6 +67,7 @@ void generate_main_function(ASTNode* ast, const char* filename) {
         accept_gen(&visitor, ast);
     }
 
+    
     // Make sure we're in the right block for the return
     LLVMBasicBlockRef current_block = LLVMGetInsertBlock(builder);
     if (!LLVMGetBasicBlockTerminator(current_block)) {
@@ -96,7 +94,7 @@ LLVMValueRef generate_program(LLVM_Visitor* v, ASTNode* node) {
     for (int i = 0; i < node->data.program_node.count; i++) {
         ASTNode* stmt = node->data.program_node.statements[i];
         if (stmt->type != NODE_FUNC_DEC) {
-            last = accept_gen(v, stmt);
+            last= accept_gen(v, stmt);
         }
     }
 
@@ -121,14 +119,16 @@ LLVMValueRef generate_boolean(LLVM_Visitor* v,ASTNode* node) {
 }
 
 LLVMValueRef generate_block(LLVM_Visitor* v,ASTNode* node) {
+    print_scope();
     push_scope();
+    print_scope();
     LLVMValueRef last_val = NULL;
     for (int i = 0; i < node->data.program_node.count; i++) {
         ASTNode* stmt = node->data.program_node.statements[i];
-        // No generar código para declaraciones de función aquí
         if (stmt->type != NODE_FUNC_DEC) {
-            last_val = accept_gen(v, stmt);
+            last_val= accept_gen(v, stmt);
         }
+        
     }
     pop_scope();
     return last_val ? last_val : LLVMConstInt(LLVMInt32Type(), 0, 0);
@@ -191,30 +191,68 @@ LLVMValueRef generate_variable(LLVM_Visitor* v,ASTNode* node) {
 }
 
 void find_function_dec(LLVM_Visitor* visitor, ASTNode* node) {
-    if (node->type == NODE_PROGRAM || node->type == NODE_BLOCK) {
-        for (int i = 0; i < node->data.program_node.count; i++) {
-            ASTNode* stmt = node->data.program_node.statements[i];
-            if (stmt->type == NODE_FUNC_DEC) {
-                make_function_dec(visitor, stmt);
+    if (!node) return;
+
+    // Si es una declaración de función, procesarla y buscar dentro de su cuerpo
+    if (node->type == NODE_FUNC_DEC) {
+        make_function_dec(visitor, node);
+        // Buscar funciones anidadas dentro del cuerpo de la función
+        find_function_dec(visitor, node->data.func_node.body);
+        return;
+    }
+    
+    // Recursivamente buscar en los diferentes tipos de nodos
+    switch (node->type) {
+        case NODE_PROGRAM:
+        case NODE_BLOCK:
+            for (int i = 0; i < node->data.program_node.count; i++) {
+                find_function_dec(visitor, node->data.program_node.statements[i]);
             }
-            if (stmt->type == NODE_BLOCK) {
-                find_function_dec(visitor, stmt);
+            break;
+        
+        case NODE_LET_IN:
+            // Buscar en las declaraciones
+            for (int i = 0; i < node->data.func_node.arg_count; i++) {
+                if (node->data.func_node.args[i]->type == NODE_ASSIGNMENT) {
+                    find_function_dec(visitor, node->data.func_node.args[i]->data.op_node.right);
+                }
             }
-        }
+            // Buscar en el cuerpo
+            find_function_dec(visitor, node->data.func_node.body);
+            break;
     }
 }
 
 void make_body_function_dec(LLVM_Visitor* visitor, ASTNode* node) {
-    if (node->type == NODE_PROGRAM || node->type == NODE_BLOCK) {
-        for (int i = 0; i < node->data.program_node.count; i++) {
-            ASTNode* stmt = node->data.program_node.statements[i];
-            if (stmt->type == NODE_FUNC_DEC) {
-                accept_gen(visitor, stmt);
+    if (!node) return;
+
+    // Si es una declaración de función, generar su cuerpo y procesar funciones anidadas
+    if (node->type == NODE_FUNC_DEC) {
+        accept_gen(visitor, node);
+        // Procesar funciones anidadas en el cuerpo de la función
+        make_body_function_dec(visitor, node->data.func_node.body);
+        return;
+    }
+
+    // Recursivamente procesar los diferentes tipos de nodos
+    switch (node->type) {
+        case NODE_PROGRAM:
+        case NODE_BLOCK:
+            for (int i = 0; i < node->data.program_node.count; i++) {
+                make_body_function_dec(visitor, node->data.program_node.statements[i]);
             }
-            if (stmt->type == NODE_BLOCK) {
-                make_body_function_dec(visitor, stmt);
+            break;
+        
+        case NODE_LET_IN:
+            // Procesar declaraciones 
+            for (int i = 0; i < node->data.func_node.arg_count; i++) {
+                if (node->data.func_node.args[i]->type == NODE_ASSIGNMENT) {
+                    make_body_function_dec(visitor, node->data.func_node.args[i]->data.op_node.right);
+                }
             }
-        }
+            // Procesar el cuerpo
+            make_body_function_dec(visitor, node->data.func_node.body);
+            break;
     }
 }
 
@@ -296,6 +334,7 @@ LLVMValueRef generate_function_body(LLVM_Visitor* v, ASTNode* node) {
         declare_variable(params[i]->data.variable_name, alloca);
     }
 
+
     // Generar código para el cuerpo
     LLVMValueRef body_val = accept_gen(v, body);
 
@@ -330,7 +369,6 @@ LLVMValueRef generate_function_body(LLVM_Visitor* v, ASTNode* node) {
 
 LLVMValueRef generate_let_in(LLVM_Visitor* v, ASTNode* node) {
     push_scope();
-    
     // Procesar las declaraciones
     ASTNode** declarations = node->data.func_node.args;
     int dec_count = node->data.func_node.arg_count;
@@ -340,7 +378,6 @@ LLVMValueRef generate_let_in(LLVM_Visitor* v, ASTNode* node) {
         ASTNode* decl = declarations[i];
         const char* var_name = decl->data.op_node.left->data.variable_name;
         LLVMValueRef value = accept_gen(v, decl->data.op_node.right);
-        
         // Crear alloca para la variable
         LLVMTypeRef var_type = get_llvm_type(decl->data.op_node.right->return_type);
         LLVMValueRef alloca = LLVMBuildAlloca(builder, var_type, var_name);
@@ -350,7 +387,7 @@ LLVMValueRef generate_let_in(LLVM_Visitor* v, ASTNode* node) {
     
     // Obtener el bloque actual antes de evaluar el cuerpo
     LLVMBasicBlockRef current_block = LLVMGetInsertBlock(builder);
-    
+
     // Evaluar el cuerpo
     LLVMValueRef result = accept_gen(v, node->data.func_node.body);
     

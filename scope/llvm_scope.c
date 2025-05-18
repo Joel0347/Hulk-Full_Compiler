@@ -3,6 +3,36 @@
 #include <string.h>
 
 static LLVMScope* current_scope = NULL;
+void print_scope() {
+    LLVMScope* scope = current_scope;
+    int depth = 0;
+    
+    printf("Current Scope Hierarchy:\n");
+    printf("------------------------\n");
+    
+    while (scope != NULL) {
+        printf("Scope %d (Level: %d)\n", depth, depth);
+        printf("-------------------\n");
+        
+        ScopeVarEntry* entry = scope->variables;
+        if (entry == NULL) {
+            printf("  (empty)\n");
+        } else {
+            while (entry != NULL) {
+                printf("  Variable: %-15s Alloca: %p\n", 
+                      entry->name, (void*)entry->alloca);
+                entry = entry->next;
+            }
+        }
+        
+        scope = scope->parent;
+        depth++;
+        printf("\n");
+    }
+    
+    printf("End of Scope Chain\n");
+    printf("============");
+}
 
 void push_scope(void) {
     LLVMScope* new_scope = malloc(sizeof(LLVMScope));
