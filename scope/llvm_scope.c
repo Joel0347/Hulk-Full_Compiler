@@ -31,7 +31,7 @@ void print_scope() {
     }
     
     printf("End of Scope Chain\n");
-    printf("============");
+    printf("============\n");
 }
 
 void push_scope(void) {
