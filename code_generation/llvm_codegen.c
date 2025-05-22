@@ -51,6 +51,7 @@ void generate_main_function(ASTNode* ast, const char* filename) {
     // Declare external functions
     declare_external_functions();
     find_function_dec(&visitor, ast);
+    make_body_function_dec(&visitor, ast);
     // Create scope
     push_scope();
     
@@ -119,19 +120,19 @@ LLVMValueRef generate_boolean(LLVM_Visitor* v,ASTNode* node) {
 }
 
 LLVMValueRef generate_block(LLVM_Visitor* v,ASTNode* node) {
-    print_scope();
     push_scope();
-    print_scope();
     LLVMValueRef last_val = NULL;
     for (int i = 0; i < node->data.program_node.count; i++) {
         ASTNode* stmt = node->data.program_node.statements[i];
         if (stmt->type != NODE_FUNC_DEC) {
             last_val= accept_gen(v, stmt);
         }
-        
     }
-    pop_scope();
-    return last_val ? last_val : LLVMConstInt(LLVMInt32Type(), 0, 0);
+    if (last_val)
+    {
+        pop_scope();
+    }
+    return last_val ;
 }
 
 LLVMValueRef generate_assignment(LLVM_Visitor* v, ASTNode* node) {
@@ -378,6 +379,10 @@ LLVMValueRef generate_let_in(LLVM_Visitor* v, ASTNode* node) {
         ASTNode* decl = declarations[i];
         const char* var_name = decl->data.op_node.left->data.variable_name;
         LLVMValueRef value = accept_gen(v, decl->data.op_node.right);
+        if (!value)
+        {
+           return 1;
+        }
         // Crear alloca para la variable
         LLVMTypeRef var_type = get_llvm_type(decl->data.op_node.right->return_type);
         LLVMValueRef alloca = LLVMBuildAlloca(builder, var_type, var_name);
