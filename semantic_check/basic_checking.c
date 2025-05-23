@@ -115,7 +115,7 @@ void visit_block(Visitor* v, ASTNode* node) {
 
     if (current) {
         node->return_type = find_type(v, current);
-        node->value = current;
+        node->derivations = add_value_list(current, node->derivations);
     } else {
         node->return_type = &TYPE_VOID;
     }

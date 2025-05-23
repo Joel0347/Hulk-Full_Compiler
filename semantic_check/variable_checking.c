@@ -48,10 +48,6 @@ void visit_assignment(Visitor* v, ASTNode* node) {
     if (defined_type)
         inferried_type = defined_type->type;
 
-    if (node->type == NODE_D_ASSIGNMENT) {
-        node->return_type = inferried_type;
-    }
-
     Symbol* sym = find_symbol(node->scope, var_node->data.variable_name);
     
     if (!sym && node->type == NODE_D_ASSIGNMENT) {
@@ -60,20 +56,52 @@ void visit_assignment(Visitor* v, ASTNode* node) {
             "'let' definition before being reassigned. Line: %d.",
             var_node->data.variable_name, node->line
         );
-    }
-     else if (node->type == NODE_ASSIGNMENT || (sym && sym->is_param)) {
+    } else if (node->type == NODE_ASSIGNMENT) {
         declare_symbol(
             node->scope->parent, 
             var_node->data.variable_name, inferried_type,
             0, val_node
         );
+    } else if (
+        is_ancestor_type(sym->type, inferried_type) ||
+        type_equals(inferried_type, &TYPE_ANY) ||
+        type_equals(sym->type, &TYPE_ANY)
+    ) {
+        if (type_equals(inferried_type, &TYPE_ANY) &&
+            !type_equals(sym->type, &TYPE_ANY)
+        ) {
+            if (unify_member(v, val_node, sym->type)) {
+                accept(v, val_node);
+                inferried_type = find_type(v, val_node);
+            }
+        } else if (
+            type_equals(sym->type, &TYPE_ANY) &&
+            !type_equals(inferried_type, &TYPE_ANY)
+        ) {
+            sym->type = inferried_type;
+            for (int i = 0; i < sym->derivations->count; i++)
+            {
+                ASTNode* value = at(i, sym->derivations);
+                if (value && type_equals(value->return_type, &TYPE_ANY)) {
+                    unify_member(v, value, inferried_type);
+                }
+            }
+        }
+
+        sym->derivations = add_value_list(val_node, sym->derivations);
     } else {
-        sym->type = inferried_type;
-        sym->value = val_node;
-        sym->is_param = 0;
+        report_error(
+            v, "Variable '%s' was initializated as "
+            "'%s', but reassigned as '%s'. Line: %d.",
+            sym->name, sym->type->name, inferried_type->name, node->line
+        );
     }
 
     var_node->return_type = inferried_type;
+
+    if (node->type == NODE_D_ASSIGNMENT) {
+        node->return_type = inferried_type;
+    }
 }
 
 void visit_variable(Visitor* v, ASTNode* node) {
@@ -82,7 +110,7 @@ void visit_variable(Visitor* v, ASTNode* node) {
     if (sym) {
         node->return_type = sym->type;
         node->is_param = sym->is_param;
-        node->value = sym->value;
+        node->derivations = sym->derivations;
     } else if (!type_equals(node->return_type, &TYPE_ERROR)) {
         node->return_type = &TYPE_ERROR;
         report_error(

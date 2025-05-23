@@ -63,6 +63,42 @@ StrList* to_set(char**list, int len) {
     return result;
 }
 
+ValueList* add_value_list(struct ASTNode* value, ValueList* list) {
+    ValueList* new_list = (ValueList*)malloc(sizeof(ValueList));
+    ListElement* element = (ListElement*)malloc(sizeof(ListElement));
+    element->value = value;
+
+    if (list) {
+        element->next = list->first;
+        new_list->first = element;
+        new_list->count = list->count + 1;
+    } else {
+        new_list->first = element;
+        new_list->count = 1;
+    }
+
+    return new_list;
+}
+
+struct ASTNode* at(int index, ValueList* list) {
+    if (index > list->count || index < 0 || !list) {
+        return NULL;
+    }
+
+    ListElement* current = list->first;
+    
+    while (current)
+    {
+        if (!index) {
+            return current->value;
+        }
+        index--;
+        current = current->next;
+    }
+    
+    return NULL;
+}
+
 void free_int_list(IntList* list) {
     if (list && list->next)
         free_int_list(list->next);
@@ -72,6 +108,20 @@ void free_int_list(IntList* list) {
 void free_str_list(StrList* list) {
     if (list && list->next)
         free_str_list(list->next);
+    free(list);
+}
+
+void free_value_list_element(ListElement* element) {
+    if (element) {
+        free(element->value);
+        free_value_list_element(element->next);
+    }
+}
+
+void free_value_list(ValueList* list) {
+    if (list) {
+        free_value_list_element(list->first);
+    }
     free(list);
 }
 

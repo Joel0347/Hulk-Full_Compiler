@@ -9,7 +9,8 @@ typedef struct Symbol {
     char* name;
     Type* type;
     int is_param;
-    struct ASTNode* value;
+    ValueList* derivations;
+    ValueList* sources;
     struct Symbol* next;
 } Symbol;
 
@@ -54,7 +55,7 @@ Scope* create_scope(Scope* parent);
 Context* create_context(Context* parent);
 void destroy_scope(Scope* scope);
 void destroy_context(Context* context);
-void declare_symbol(Scope* scope, const char* name, Type* type, int is_param, struct ASTNode*);
+void declare_symbol(Scope* scope, const char* name, Type* type, int is_param, struct ASTNode* value);
 void declare_function(
     Scope* scope, int arg_count, Type** args_types, 
     Type* result_type, char* name
