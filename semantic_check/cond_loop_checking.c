@@ -39,7 +39,9 @@ void visit_conditional(Visitor* v, ASTNode* node) {
 
     if (false_body) {
         accept(v, false_body);
+        accept(v, true_body);
         false_type = find_type(v, false_body);
+        true_type = find_type(v, true_body);
     } else {
         false_type = find_type(v, true_body);
     }

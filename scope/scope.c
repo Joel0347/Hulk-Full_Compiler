@@ -66,7 +66,7 @@ void declare_symbol(
     if (s) {
         s->type = type;
         s->is_param = is_param;
-        s->value = value;
+        s->derivations = add_value_list(value, s->derivations);
         return;
     }
 
@@ -74,7 +74,7 @@ void declare_symbol(
     symbol->name = strdup(name);
     symbol->type = type;
     symbol->is_param = is_param;
-    symbol->value = value;
+    symbol->derivations = add_value_list(value, NULL);
     symbol->next = scope->symbols;
     scope->symbols = symbol;
 }

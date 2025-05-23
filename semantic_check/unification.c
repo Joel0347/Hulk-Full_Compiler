@@ -3,14 +3,23 @@
 
 int unify_member(Visitor* v, ASTNode* node, Type* type) {
     int unified = 0;
-    if (node->type == NODE_VARIABLE  && node->is_param == 1) {
+    
+    if (node->type == NODE_VARIABLE && node->is_param == 1) {
         Symbol* sym = find_parameter(node->scope, node->data.variable_name);
-        
+    
         if (type_equals(sym->type, &TYPE_ANY) ||
             is_ancestor_type(sym->type, type)
         ) {
             sym->type = type;
             node->return_type = type;
+
+            for (int i = 0; i < sym->derivations->count; i++)
+            {
+                ASTNode* value = at(i, sym->derivations);
+                if (value && type_equals(value->return_type, &TYPE_ANY)) {
+                    unify_member(v, value, type);
+                }
+            }
         } else if (!is_ancestor_type(type, sym->type)) {
             report_error(
                 v, "Parameter '%s' behaves both as '%s' and '%s'. Line: %d.",
@@ -29,29 +38,38 @@ int unify_member(Visitor* v, ASTNode* node, Type* type) {
             node->return_type = type;
             unified = 1;
         }
-    } else if (
-        node->type == NODE_CONDITIONAL &&
-        (type_equals(
-            node->data.cond_node.body_true->return_type, &TYPE_ANY
-        ) ||
-        (node->data.cond_node.body_false &&
-        type_equals(
-            node->data.cond_node.body_false->return_type, &TYPE_ANY
-        )))
-    ) {
-        int unified_true = unify_member(v, node->data.cond_node.body_true, type);
-        int unified_false = 0;
+    } 
+    // else if (
+    //     node->type == NODE_CONDITIONAL &&
+    //     (type_equals(
+    //         node->data.cond_node.body_true->return_type, &TYPE_ANY
+    //     ) ||
+    //     (node->data.cond_node.body_false &&
+    //     type_equals(
+    //         node->data.cond_node.body_false->return_type, &TYPE_ANY
+    //     )))
+    // ) {
+    //     int unified_true = unify_member(v, node->data.cond_node.body_true, type);
+    //     int unified_false = 0;
 
-        if (node->data.cond_node.body_false)
-            unified_false = unify_member(v, node->data.cond_node.body_false, type);
+    //     if (node->data.cond_node.body_false)
+    //         unified_false = unify_member(v, node->data.cond_node.body_false, type);
 
-        unified = unified_true || unified_false;
+    //     unified = unified_true || unified_false;
         
-        if (unified) {
-            node->return_type = type;
+    //     if (unified) {
+    //         node->return_type = type;
+    //     }
+    // } 
+    else if (node->derivations) {
+        for (int i = 0; i < node->derivations->count; i++)
+        {
+            ASTNode* value = at(i, node->derivations);
+            if (value && type_equals(value->return_type, &TYPE_ANY)) {
+                unified |= unify_member(v, value, type);
+            }
         }
-    } else if (node->value && type_equals(node->value->return_type, &TYPE_ANY)) {
-        unified = unify_member(v, node->value, type);
+
         if (unified) {
             node->return_type = type;
         }

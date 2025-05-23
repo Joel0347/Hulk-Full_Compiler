@@ -191,10 +191,13 @@ void visit_function_dec(Visitor* v, ASTNode* node) {
         inferried_type = defined_type->type;
 
     if (type_equals(inferried_type, &TYPE_ANY)) {
-        report_error(
-            v, "Impossible to infer return type of function '%s'. It must be "
-            "type annotated. Line: %d.", node->data.func_node.name, node->line
-        );
+        accept(v, body);
+        if (type_equals(inferried_type, &TYPE_ANY)) {
+            report_error(
+                v, "Impossible to infer return type of function '%s'. It must be "
+                "type annotated. Line: %d.", node->data.func_node.name, node->line
+            );
+        }
     }
 
     Function* func = find_function_by_name(node->scope, node->data.func_node.name);
@@ -206,15 +209,19 @@ void visit_function_dec(Visitor* v, ASTNode* node) {
             Symbol* param = find_parameter(node->scope, params[i]->data.variable_name);
 
             if (type_equals(param->type, &TYPE_ANY)) {
-                report_error(
-                    v, "Impossible to infer type of parameter '%s' in function '%s'."
-                    " It must be type annotated. Line: %d.", param->name,
-                    node->data.func_node.name, node->line
-                );
+                accept(v, body);
+                if (type_equals(param->type, &TYPE_ANY)) {
+                    report_error(
+                        v, "Impossible to infer type of parameter '%s' in function '%s'."
+                        " It must be type annotated. Line: %d.", param->name,
+                        node->data.func_node.name, node->line
+                    );
+                }
             }
 
-            param_types[i] = param->type;
-            node->data.func_node.args[i]->return_type = param->type;
+            Symbol* def_type = find_defined_type(node->scope, params[i]->static_type);
+            param_types[i] = def_type?  def_type->type : param->type;
+            node->data.func_node.args[i]->return_type = param_types[i];
         }
 
         declare_function(
