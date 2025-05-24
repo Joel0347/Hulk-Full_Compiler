@@ -39,33 +39,39 @@ sudo apt install flex bison llvm clang
 │ └── lexer.l
 ├── parser/ # Parser
 │ └── parser.y
+├── regex_interpreter/ # Regular Expression Interpreter
+│ ├── interpreter.c 
+│ ├── interpreter.h 
+│ ├── main.c
+│ └── nfa.c
+│ └── nfa.h
 ├── scope/ #scope
-│ ├──context.c
-│ ├──scope.c
-│ └──scope.h
+│ ├── context.c
+│ ├── scope.c
+│ └── scope.h
 ├── semantic_check/ #semantic check
-│ ├──cond_loop_checking.c
-│ ├──basic_checking.c
-│ ├──function_checking.c
-│ ├──semantic.c
-│ ├──semantic.h
-│ ├──type_checking.c
-│ ├──unification.c
-│ └──variable_checking.c
+│ ├── cond_loop_checking.c
+│ ├── basic_checking.c
+│ ├── function_checking.c
+│ ├── semantic.c
+│ ├── semantic.h
+│ ├── type_checking.c
+│ ├── unification.c
+│ └── variable_checking.c
 ├── type/ #types
-│ ├──type.c
-│ └──type.h
+│ ├── type.c
+│ └── type.h
 ├── utils/ #utilities
-│ ├──utils.c
-│ └──utils.h
+│ ├── utils.c
+│ └── utils.h
 ├── visitor/ #visitor
-│ ├──visitor.c
-│ └──visitor.h
+│ ├── visitor.c
+│ └── visitor.h
 │
 ├── main.c # Entry point
 ├── Makefile # Build automation
-├──  README.md
-└──  script.hulk
+├── README.md
+└── script.hulk
 ```
 
 ## **Usage** 🛠
