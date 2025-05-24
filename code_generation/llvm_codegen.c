@@ -352,8 +352,7 @@ LLVMValueRef generate_function_body(LLVM_Visitor* v, ASTNode* node) {
     
     // Return value handling
     if (type_equals(return_type, &TYPE_VOID)) {
-        // For void functions, return 0.0 as double
-        LLVMBuildRet(builder, LLVMConstReal(LLVMDoubleType(), 0.0));
+        LLVMBuildRetVoid(builder);
     } else if (body_val) {
         // If we have a return value, use it
         LLVMBuildRet(builder, body_val);
@@ -459,30 +458,50 @@ LLVMValueRef generate_conditional(LLVM_Visitor* v, ASTNode* node) {
 }
 
 LLVMValueRef generate_loop(LLVM_Visitor* v, ASTNode* node) {
-    // Get current function
+    // Obtener la función actual
     LLVMValueRef current_function = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
 
-    // Create basic blocks
+    // Determinar el tipo del cuerpo del ciclo
+    LLVMTypeRef body_type = get_llvm_type(node->data.op_node.right->return_type);
+
+    // Solo si el cuerpo no es void, reservar una variable temporal para almacenar el valor
+    LLVMValueRef result_addr = NULL;
+    if (LLVMGetTypeKind(body_type) != LLVMVoidTypeKind) {
+        result_addr = LLVMBuildAlloca(builder, body_type, "while.result.addr");
+        // Inicializamos con un valor nulo del tipo correspondiente
+        LLVMBuildStore(builder, LLVMConstNull(body_type), result_addr);
+    }
+
+    // Crear bloques básicos: condición, cuerpo y merge
     LLVMBasicBlockRef cond_block = LLVMAppendBasicBlock(current_function, "while.cond");
     LLVMBasicBlockRef loop_block = LLVMAppendBasicBlock(current_function, "while.body");
     LLVMBasicBlockRef merge_block = LLVMAppendBasicBlock(current_function, "while.end");
 
-    // Branch to condition block
+    // Saltar al bloque de condición
     LLVMBuildBr(builder, cond_block);
 
-    // Generate condition
+    // Bloque de condición: evalúa la condición del ciclo
     LLVMPositionBuilderAtEnd(builder, cond_block);
     LLVMValueRef cond_val = accept_gen(v, node->data.op_node.left);
     LLVMBuildCondBr(builder, cond_val, loop_block, merge_block);
 
-    // Generate loop body
+    // Bloque del cuerpo del ciclo: se evalúa la expresión del cuerpo
     LLVMPositionBuilderAtEnd(builder, loop_block);
-    accept_gen(v, node->data.op_node.right);
+    LLVMValueRef body_val = accept_gen(v, node->data.op_node.right);
+    // Si el cuerpo no es void, se almacena el valor resultante
+    if (LLVMGetTypeKind(body_type) != LLVMVoidTypeKind) {
+        LLVMBuildStore(builder, body_val, result_addr);
+    }
+    // Volver a la condición para la siguiente iteración
     LLVMBuildBr(builder, cond_block);
 
-    // Continue with merge block
+    // Bloque de merge: una vez que la condición es falsa, se continúa
     LLVMPositionBuilderAtEnd(builder, merge_block);
-
-    // Return 0.0 as double (default return value for HULK)
-    return LLVMConstReal(LLVMDoubleType(), 0.0);
+    if (LLVMGetTypeKind(body_type) != LLVMVoidTypeKind) {
+        LLVMValueRef final_val = LLVMBuildLoad2(builder, body_type, result_addr, "while.result");
+        return final_val;
+    } else {
+        // Si el cuerpo es void, simplemente retornamos NULL
+        return NULL;
+    }
 }

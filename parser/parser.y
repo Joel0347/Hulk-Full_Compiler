@@ -56,6 +56,7 @@ void add_statement(ASTNode* stmt) {
 %token CONCATEQUAL ANDEQUAL OREQUAL PLUSEQUAL MINUSEQUAL
 %token TIMESEQUAL DIVEQUAL MODEQUAL POWEQUAL
 
+%left IS AS
 %left DCONCAT
 %left CONCAT
 %left AND
@@ -356,6 +357,8 @@ expression:
     | function_call                      { $$ = $1; }
     | let_in_exp                         { $$ = $1; }
     | ID                                 { $$ = create_variable_node($1, "", 0); }
+    | expression IS ID                   { $$ = create_test_casting_type_node($1, $3, 1); }
+    | expression AS ID                   { $$ = create_test_casting_type_node($1, $3, 0); }
     | expression DCONCAT expression      { $$ = create_binary_op_node(OP_DCONCAT, "@@", $1, $3, &TYPE_STRING); }
     | expression CONCAT expression       { $$ = create_binary_op_node(OP_CONCAT, "@", $1, $3, &TYPE_STRING); }
     | expression AND expression          { $$ = create_binary_op_node(OP_AND, "&", $1, $3, &TYPE_BOOLEAN); }
@@ -406,7 +409,7 @@ const char* token_to_str(int token) {
         case PLUSEQUAL:    return "'+='"     ; case DIVEQUAL: return "'/='"        ; case POWEQUAL:   return "'^='"    ;
         case MINUSEQUAL:   return "'-='"     ; case ANDEQUAL: return "'&='"        ; case OREQUAL:    return "'|='"    ;
         case CONCATEQUAL:  return "'@='"     ; case MODEQUAL: return "'%='"        ; case TIMESEQUAL: return "'*='"    ;
-        case WHILE:        return "'while'"  ;
+        case WHILE:        return "'while'"  ; case IS:       return "'is'"        ; case AS:         return "'as'"    ;
 
         default: return "";
     }

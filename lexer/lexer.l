@@ -63,6 +63,8 @@ int line_num = 1;
 "elif"          { return ELIF; }
 "else"          { return ELSE; }
 "while"         { return WHILE; }
+"as"            { return AS; }
+"is"            { return IS; }
 
 [a-zA-ZñÑ][a-zA-ZñÑ0-9_]*  { yylval.var = strdup(yytext); return ID; }
 "//"[^\n]*?   { /* COMMENT */ }

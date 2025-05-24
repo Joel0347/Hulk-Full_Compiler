@@ -49,6 +49,12 @@ void accept(Visitor* visitor, ASTNode* node) {
         case NODE_LOOP:
             visitor->visit_loop(visitor, node);
             break;
+        case NODE_TEST_TYPE:
+            visitor->visit_test_type(visitor, node);
+            break;
+        case NODE_CAST_TYPE:
+            visitor->visit_casting_type(visitor, node);
+            break;
     }
 }
 

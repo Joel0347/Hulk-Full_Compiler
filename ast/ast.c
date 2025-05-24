@@ -190,6 +190,18 @@ ASTNode* create_loop_node(ASTNode* condition, ASTNode* body) {
     return node;
 }
 
+ASTNode* create_test_casting_type_node(ASTNode* exp, char* type_name, int test) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->line = line_num;
+    node->type = test? NODE_TEST_TYPE : NODE_CAST_TYPE;
+    node->return_type = test? &TYPE_BOOLEAN : &TYPE_OBJECT;
+    node->static_type = type_name;
+    node->scope = create_scope(NULL);
+    node->context = create_context(NULL);
+    node->data.op_node.left = exp;
+    return node;
+}
+
 void free_ast(ASTNode* node) {
     if (!node) {
         return;
@@ -231,6 +243,9 @@ void free_ast(ASTNode* node) {
             free_ast(node->data.cond_node.body_false);
             free_ast(node->data.cond_node.cond);
             break;
+        case NODE_TEST_TYPE:
+        case NODE_CAST_TYPE:
+            free_ast(node->data.op_node.left);
         default:
             break;
     }
@@ -340,6 +355,14 @@ void print_ast(ASTNode* node, int indent) {
             for (int i = 0; i < indent+1; i++) printf("  ");
             printf("Body:\n");
             print_ast(node->data.op_node.right, indent + 2);
+            break;
+        case NODE_TEST_TYPE:
+            printf("IS %s\n", node->static_type);
+            print_ast(node->data.op_node.left, indent + 1);
+            break;
+        case NODE_CAST_TYPE:
+            printf("AS %s\n", node->static_type);
+            print_ast(node->data.op_node.left, indent + 1);
             break;
     }
 }

@@ -58,6 +58,7 @@ int is_scape_char(char c);
 int type_equals(Type* type1, Type* type2);
 int is_ancestor_type(Type* ancestor, Type* type);
 int find_op_match(OperatorTypeRule* possible_match);
+int same_branch_in_type_hierarchy(Type* type1, Type* type2);
 Type* get_lca(Type* true_type, Type* false_type);
 
 #endif

@@ -44,6 +44,13 @@ void visit_assignment(Visitor* v, ASTNode* node) {
             inferried_type->name, node->line
         );
     }
+
+    if (strcmp(var_node->static_type, "") && node->type == NODE_D_ASSIGNMENT) {
+        report_error(
+            v, "Variable '%s' can not be type annotated when it "
+            "is reassigned. Line: %d.", var_node->data.variable_name, node->line
+        );
+    }
     
     if (defined_type)
         inferried_type = defined_type->type;
