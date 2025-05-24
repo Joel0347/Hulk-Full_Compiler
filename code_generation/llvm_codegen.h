@@ -12,10 +12,6 @@ void generate_main_function(ASTNode* ast, const char* filename);
 void find_function_dec(LLVM_Visitor* visitor, ASTNode* node);
 void make_body_function_dec(LLVM_Visitor* visitor, ASTNode* node);
 
-LLVMValueRef generate_if_statement(ASTNode* node);
-LLVMValueRef generate_while_loop(ASTNode* node);
-LLVMValueRef generate_constant(ASTNode* node);
-
 LLVMValueRef generate_program(LLVM_Visitor* v, ASTNode* node);
 LLVMValueRef generate_number(LLVM_Visitor* v, ASTNode* node);
 LLVMValueRef generate_string(LLVM_Visitor* v, ASTNode* node);

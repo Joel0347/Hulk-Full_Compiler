@@ -49,6 +49,7 @@ sudo apt install flex bison llvm clang
 │ ├──function_checking.c
 │ ├──semantic.c
 │ ├──semantic.h
+│ ├──type_checking.c
 │ ├──unification.c
 │ └──variable_checking.c
 ├── type/ #types

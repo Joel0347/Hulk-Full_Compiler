@@ -130,6 +130,17 @@ Type* get_lca(Type* true_type, Type* false_type) {
     return get_lca(true_type->parent, false_type->parent);
 }
 
+int same_branch_in_type_hierarchy(Type* type1, Type* type2) {
+    
+    if (is_ancestor_type(type1, type2) ||
+        is_ancestor_type(type2, type1)
+    ) {
+        return 1;
+    }
+
+    return 0;
+}
+
 int type_equals(Type* type1, Type* type2) {
     if (!type1 && !type2)
         return 1;
