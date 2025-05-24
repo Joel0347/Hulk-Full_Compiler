@@ -1,6 +1,7 @@
 {
-    "files.associations": {
-        "llvm_core.h": "c",
-        "core.h": "c"
-    }
+  "files.associations": {
+    "llvm_core.h": "c",
+    "core.h": "c"
+  },
+  "C_Cpp_Runner.msvcBatchPath": ""
 }
