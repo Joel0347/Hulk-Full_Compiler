@@ -22,19 +22,21 @@ typedef enum {
     NODE_CONDITIONAL,
     NODE_LOOP,
     NODE_TEST_TYPE,
-    NODE_CAST_TYPE
+    NODE_CAST_TYPE,
+    NODE_TYPE_DEC,
+    NODE_TYPE_INST
 } NodeType;
 
 typedef struct ASTNode {
     int line;
     int is_param;
+    int checked;
     NodeType type;
     Type* return_type;
     char* static_type;
     Scope* scope;
     Context* context;
     ValueList* derivations;
-    ValueList* sources;
     union {
         double number_value;
         char* string_value;
@@ -54,13 +56,22 @@ typedef struct ASTNode {
             struct ASTNode** args;
             int arg_count;
             struct ASTNode *body;
-            int checked;
         } func_node;
         struct {
             struct ASTNode *cond;
             struct ASTNode *body_true;
             struct ASTNode *body_false;
         } cond_node;
+        struct {
+            char* name;
+            char* parent_name;
+            struct ASTNode** p_args;
+            int p_arg_count;
+            struct ASTNode** args;
+            int arg_count;
+            struct ASTNode** definitions;
+            int def_count;
+        } type_node;
     } data;
 } ASTNode;
 
@@ -78,6 +89,11 @@ ASTNode* create_let_in_node(ASTNode** declarations, int dec_count, ASTNode* body
 ASTNode* create_conditional_node(ASTNode* condition, ASTNode* body_true, ASTNode* body_false);
 ASTNode* create_loop_node(ASTNode* condition, ASTNode* body);
 ASTNode* create_test_casting_type_node(ASTNode* exp, char* type_name, int test);
+ASTNode* create_type_dec_node(
+    char* name, ASTNode** params, int param_count,
+    char* parent_name, ASTNode** p_params, int p_param_count, ASTNode* body_block
+);
+ASTNode* create_type_instance(char* name, ASTNode** args, int arg_count);
 void print_ast(ASTNode* node, int indent);
 
 #endif

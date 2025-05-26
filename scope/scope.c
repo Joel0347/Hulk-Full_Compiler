@@ -109,22 +109,29 @@ void declare_function(
     }
 }
 
-void declare_type(Scope* scope, Type* type) {    
+void declare_type(Scope* scope, Type* type, Scope* parent_scope) {
     Symbol* def_type = (Symbol*)malloc(sizeof(Symbol));
     def_type->name = type->name;
     def_type->type = type;
-    def_type->next = scope->defined_types;
-    scope->defined_types = def_type;
+
+    if (!parent_scope) {
+        def_type->next = scope->defined_types;
+        scope->defined_types = def_type;
+    } else {
+        def_type->type->functions = scope->functions;
+        def_type->next = parent_scope->defined_types;
+        parent_scope->defined_types = def_type;
+    }
 }
 
 void init_builtins(Scope* scope) {
     // BUILTIN TYPES:
 
-    declare_type(scope, &TYPE_NUMBER); //number
-    declare_type(scope, &TYPE_STRING); // string
-    declare_type(scope, &TYPE_BOOLEAN); // boolean
-    declare_type(scope, &TYPE_OBJECT); // object
-    declare_type(scope, &TYPE_VOID); // void
+    declare_type(scope, &TYPE_NUMBER, NULL); //number
+    declare_type(scope, &TYPE_STRING, NULL); // string
+    declare_type(scope, &TYPE_BOOLEAN, NULL); // boolean
+    declare_type(scope, &TYPE_OBJECT, NULL); // object
+    declare_type(scope, &TYPE_VOID, NULL); // void
 
 
     // BUILTIN FUNCTIONS:
@@ -334,4 +341,58 @@ Symbol* find_defined_type(Scope* scope, const char* name) {
     }
     
     return NULL;
+}
+
+FuncData* find_type_data(Scope* scope, Function* f, Function* dec) {
+    if (!scope) {
+        return NULL;
+    }
+
+    FuncData* result = (FuncData*)malloc(sizeof(FuncData));
+    int not_found = 1;
+
+    if (scope->defined_types) {
+        Symbol* current_sym = scope->defined_types;
+        while (current_sym) {
+            Function* current = (Function*)malloc(sizeof(Function));
+            current->name = current_sym->name;
+            current->arg_count = current_sym->type->arg_count;
+            current->args_types = current_sym->type->param_types;
+            Tuple* tuple = func_equals(current, f);
+            if (tuple->matched) {
+                result->state = tuple;
+                result->func = current;
+                return result;
+            }
+            if (tuple->same_name) {
+                not_found = 0;
+                if ((!result->state && !tuple->same_count) || tuple->same_count) {
+                    result->state = tuple;
+                    result->func = current;
+                }
+            }
+
+            current_sym = current_sym->next;
+        }
+    }
+        
+    if (scope->parent) {
+        FuncData* data = find_type_data(scope->parent, f, dec);
+
+        if (not_found || data->state->matched)
+            return data;
+
+    
+        return result;
+    }
+    
+    if (not_found && dec) {
+        result->state = func_equals(dec, f);
+        result->func = dec;
+    } else if (not_found && !dec) {
+        result->state = init_tuple_for_count(0, -1, -1);
+        result->state->same_name = 0;
+    }
+    
+    return result;
 }

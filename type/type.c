@@ -3,18 +3,19 @@
 // keywords
 char* keywords[] = { 
     "Number", "String", "Boolean", "Object", "Void",
-    "true", "false", "PI", "E", "function", "let", "in"
+    "true", "false", "PI", "E", "function", "let", "in",
+    "is", "as", "type", "inherits", "new"
 };
 char scape_chars[] = { 'n', 't', '\\', '\"' };
 
 // Basic types instances
-Type TYPE_OBJECT = { "Object", NULL, NULL };
-Type TYPE_NUMBER = { "Number", NULL, &TYPE_OBJECT };
-Type TYPE_STRING = { "String", NULL, &TYPE_OBJECT };
-Type TYPE_BOOLEAN = { "Boolean", NULL, &TYPE_OBJECT };
-Type TYPE_VOID = { "Void", NULL, &TYPE_OBJECT };
-Type TYPE_ERROR = { "Error", NULL, NULL };
-Type TYPE_ANY = { "Any", NULL, NULL };
+Type TYPE_OBJECT = { "Object", NULL, NULL, NULL, NULL, NULL, 0 };
+Type TYPE_NUMBER = { "Number", NULL, &TYPE_OBJECT, NULL, NULL, NULL, 0 };
+Type TYPE_STRING = { "String", NULL, &TYPE_OBJECT, NULL, NULL, NULL, 0 };
+Type TYPE_BOOLEAN = { "Boolean", NULL, &TYPE_OBJECT, NULL, NULL, NULL, 0 };
+Type TYPE_VOID = { "Void", NULL, &TYPE_OBJECT, NULL, NULL, NULL, 0 };
+Type TYPE_ERROR = { "Error", NULL, NULL, NULL, NULL, NULL, 0 };
+Type TYPE_ANY = { "Any", NULL, NULL, NULL, NULL, NULL, 0 };
 
 OperatorTypeRule operator_rules[] = {
 
@@ -104,24 +105,16 @@ int is_ancestor_type(Type* ancestor, Type* type) {
 }
 
 Type* get_lca(Type* true_type, Type* false_type) {
-    if (type_equals(true_type, &TYPE_ANY) &&
+    if (type_equals(true_type, &TYPE_ANY) ||
         type_equals(false_type, &TYPE_ANY)
     ) {
         return &TYPE_ANY;
-    } else if (type_equals(true_type, &TYPE_ERROR) &&
-        type_equals(false_type, &TYPE_ERROR)
-    ) {
-        return &TYPE_ERROR;
-    }else if (type_equals(true_type, &TYPE_ANY) ||
-        type_equals(false_type, &TYPE_ANY)
-    ) {
-        return &TYPE_OBJECT;
     } else if (type_equals(true_type, &TYPE_ERROR) ||
         type_equals(false_type, &TYPE_ERROR)
     ) {
-        return &TYPE_OBJECT;
+        return &TYPE_ERROR;
     }
-
+    
     if (is_ancestor_type(true_type, false_type))
         return true_type;
     if (is_ancestor_type(false_type, true_type))
@@ -178,4 +171,23 @@ int find_op_match(OperatorTypeRule* possible_match) {
     }
 
     return 0;
+}
+
+Type* create_new_type(char* name, Type* parent, Type** param_types, int count) {
+    Type* new_type = (Type*)malloc(sizeof(Type));
+    new_type->name = name;
+    new_type->parent = parent;
+    new_type->param_types = param_types;
+    new_type->arg_count = count;
+    return new_type;
+}
+
+int is_builtin_type(Type* type) {
+    return (
+        type_equals(type, &TYPE_OBJECT)  ||
+        type_equals(type, &TYPE_STRING)  ||
+        type_equals(type, &TYPE_NUMBER)  ||
+        type_equals(type, &TYPE_BOOLEAN) ||
+        type_equals(type, &TYPE_VOID)
+    );
 }

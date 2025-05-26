@@ -99,6 +99,13 @@ struct ASTNode* at(int index, ValueList* list) {
     return NULL;
 }
 
+char* concat_string_with_(char* s1, char* s2) {
+    int n = strlen(s1) + strlen(s2) + 3;
+    char* new_s = (char*)malloc(n);
+    snprintf(new_s, n, "_%s_%s", s1, s2);
+    return new_s;
+}
+
 void free_int_list(IntList* list) {
     if (list && list->next)
         free_int_list(list->next);

@@ -26,6 +26,8 @@ int analyze_semantics(ASTNode* node) {
         .visit_loop = visit_loop,
         .visit_casting_type = visit_casting_type,
         .visit_test_type = visit_test_type,
+        .visit_type_dec = visit_type_dec,
+        .visit_type_inst = visit_type_inst,
         .error_count = 0,
         .errors = NULL
     };

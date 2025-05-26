@@ -3,6 +3,11 @@
 
 void visit_assignment(Visitor* v, ASTNode* node) {
     ASTNode* var_node = node->data.op_node.left;
+
+    if (node->checked)
+        return;
+    
+    node->checked = 1;
     ASTNode* val_node = node->data.op_node.right;
 
     if (match_as_keyword(var_node->data.variable_name)) {
@@ -119,11 +124,23 @@ void visit_variable(Visitor* v, ASTNode* node) {
         node->is_param = sym->is_param;
         node->derivations = sym->derivations;
     } else if (!type_equals(node->return_type, &TYPE_ERROR)) {
-        node->return_type = &TYPE_ERROR;
-        report_error(
-            v, "Undefined variable '%s'. Line: %d", 
-            node->data.variable_name, node->line
+        ContextItem* item = find_context_item(
+            node->context, node->data.variable_name, 0, 1
         );
+        if (!item) {
+            node->return_type = &TYPE_ERROR;
+            report_error(
+                v, "Undefined variable '%s'. Line: %d", 
+                node->data.variable_name, node->line
+            );
+        } else {
+            accept(v, item->declaration);
+            item->declaration->checked = 0;
+            sym = find_symbol(node->scope, node->data.variable_name);
+            node->return_type = sym->type;
+            node->is_param = sym->is_param;
+            node->derivations = sym->derivations;
+        }
     }
 }
 

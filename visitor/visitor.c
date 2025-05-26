@@ -49,6 +49,12 @@ void accept(Visitor* visitor, ASTNode* node) {
         case NODE_LOOP:
             visitor->visit_loop(visitor, node);
             break;
+        case NODE_TYPE_DEC:
+            visitor->visit_type_dec(visitor, node);
+            break;
+        case NODE_TYPE_INST:
+            visitor->visit_type_inst(visitor, node);
+            break;
         case NODE_TEST_TYPE:
             visitor->visit_test_type(visitor, node);
             break;
@@ -61,13 +67,17 @@ void accept(Visitor* visitor, ASTNode* node) {
 void get_context(Visitor* visitor, ASTNode* node) {
     for(int i = 0; i < node->data.program_node.count; i++) {
         ASTNode* child =  node->data.program_node.statements[i];
-        if (child->type == NODE_FUNC_DEC) {
+        if (child->type == NODE_FUNC_DEC || child->type == NODE_TYPE_DEC) {
             child->context->parent = node->context;
             child->scope->parent = node->scope;
             if (!save_context_item(node->context, child)) {
+                char* func_or_type = child->type == NODE_FUNC_DEC ? 
+                    "Function" : "Type";
+                char* name = child->type == NODE_FUNC_DEC ?
+                    child->data.func_node.name : child->data.type_node.name;
                 report_error(
-                    visitor, "Function '%s' already exists. Line: %d.", 
-                    child->data.func_node.name, child->line
+                    visitor, "%s '%s' already exists. Line: %d.", 
+                    func_or_type, name, child->line
                 );
             }
         }

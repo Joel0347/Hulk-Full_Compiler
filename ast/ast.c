@@ -97,6 +97,7 @@ ASTNode* create_unary_op_node(Operator op, char* op_name, ASTNode* operand, Type
 ASTNode* create_assignment_node(char* var, ASTNode* value, char* type_name, NodeType type) {
     ASTNode* node = malloc(sizeof(ASTNode));
     node->line = line_num;
+    node->checked = 0;
     node->type = type;
     node->return_type = &TYPE_VOID;
     node->scope = create_scope(NULL);
@@ -116,7 +117,7 @@ ASTNode* create_func_call_node(char* name, ASTNode** args, int arg_count) {
     node->context = create_context(NULL);
     node->return_type = &TYPE_OBJECT;
     node->data.func_node.name = name;
-    node->data.func_node.checked = 0;
+    node->checked = 0;
     node->data.func_node.args = malloc(sizeof(ASTNode*) * arg_count);
     for (int i = 0; i < arg_count; i++) {
         node->data.func_node.args[i] = args[i];
@@ -134,7 +135,7 @@ ASTNode* create_func_dec_node(char* name, ASTNode** args, int arg_count, ASTNode
     node->context = create_context(NULL);
     node->static_type = ret_type;
     node->data.func_node.name = name;
-    node->data.func_node.checked = 0;
+    node->checked = 0;
     node->data.func_node.args = malloc(sizeof(ASTNode*) * arg_count);
     for (int i = 0; i < arg_count; i++) {
         node->data.func_node.args[i] = args[i];
@@ -202,6 +203,54 @@ ASTNode* create_test_casting_type_node(ASTNode* exp, char* type_name, int test) 
     return node;
 }
 
+ASTNode* create_type_dec_node(
+    char* name, ASTNode** params, int param_count,
+    char* parent_name, ASTNode** p_params, int p_param_count, ASTNode* body_block
+) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->line = line_num;
+    node->type = NODE_TYPE_DEC;
+    node->return_type = &TYPE_VOID;
+    node->scope = create_scope(NULL);
+    node->context = create_context(NULL);
+    node->data.type_node.name = name;
+    node->data.type_node.parent_name = parent_name;
+    node->data.type_node.p_args = malloc(sizeof(ASTNode*) * p_param_count);
+    for (int i = 0; i < p_param_count; i++) {
+        node->data.type_node.p_args[i] = p_params[i];
+    }
+    node->data.type_node.p_arg_count = p_param_count;
+    node->data.type_node.args = malloc(sizeof(ASTNode*) * param_count);
+    for (int i = 0; i < param_count; i++) {
+        node->data.type_node.args[i] = params[i];
+    }
+    node->data.type_node.arg_count = param_count;
+
+    int count = body_block->data.program_node.count;
+    node->data.type_node.definitions = malloc(sizeof(ASTNode*) * count);
+    for (int i = 0; i < count; i++) {
+        node->data.type_node.definitions[i] = body_block->data.program_node.statements[i];
+    }
+    node->data.type_node.def_count = count;
+    return node;
+}
+
+ASTNode* create_type_instance(char* name, ASTNode** args, int arg_count) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->line = line_num;
+    node->type = NODE_TYPE_INST;
+    node->scope = create_scope(NULL);
+    node->context = create_context(NULL);
+    node->data.type_node.name = name;
+    node->data.type_node.args = malloc(sizeof(ASTNode*) * arg_count);
+    for (int i = 0; i < arg_count; i++) {
+        node->data.type_node.args[i] = args[i];
+    }
+    node->data.type_node.arg_count = arg_count;
+
+    return node;
+}
+
 void free_ast(ASTNode* node) {
     if (!node) {
         return;
@@ -246,6 +295,19 @@ void free_ast(ASTNode* node) {
         case NODE_TEST_TYPE:
         case NODE_CAST_TYPE:
             free_ast(node->data.op_node.left);
+        case NODE_TYPE_DEC:
+            for (int i = 0; i < node->data.type_node.arg_count; i++) {
+                free_ast(node->data.type_node.args[i]);
+            }
+            for (int i = 0; i < node->data.type_node.def_count; i++) {
+                free_ast(node->data.type_node.definitions[i]);
+            }
+            break;
+        case NODE_TYPE_INST:
+            for (int i = 0; i < node->data.type_node.arg_count; i++) {
+                free_ast(node->data.type_node.args[i]);
+            }
+            break;
         default:
             break;
     }
@@ -363,6 +425,24 @@ void print_ast(ASTNode* node, int indent) {
         case NODE_CAST_TYPE:
             printf("AS %s\n", node->static_type);
             print_ast(node->data.op_node.left, indent + 1);
+            break;
+        case NODE_TYPE_DEC:
+            printf("Type_Declaration: %s, inherits %s\n",
+                node->data.type_node.name,
+                node->data.type_node.parent_name
+            );
+            
+            for (int i = 0; i < node->data.type_node.def_count; i++) {
+                print_ast(node->data.type_node.definitions[i], indent + 1);
+            }
+            
+            break;
+        case NODE_TYPE_INST:
+            printf("Type_instance: %s, receives:\n", node->data.type_node.name);
+            arg_count = node->data.type_node.arg_count;
+            for (int i = 0; i < arg_count; i++) {
+                print_ast(node->data.type_node.args[i], indent + 1);
+            }
             break;
     }
 }
