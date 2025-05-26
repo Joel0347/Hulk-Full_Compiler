@@ -53,7 +53,7 @@ NFA nfa_union(NFA a, NFA b) {
 
 NFA nfa_concat(NFA a, NFA b) {
     NFA nfa = {0};
-    int offset = a.states - 1;
+    int offset = a.states;
     nfa.states = a.states + b.states - 1;
     nfa.start = a.start;
 
