@@ -32,36 +32,15 @@ int unify_member(Visitor* v, ASTNode* node, Type* type) {
     } else if (node->type == NODE_FUNC_CALL &&
         type_equals(node->return_type, &TYPE_ANY)
     ) {
-        ContextItem* item = find_context_item(node->context, node->data.func_node.name);
+        ContextItem* item = find_context_item(node->context, node->data.func_node.name, 0, 0);
         if (item) {
             item->return_type = type;
             node->return_type = type;
             unified = 1;
         }
-    } 
-    // else if (
-    //     node->type == NODE_CONDITIONAL &&
-    //     (type_equals(
-    //         node->data.cond_node.body_true->return_type, &TYPE_ANY
-    //     ) ||
-    //     (node->data.cond_node.body_false &&
-    //     type_equals(
-    //         node->data.cond_node.body_false->return_type, &TYPE_ANY
-    //     )))
-    // ) {
-    //     int unified_true = unify_member(v, node->data.cond_node.body_true, type);
-    //     int unified_false = 0;
-
-    //     if (node->data.cond_node.body_false)
-    //         unified_false = unify_member(v, node->data.cond_node.body_false, type);
-
-    //     unified = unified_true || unified_false;
-        
-    //     if (unified) {
-    //         node->return_type = type;
-    //     }
-    // } 
-    else if (node->derivations) {
+    } else if (node->type == NODE_CONDITIONAL) {
+        unified = unify_conditional(v, node, type);
+    } else if (node->derivations) {
         for (int i = 0; i < node->derivations->count; i++)
         {
             ASTNode* value = at(i, node->derivations);
@@ -206,5 +185,76 @@ IntList* unify_func(Visitor* v, ASTNode** args, Scope* scope, int arg_count, cha
         }
     }
     
-    return NULL;
+    return unified;
+}
+
+IntList* unify_type(Visitor* v, ASTNode** args, Scope* scope, int arg_count, char* t_name, ContextItem* item) {
+    int count = 0;
+    IntList* unified = NULL;
+    Type* t;
+
+    while (scope)
+    {
+        if (scope->defined_types) {
+            Symbol* current = scope->defined_types; 
+            while (current)
+            {
+                if (!strcmp(t_name, current->name) &&
+                    arg_count == current->type->arg_count
+                ) {
+                    count ++;
+                    if (count > 1) {
+                        return NULL;
+                    }
+
+                    t = current->type;
+                }
+
+                current = current->next;
+            }
+        }
+
+        scope = scope->parent;
+    }
+
+    if (count) {
+        for (int i = 0; i < arg_count; i++)
+        {
+            if (type_equals(&TYPE_ANY, args[i]->return_type)) {
+                if (unify_member(v, args[i], t->param_types[i])) {
+                    unified = add_int_list(unified, i);
+                } else {
+                    return NULL;
+                }
+            }
+        }
+    } else if (item && item->declaration->data.type_node.arg_count == arg_count) {
+        for (int i = 0; i < item->declaration->data.type_node.arg_count; i++)
+        {
+            if (unify_member(
+                v, item->declaration->data.type_node.args[i],
+                args[i]->return_type
+            )) {
+                unified = add_int_list(unified, i);
+            } else {
+                return NULL;
+            }
+        }
+    }
+    
+    return unified;
+}
+
+int unify_conditional(Visitor* v, ASTNode* node, Type* type) {
+    if (type_equals(type, &TYPE_ANY)) {
+        node->return_type = &TYPE_OBJECT;
+        return 0;
+    }
+
+    return (
+        unify_member(v, node->data.cond_node.body_true, type) ||
+        (node->data.cond_node.body_false &&
+            unify_member(v, node->data.cond_node.body_false, type)
+        )
+    );
 }

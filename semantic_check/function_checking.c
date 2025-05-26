@@ -12,7 +12,7 @@ void visit_function_call(Visitor* v, ASTNode* node) {
     }
 
     ContextItem* item = find_context_item(
-        node->context, node->data.func_node.name
+        node->context, node->data.func_node.name, 0, 0
     );
 
     if (item) {
@@ -91,11 +91,11 @@ void visit_function_call(Visitor* v, ASTNode* node) {
 }
 
 void visit_function_dec(Visitor* v, ASTNode* node) {
-    if (node->data.func_node.checked) {
+    if (node->checked) {
         return;
     }
 
-    node->data.func_node.checked = 1;
+    node->checked = 1;
 
     ASTNode** params = node->data.func_node.args;
     ASTNode* body = node->data.func_node.body;
@@ -145,7 +145,7 @@ void visit_function_dec(Visitor* v, ASTNode* node) {
     }
 
     accept(v, body);
-    ContextItem* item = find_context_item(node->context, node->data.func_node.name);
+    ContextItem* item = find_context_item(node->context, node->data.func_node.name, 0, 0);
     Type* inferried_type = find_type(v, body);
     Symbol* defined_type = find_defined_type(node->scope, node->static_type);
 

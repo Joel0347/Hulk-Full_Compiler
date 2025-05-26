@@ -39,6 +39,7 @@ IntList* add_int_list(IntList* list, int number);
 StrList* to_set(char**list, int count);
 ValueList* add_value_list(struct ASTNode* value, ValueList* list);
 struct ASTNode* at(int index, ValueList* list);
+char* concat_string_with_(char* s1, char* s2);
 void free_int_list(IntList* list);
 void free_str_list(StrList* list);
 void free_value_list(ValueList* list);

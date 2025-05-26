@@ -54,7 +54,7 @@ void add_statement(ASTNode* stmt) {
 %token LPAREN RPAREN EQUALS SEMICOLON COMMA LBRACKET RBRACKET COLON
 
 %token CONCATEQUAL ANDEQUAL OREQUAL PLUSEQUAL MINUSEQUAL
-%token TIMESEQUAL DIVEQUAL MODEQUAL POWEQUAL
+%token TIMESEQUAL DIVEQUAL MODEQUAL POWEQUAL TYPE INHERITS NEW
 
 %left IS AS
 %left DCONCAT
@@ -71,9 +71,10 @@ void add_statement(ASTNode* stmt) {
 
 %type <node> expression block_expr statement destructive_var_decl function_call
 %type <node> param function_declaration simple_var_decl let_in_exp conditional
-%type <node> elif_branch while_loop compound_operator
+%type <node> elif_branch while_loop compound_operator type_declaration
+%type <node> type_body type_body_exp member_declaration type_instance
 
-%type <arg_list> list_args block_expr_list param_list let_definitions
+%type <arg_list> list_args block_expr_list param_list let_definitions type_body_expr_list
 
 %%
 
@@ -107,6 +108,7 @@ input:
 statement:
     SEMICOLON                        { $$ = NULL; }
     | function_declaration           { $$ = $1; }
+    | type_declaration               { $$ = $1; }
     | conditional                    { $$ = $1; }
     | while_loop                     { $$ = $1; }
     | function_declaration SEMICOLON { $$ = $1; }
@@ -218,7 +220,6 @@ function_declaration:
     | FUNCTION ID LPAREN param_list RPAREN COLON ID block_expr {
         $$ = create_func_dec_node($2, $4->args, $4->arg_count, $8, $7);
     }
-
 ;
 
 let_in_exp:
@@ -270,6 +271,73 @@ elif_branch:
 
 while_loop:
     WHILE LPAREN expression RPAREN expression { $$ = create_loop_node($3, $5); }
+;
+
+type_body:
+    LBRACKET type_body_expr_list RBRACKET { $$ = create_program_node($2->args, $2->arg_count, NODE_BLOCK); }
+;
+
+member_declaration:
+    ID LPAREN param_list RPAREN ARROW expression SEMICOLON  { 
+        $$ = create_func_dec_node($1, $3->args, $3->arg_count, $6, ""); 
+    }
+    | ID LPAREN param_list RPAREN COLON ID ARROW expression SEMICOLON { 
+        $$ = create_func_dec_node($1, $3->args, $3->arg_count, $8, $6); 
+    }
+    | ID LPAREN param_list RPAREN block_expr {
+        $$ = create_func_dec_node($1, $3->args, $3->arg_count, $5, "");
+    }
+    | ID LPAREN param_list RPAREN COLON ID block_expr {
+        $$ = create_func_dec_node($1, $3->args, $3->arg_count, $7, $6);
+    }
+;
+
+type_body_exp:
+    simple_var_decl SEMICOLON { $$ = $1; }
+    | member_declaration { $$ = $1; }
+;
+
+type_body_expr_list:
+    type_body_exp {
+        $$ = malloc(sizeof(*$$));
+        $$->args = malloc(sizeof(ASTNode *) * 1);
+        $$->args[0] = $1;
+        $$->arg_count = 1;
+    }
+    | type_body_exp type_body_expr_list {
+        $$ = malloc(sizeof(*$$));
+        $$->args = malloc(sizeof(ASTNode *) * ($2->arg_count + 1));
+        $$->args[0] = $1;
+        memcpy($$->args + 1, $2->args, sizeof(ASTNode *) * $2->arg_count);
+        $$->arg_count = $2->arg_count + 1;
+        free($2->args);
+    }
+    | /* empty */ {
+        $$ = malloc(sizeof(*$$));
+        $$->args = NULL;
+        $$->arg_count = 0;
+    }
+    | SEMICOLON {
+        $$ = malloc(sizeof(*$$));
+        $$->args = NULL;
+        $$->arg_count = 0;
+    }
+;
+
+type_declaration:
+    TYPE ID LPAREN param_list RPAREN type_body { 
+        $$ = create_type_dec_node($2, $4->args, $4->arg_count, "", NULL, 0, $6); 
+    }
+    | TYPE ID type_body {
+        $$ = create_type_dec_node($2, NULL, 0, "", NULL, 0, $3);
+    }
+    | TYPE ID LPAREN param_list RPAREN INHERITS ID LPAREN list_args RPAREN type_body {
+        $$ = create_type_dec_node($2, $4->args, $4->arg_count, $7, $9->args, $9->arg_count, $11);
+    }
+    | TYPE ID INHERITS ID type_body {
+        $$ = create_type_dec_node($2, NULL, 0, $4, NULL, 0, $5);
+    }
+
 ;
 
 compound_operator:
@@ -347,6 +415,10 @@ compound_operator:
     }
 ;
 
+type_instance:
+    NEW ID LPAREN list_args RPAREN       { $$ = create_type_instance($2, $4->args, $4->arg_count); }
+;
+
 expression:
     NUMBER                               { $$ = create_number_node($1); }
     | PI                                 { $$ = create_number_node(M_PI); }
@@ -383,6 +455,7 @@ expression:
     | conditional                        { $$ = $1; }
     | while_loop                         { $$ = $1; }
     | compound_operator                  { $$ = $1; }
+    | type_instance                      { $$ = $1; }
     | ERROR { // Handle any other error
         yyerrok;
         YYABORT;
@@ -410,6 +483,7 @@ const char* token_to_str(int token) {
         case MINUSEQUAL:   return "'-='"     ; case ANDEQUAL: return "'&='"        ; case OREQUAL:    return "'|='"    ;
         case CONCATEQUAL:  return "'@='"     ; case MODEQUAL: return "'%='"        ; case TIMESEQUAL: return "'*='"    ;
         case WHILE:        return "'while'"  ; case IS:       return "'is'"        ; case AS:         return "'as'"    ;
+        case TYPE:         return "'type'"   ; case INHERITS: return "'inherits'"  ; case NEW:        return "'new'"   ;
 
         default: return "";
     }

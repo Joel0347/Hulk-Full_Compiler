@@ -178,6 +178,7 @@ function fact(n) {
 }
 
 print("factorial de 4:"@@fact(4));
+
 // fact(4);
 
 // let i = 0 in while (i<4) {
@@ -221,3 +222,41 @@ print("factorial de 4:"@@fact(4));
 //     }
 //     o(x);
 // }
+
+// type B(x) {
+//     x = 1;
+//     setX() => x+1;
+// }
+
+// type A inherits B {
+//     // x=y+1;
+//     // y=x;
+//     x = new A("s");
+//     g() => 1;
+// }
+
+// type Point(x:Number, y:Number) {
+//     x = x;
+//     y = y;
+//     //...
+// }
+
+// type PolarPoint(phi, rho) inherits Point(rho * sin(phi), rho * cos(phi)) {
+//     //...
+// }
+
+// new PolarPoint("12", "4");
+
+// function even(x) {
+//     if (x == 0) true
+//     elif (x == 1) false
+//     else odd(x - 1);
+// }
+
+// function odd(x) {
+//     if (x == 0) false
+//     elif (x == 1) true
+//     else even(x - 1);
+// }
+
+// print(odd(7));

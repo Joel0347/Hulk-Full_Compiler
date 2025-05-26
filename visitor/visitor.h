@@ -25,6 +25,8 @@ typedef void (*VisitFuncDec)(Visitor*, ASTNode*);
 typedef void (*VisitLetIn)(Visitor*, ASTNode*);
 typedef void (*VisitConditional)(Visitor*, ASTNode*);
 typedef void (*VisitLoop)(Visitor*, ASTNode*);
+typedef void (*VisitTypeDec)(Visitor*, ASTNode*);
+typedef void (*VisitTypeInst)(Visitor*, ASTNode*);
 typedef void (*VisitCastingType)(Visitor*, ASTNode*);
 typedef void (*VisitTestType)(Visitor*, ASTNode*);
 
@@ -45,6 +47,8 @@ struct Visitor {
     VisitLetIn visit_let_in;
     VisitConditional visit_conditional;
     VisitLoop visit_loop;
+    VisitTypeDec visit_type_dec;
+    VisitTypeInst visit_type_inst;
     VisitCastingType visit_casting_type;
     VisitTestType visit_test_type;
 

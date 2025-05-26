@@ -65,6 +65,9 @@ int line_num = 1;
 "while"         { return WHILE; }
 "as"            { return AS; }
 "is"            { return IS; }
+"type"          { return TYPE; }
+"inherits"      { return INHERITS; }
+"new"           { return NEW; }
 
 [a-zA-ZñÑ][a-zA-ZñÑ0-9_]*  { yylval.var = strdup(yytext); return ID; }
 "//"[^\n]*?   { /* COMMENT */ }
