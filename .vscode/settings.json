@@ -1,6 +1,0 @@
-{
-    "files.associations": {
-        "llvm_core.h": "c",
-        "core.h": "c"
-    }
-}
