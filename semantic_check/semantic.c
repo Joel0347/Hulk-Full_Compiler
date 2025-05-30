@@ -28,6 +28,8 @@ int analyze_semantics(ASTNode* node) {
         .visit_test_type = visit_test_type,
         .visit_type_dec = visit_type_dec,
         .visit_type_inst = visit_type_inst,
+        .visit_attr_getter = visit_attr_getter,
+        .visit_attr_setter = visit_attr_setter,
         .error_count = 0,
         .errors = NULL
     };
@@ -48,19 +50,23 @@ int analyze_semantics(ASTNode* node) {
     return visitor.error_count;
 }
 
-Type* find_type(Visitor* v, ASTNode* node) {
+Type* find_type(ASTNode* node) {
+    Type* instance_type = node->return_type;
+    Symbol* t = find_defined_type(node->scope, instance_type->name);
 
-    // if (node->return_type) {
-    //     return node->return_type;
-    // }
-    return node->return_type;
+    if (t)
+        return t->type;
+
+    // instance_type->scope = create_scope(NULL);
+
+    return instance_type;
 }
 
 Type** find_types(ASTNode** args, int args_count) {
     Type** types = (Type**)malloc(args_count * sizeof(Type*));
     for (int i = 0; i < args_count; i++)
     {
-        types[i] = args[i]->return_type;
+        types[i] = find_type(args[i]);
     }
     
     return types;

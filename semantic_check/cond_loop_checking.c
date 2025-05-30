@@ -21,7 +21,7 @@ void visit_conditional(Visitor* v, ASTNode* node) {
         accept(v, condition);
     }
 
-    Type* condition_type = find_type(v, condition);
+    Type* condition_type = find_type(condition);
 
     if (!type_equals(condition_type, &TYPE_ERROR) &&
         !type_equals(condition_type, &TYPE_BOOLEAN)
@@ -34,16 +34,16 @@ void visit_conditional(Visitor* v, ASTNode* node) {
     }
 
     accept(v, true_body);
-    Type* true_type = find_type(v, true_body);
+    Type* true_type = find_type(true_body);
     Type* false_type = NULL;
 
     if (false_body) {
         accept(v, false_body);
         accept(v, true_body);
-        false_type = find_type(v, false_body);
-        true_type = find_type(v, true_body);
+        false_type = find_type(false_body);
+        true_type = find_type(true_body);
     } else {
-        false_type = find_type(v, true_body);
+        false_type = find_type(true_body);
     }
 
     node->return_type = get_lca(true_type, false_type);
@@ -64,7 +64,7 @@ void visit_loop(Visitor* v, ASTNode* node) {
         accept(v, condition);
     }
 
-    Type* condition_type = find_type(v, condition);
+    Type* condition_type = find_type(condition);
 
     if (!type_equals(condition_type, &TYPE_ERROR) &&
         !type_equals(condition_type, &TYPE_BOOLEAN)
@@ -77,5 +77,5 @@ void visit_loop(Visitor* v, ASTNode* node) {
     }
 
     accept(v, body);
-    node->return_type = find_type(v, body);
+    node->return_type = find_type(body);
 }

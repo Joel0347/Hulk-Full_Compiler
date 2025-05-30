@@ -29,6 +29,8 @@ typedef void (*VisitTypeDec)(Visitor*, ASTNode*);
 typedef void (*VisitTypeInst)(Visitor*, ASTNode*);
 typedef void (*VisitCastingType)(Visitor*, ASTNode*);
 typedef void (*VisitTestType)(Visitor*, ASTNode*);
+typedef void (*VisitAttrGetter)(Visitor*, ASTNode*);
+typedef void (*VisitAttrSetter)(Visitor*, ASTNode*);
 
 struct Visitor {
     int error_count;
@@ -51,6 +53,8 @@ struct Visitor {
     VisitTypeInst visit_type_inst;
     VisitCastingType visit_casting_type;
     VisitTestType visit_test_type;
+    VisitAttrGetter visit_attr_getter;
+    VisitAttrSetter visit_attr_setter;
 
     char** errors;
 };

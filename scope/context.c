@@ -59,8 +59,6 @@ struct ContextItem* find_context_item(Context* context, char* name, int type, in
 
     ContextItem* current = context->first;
     while (current) {
-        if (!current->declaration->type)
-            printf("hola\n");
         if ((!type && !var && current->declaration->type == NODE_FUNC_DEC &&
             !strcmp(current->declaration->data.func_node.name, name)) ||
             (type && !var && current->declaration->type == NODE_TYPE_DEC &&
@@ -80,13 +78,34 @@ struct ContextItem* find_context_item(Context* context, char* name, int type, in
     return NULL;
 }
 
+struct ContextItem* find_item_in_type_context(Context* context, char* name, int func_dec) {
+    if (!context) {
+        return NULL;
+    }
+    
+    ContextItem* current = context->first;
+
+    while (current) {
+        if ((func_dec && current->declaration->type == NODE_FUNC_DEC &&
+            !strcmp(current->declaration->data.func_node.name, name)) ||
+            (!func_dec && current->declaration->type == NODE_ASSIGNMENT &&
+            !strcmp(current->declaration->data.op_node.left->data.variable_name, name))
+        ) {
+            return current;
+        }
+        current = current->next;
+    }
+    
+    return NULL;
+}
+
 int save_context_for_type(Context* context, struct ASTNode* item, char* type_name) {
-    int func_dec = item->type==NODE_FUNC_DEC;
+    int func_dec = item->type == NODE_FUNC_DEC;
     char* name = func_dec ? 
         item->data.func_node.name : item->data.op_node.left->data.variable_name;
 
-    char* new_name = concat_string_with_(type_name, name);
-    ContextItem* c_item = find_item_in_type(context, new_name, func_dec);
+    char* new_name = concat_str_with_underscore(type_name, name);
+    ContextItem* c_item = find_item_in_type_context(context, new_name, func_dec);
 
     if (c_item) {
         c_item->return_type = func_dec ? &TYPE_ANY : &TYPE_VOID;
@@ -94,13 +113,12 @@ int save_context_for_type(Context* context, struct ASTNode* item, char* type_nam
     }
     
     ContextItem* new = (ContextItem*)malloc(sizeof(ContextItem));
+    new->declaration = item;
 
     if (func_dec)
-        item->data.func_node.name = new_name;
+        new->declaration->data.func_node.name = new_name;
     else
-        item->data.op_node.left->data.variable_name = new_name;
-
-    new->declaration = item;
+        new->declaration->data.op_node.left->data.variable_name = new_name;
 
     Symbol* defined_type = find_defined_type(item->scope, item->static_type);
 
@@ -113,22 +131,13 @@ int save_context_for_type(Context* context, struct ASTNode* item, char* type_nam
     return 1;
 }
 
-struct ContextItem* find_item_in_type(Context* context, char* name, int func_dec) {
-    if (!context) {
-        return NULL;
-    }
-
-    ContextItem* current = context->first;
-    while (current) {
-        if ((func_dec && current->declaration->type == NODE_FUNC_DEC &&
-            !strcmp(current->declaration->data.func_node.name, name)) ||
-            (!func_dec && current->declaration->type == NODE_TYPE_DEC &&
-            !strcmp(current->declaration->data.op_node.left->data.variable_name, name))
-        ) {
-            return current;
-        }
-        current = current->next;
+struct ContextItem* find_item_in_type(Context* context, char* name, Type* type, int func_dec) {
+    ContextItem* item = find_item_in_type_context(context, name, func_dec);
+    if (!item && type->parent && type->parent->context) {
+        name = delete_underscore_from_str(name, type->name);
+        name = concat_str_with_underscore(type->parent->name, name);
+        return find_item_in_type(type->parent->context, name, type->parent, func_dec);
     }
     
-    return NULL;
+    return item;
 }

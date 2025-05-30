@@ -1,7 +1,7 @@
 #include "semantic.h"
 
 
-void visit_function_call(Visitor* v, ASTNode* node) {
+void check_function_call(Visitor* v, ASTNode* node, Type* type) {
     ASTNode** args = node->data.func_node.args;
 
     for (int i = 0; i < node->data.func_node.arg_count; i++)
@@ -11,16 +11,26 @@ void visit_function_call(Visitor* v, ASTNode* node) {
         accept(v, args[i]);
     }
 
-    ContextItem* item = find_context_item(
-        node->context, node->data.func_node.name, 0, 0
-    );
+    ContextItem* item = type?
+        find_item_in_type( // para funciones de tipos especificos
+            type->context,
+            node->data.func_node.name,
+            type, 1
+        ) :
+        find_context_item(
+            node->context, node->data.func_node.name, 0, 0
+        );
 
     if (item) {
-        accept(v, item->declaration);
+        if (type) {
+            check_function_dec(v, item->declaration, type);
+        } else {
+            accept(v, item->declaration);
+        }
     }
-
+    Scope* scope = type? type->scope : node->scope;
     IntList* unified = unify_func(
-        v, args, node->scope, node->data.func_node.arg_count, 
+        v, args, scope, node->data.func_node.arg_count, 
         node->data.func_node.name, item
     );
 
@@ -54,7 +64,9 @@ void visit_function_call(Visitor* v, ASTNode* node) {
         dec->result_type = item->return_type ? item->return_type : &TYPE_ANY;
     }
 
-    FuncData* funcData = find_function(node->scope, f, dec);
+    FuncData* funcData = type? // verficar funciones de tipo especifico
+        get_type_func(type, f, dec) : 
+        find_function(node->scope, f, dec);
 
     if (funcData->func)
         node->return_type = funcData->func->result_type;
@@ -90,7 +102,15 @@ void visit_function_call(Visitor* v, ASTNode* node) {
     free(f);
 }
 
+void visit_function_call(Visitor* v, ASTNode* node) {
+    check_function_call(v, node, NULL);
+}
+
 void visit_function_dec(Visitor* v, ASTNode* node) {
+    check_function_dec(v, node, NULL);
+}
+
+void check_function_dec(Visitor* v, ASTNode* node, Type* type) {
     if (node->checked) {
         return;
     }
@@ -145,15 +165,20 @@ void visit_function_dec(Visitor* v, ASTNode* node) {
     }
 
     accept(v, body);
-    ContextItem* item = find_context_item(node->context, node->data.func_node.name, 0, 0);
-    Type* inferried_type = find_type(v, body);
+    ContextItem* item = type?
+        find_item_in_type(
+            type->context, 
+            node->data.func_node.name, 
+            type, 1) :
+        find_context_item(node->context, node->data.func_node.name, 0, 0);
+    Type* inferried_type = find_type(body);
     Symbol* defined_type = find_defined_type(node->scope, node->static_type);
 
     if (type_equals(inferried_type, &TYPE_ANY) && 
         defined_type && unify_member(v, body, defined_type->type)
     ) {
         accept(v, body);
-        inferried_type = find_type(v, body);
+        inferried_type = find_type(body);
     }
 
     if (!defined_type && item->return_type &&
@@ -179,7 +204,9 @@ void visit_function_dec(Visitor* v, ASTNode* node) {
         );
     }
 
-    if (defined_type && !is_ancestor_type(defined_type->type, inferried_type)) {
+    if (defined_type && !is_ancestor_type(defined_type->type, inferried_type) &&
+        !type_equals(inferried_type, &TYPE_ERROR)
+    ) {
         report_error(
             v, "The return type of function '%s' was defined as '%s', but inferred "
             "as '%s'. Line: %d.", node->data.func_node.name, node->static_type,
@@ -224,8 +251,9 @@ void visit_function_dec(Visitor* v, ASTNode* node) {
             node->data.func_node.args[i]->return_type = param_types[i];
         }
 
+        Scope* scope = type? type->scope->parent : node->scope->parent;
         declare_function(
-            node->scope->parent, node->data.func_node.arg_count,
+            scope, node->data.func_node.arg_count,
             param_types, inferried_type, node->data.func_node.name
         );
     }

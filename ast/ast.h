@@ -24,7 +24,9 @@ typedef enum {
     NODE_TEST_TYPE,
     NODE_CAST_TYPE,
     NODE_TYPE_DEC,
-    NODE_TYPE_INST
+    NODE_TYPE_INST,
+    NODE_TYPE_GET_ATTR,
+    NODE_TYPE_SET_ATTR
 } NodeType;
 
 typedef struct ASTNode {
@@ -93,7 +95,9 @@ ASTNode* create_type_dec_node(
     char* name, ASTNode** params, int param_count,
     char* parent_name, ASTNode** p_params, int p_param_count, ASTNode* body_block
 );
-ASTNode* create_type_instance(char* name, ASTNode** args, int arg_count);
+ASTNode* create_type_instance_node(char* name, ASTNode** args, int arg_count);
+ASTNode* create_attr_getter_node(ASTNode* instance, ASTNode* member);
+ASTNode* create_attr_setter_node(ASTNode* instance, ASTNode* member, ASTNode* value);
 void print_ast(ASTNode* node, int indent);
 
 #endif

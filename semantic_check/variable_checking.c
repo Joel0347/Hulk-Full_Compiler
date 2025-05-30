@@ -33,13 +33,13 @@ void visit_assignment(Visitor* v, ASTNode* node) {
     }
 
     accept(v, val_node);
-    Type* inferried_type = find_type(v, val_node);
+    Type* inferried_type = find_type(val_node);
 
     if (type_equals(inferried_type, &TYPE_ANY) && 
         defined_type && unify_member(v, val_node, defined_type->type)
     ) {
         accept(v, val_node);
-        inferried_type = find_type(v, val_node);
+        inferried_type = find_type(val_node);
     }
 
     if (defined_type && !is_ancestor_type(defined_type->type, inferried_type)) {
@@ -84,7 +84,7 @@ void visit_assignment(Visitor* v, ASTNode* node) {
         ) {
             if (unify_member(v, val_node, sym->type)) {
                 accept(v, val_node);
-                inferried_type = find_type(v, val_node);
+                inferried_type = find_type(val_node);
             }
         } else if (
             type_equals(sym->type, &TYPE_ANY) &&
@@ -159,5 +159,5 @@ void visit_let_in(Visitor* v, ASTNode* node) {
     }
 
     accept(v, body);
-    node->return_type = find_type(v, body);
+    node->return_type = find_type(body);
 }
