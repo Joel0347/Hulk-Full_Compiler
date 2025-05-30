@@ -61,6 +61,12 @@ void accept(Visitor* visitor, ASTNode* node) {
         case NODE_CAST_TYPE:
             visitor->visit_casting_type(visitor, node);
             break;
+        case NODE_TYPE_GET_ATTR:
+            visitor->visit_attr_getter(visitor, node);
+            break;
+        case NODE_TYPE_SET_ATTR:
+            visitor->visit_attr_setter(visitor, node);
+            break;
     }
 }
 

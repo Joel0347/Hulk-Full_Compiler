@@ -9,13 +9,13 @@ char* keywords[] = {
 char scape_chars[] = { 'n', 't', '\\', '\"' };
 
 // Basic types instances
-Type TYPE_OBJECT = { "Object", NULL, NULL, NULL, NULL, NULL, 0 };
-Type TYPE_NUMBER = { "Number", NULL, &TYPE_OBJECT, NULL, NULL, NULL, 0 };
-Type TYPE_STRING = { "String", NULL, &TYPE_OBJECT, NULL, NULL, NULL, 0 };
-Type TYPE_BOOLEAN = { "Boolean", NULL, &TYPE_OBJECT, NULL, NULL, NULL, 0 };
-Type TYPE_VOID = { "Void", NULL, &TYPE_OBJECT, NULL, NULL, NULL, 0 };
-Type TYPE_ERROR = { "Error", NULL, NULL, NULL, NULL, NULL, 0 };
-Type TYPE_ANY = { "Any", NULL, NULL, NULL, NULL, NULL, 0 };
+Type TYPE_OBJECT = { "Object", NULL, NULL, NULL, NULL, NULL, NULL, 0 };
+Type TYPE_NUMBER = { "Number", NULL, &TYPE_OBJECT, NULL, NULL, NULL, NULL, 0 };
+Type TYPE_STRING = { "String", NULL, &TYPE_OBJECT, NULL, NULL, NULL, NULL, 0 };
+Type TYPE_BOOLEAN = { "Boolean", NULL, &TYPE_OBJECT, NULL, NULL, NULL, NULL, 0 };
+Type TYPE_VOID = { "Void", NULL, &TYPE_OBJECT, NULL, NULL, NULL, NULL, 0 };
+Type TYPE_ERROR = { "Error", NULL, NULL, NULL, NULL, NULL, NULL, 0 };
+Type TYPE_ANY = { "Any", NULL, NULL, NULL, NULL, NULL, NULL, 0 };
 
 OperatorTypeRule operator_rules[] = {
 

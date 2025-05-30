@@ -116,9 +116,11 @@ void declare_type(Scope* scope, Type* type, Scope* parent_scope) {
 
     if (!parent_scope) {
         def_type->next = scope->defined_types;
+        def_type->type->scope = create_scope(NULL);
+        def_type->type->context = create_context(NULL);
         scope->defined_types = def_type;
     } else {
-        def_type->type->functions = scope->functions;
+        def_type->type->scope = scope;
         def_type->next = parent_scope->defined_types;
         parent_scope->defined_types = def_type;
     }
@@ -395,4 +397,43 @@ FuncData* find_type_data(Scope* scope, Function* f, Function* dec) {
     }
     
     return result;
+}
+
+FuncData* get_type_func(Type* type, Function* f, Function* dec) {
+    if (!type->scope) {
+        return NULL;
+    }
+
+    // f->name = concat_str_with_underscore(type->name, f->name);
+    
+    // if (dec)
+    //     dec->name = f->name;
+
+    FuncData* data = find_function(type->scope, f, dec);
+
+    if (data && (data->state->matched) || data->state->same_name) {
+        return data;
+    }
+
+    if (type->parent) {
+        f->name = delete_underscore_from_str(f->name, type->name);
+        f->name = concat_str_with_underscore(type->parent->name, f->name);
+
+        return get_type_func(type->parent, f, dec);
+    }
+
+    return data;
+}
+
+Symbol* get_type_attr(Type* type, char* attr_name) {
+    if (!type->scope)
+        return NULL;
+
+    char* name = concat_str_with_underscore(type->name, attr_name);
+    Symbol* sym = find_symbol_in_scope(type->scope, name);
+
+    if (!sym && type->parent)
+        return get_type_attr(type->parent, attr_name);
+    
+    return sym;
 }

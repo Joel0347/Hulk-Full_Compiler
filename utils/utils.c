@@ -99,11 +99,50 @@ struct ASTNode* at(int index, ValueList* list) {
     return NULL;
 }
 
-char* concat_string_with_(char* s1, char* s2) {
+char* concat_str_with_underscore(char* s1, char* s2) {
+    if (s2[0] == '_')
+        return s2;
+        
     int n = strlen(s1) + strlen(s2) + 3;
     char* new_s = (char*)malloc(n);
     snprintf(new_s, n, "_%s_%s", s1, s2);
     return new_s;
+}
+
+char* delete_underscore_from_str(char* s, char* sub_s) {
+    int len = strlen(sub_s);
+    const char *s1_ptr = s + len + 2;
+
+    return strdup(s1_ptr);
+}
+
+MRO* add_type_to_mro(char* type_name, MRO* list) {
+    if (!strcmp(type_name, ""))
+        return list;
+
+    MRO* new_list = (MRO*)malloc(sizeof(MRO));
+    new_list->type_name = type_name;
+    new_list->next = list;
+    return new_list;
+}
+
+MRO* empty_mro_list(MRO* list) {
+    if (list)
+        free(list->next);
+    free(list);
+    return NULL;
+}
+
+int find_type_in_mro(char* type_name, MRO* list) {
+    if (!list) {
+        return 0;
+    }
+
+    if (!strcmp(list->type_name, type_name)) {
+        return 1;
+    }
+
+    return find_type_in_mro(type_name, list->next);
 }
 
 void free_int_list(IntList* list) {

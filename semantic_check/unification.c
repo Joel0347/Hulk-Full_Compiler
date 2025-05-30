@@ -6,7 +6,10 @@ int unify_member(Visitor* v, ASTNode* node, Type* type) {
     
     if (node->type == NODE_VARIABLE && node->is_param == 1) {
         Symbol* sym = find_parameter(node->scope, node->data.variable_name);
-    
+        
+        if (!sym)
+            return 0;
+
         if (type_equals(sym->type, &TYPE_ANY) ||
             is_ancestor_type(sym->type, type)
         ) {
@@ -85,7 +88,8 @@ int unify_op(Visitor* v, ASTNode* left, ASTNode* right, Operator op, char* op_na
     } else if (type_equals(left->return_type, &TYPE_ANY)) {
         for (int i = 0; i < op_rules_count; i++)
         {
-            if (operator_rules[i].op == op && (!right ||
+            if (operator_rules[i].op == op && 
+                (!right || type_equals(&TYPE_ERROR, right->return_type) ||
                 type_equals(right->return_type, operator_rules[i].right_type))
             ) {
                 count++;
@@ -108,7 +112,8 @@ int unify_op(Visitor* v, ASTNode* left, ASTNode* right, Operator op, char* op_na
         for (int i = 0; i < op_rules_count; i++)
         {
             if (operator_rules[i].op == op && 
-                type_equals(left->return_type, operator_rules[i].left_type)
+                (type_equals(&TYPE_ERROR, left->return_type) ||
+                type_equals(left->return_type, operator_rules[i].left_type))
             ) {
                 count++;
                 if (count > 1) {
@@ -159,7 +164,7 @@ IntList* unify_func(Visitor* v, ASTNode** args, Scope* scope, int arg_count, cha
 
         scope = scope->parent;
     }
-
+    
     if (count) {
         for (int i = 0; i < arg_count; i++)
         {
@@ -231,12 +236,22 @@ IntList* unify_type(Visitor* v, ASTNode** args, Scope* scope, int arg_count, cha
     } else if (item && item->declaration->data.type_node.arg_count == arg_count) {
         for (int i = 0; i < item->declaration->data.type_node.arg_count; i++)
         {
+            // item->declaration->data.type_node.args[i]->data.variable_name = concat_str_with_underscore(
+            //     t_name, item->declaration->data.type_node.args[i]->data.variable_name
+            // );
+            
             if (unify_member(
                 v, item->declaration->data.type_node.args[i],
                 args[i]->return_type
             )) {
+                // item->declaration->data.type_node.args[i]->data.variable_name = delete_underscore_from_str(
+                //     item->declaration->data.type_node.args[i]->data.variable_name, t_name
+                // );
                 unified = add_int_list(unified, i);
             } else {
+                // item->declaration->data.type_node.args[i]->data.variable_name = delete_underscore_from_str(
+                //     item->declaration->data.type_node.args[i]->data.variable_name, t_name
+                // );
                 return NULL;
             }
         }

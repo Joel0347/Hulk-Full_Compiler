@@ -49,8 +49,8 @@ void visit_binary_op(Visitor* v, ASTNode* node) {
         accept(v, right);
     }
 
-    Type* left_type = find_type(v, left);
-    Type* right_type = find_type(v, right);
+    Type* left_type = find_type(left);
+    Type* right_type = find_type(right);
 
     OperatorTypeRule rule = create_op_rule( 
         left_type, right_type, 
@@ -78,7 +78,7 @@ void visit_unary_op(Visitor* v, ASTNode* node) {
         accept(v, left);
     }
 
-    Type* left_type = find_type(v, left);
+    Type* left_type = find_type(left);
 
     OperatorTypeRule rule = create_op_rule( 
         left_type, NULL, 
@@ -114,7 +114,7 @@ void visit_block(Visitor* v, ASTNode* node) {
     }
 
     if (current) {
-        node->return_type = find_type(v, current);
+        node->return_type = find_type(current);
         node->derivations = add_value_list(current, node->derivations);
     } else {
         node->return_type = &TYPE_VOID;

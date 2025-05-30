@@ -215,6 +215,7 @@ ASTNode* create_type_dec_node(
     node->context = create_context(NULL);
     node->data.type_node.name = name;
     node->data.type_node.parent_name = parent_name;
+    // node->data.type_node.parent = &TYPE_OBJECT;
     node->data.type_node.p_args = malloc(sizeof(ASTNode*) * p_param_count);
     for (int i = 0; i < p_param_count; i++) {
         node->data.type_node.p_args[i] = p_params[i];
@@ -235,7 +236,7 @@ ASTNode* create_type_dec_node(
     return node;
 }
 
-ASTNode* create_type_instance(char* name, ASTNode** args, int arg_count) {
+ASTNode* create_type_instance_node(char* name, ASTNode** args, int arg_count) {
     ASTNode* node = malloc(sizeof(ASTNode));
     node->line = line_num;
     node->type = NODE_TYPE_INST;
@@ -248,6 +249,30 @@ ASTNode* create_type_instance(char* name, ASTNode** args, int arg_count) {
     }
     node->data.type_node.arg_count = arg_count;
 
+    return node;
+}
+
+ASTNode* create_attr_getter_node(ASTNode* instance, ASTNode* member) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->line = line_num;
+    node->type = NODE_TYPE_GET_ATTR;
+    node->scope = create_scope(NULL);
+    node->context = create_context(NULL);
+    node->data.op_node.left = instance;
+    node->data.op_node.right = member;
+    return node;
+}
+
+ASTNode* create_attr_setter_node(ASTNode* instance, ASTNode* member, ASTNode* value) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->line = line_num;
+    node->type = NODE_TYPE_SET_ATTR;
+    node->return_type = &TYPE_OBJECT;
+    node->scope = create_scope(NULL);
+    node->context = create_context(NULL);
+    node->data.cond_node.cond = instance;
+    node->data.cond_node.body_true = member;
+    node->data.cond_node.body_false = value;
     return node;
 }
 
@@ -265,6 +290,7 @@ void free_ast(ASTNode* node) {
         case NODE_ASSIGNMENT:
         case NODE_D_ASSIGNMENT:
         case NODE_LOOP:
+        case NODE_TYPE_GET_ATTR:
             free_ast(node->data.op_node.left);
             free_ast(node->data.op_node.right);
             break;
@@ -288,6 +314,7 @@ void free_ast(ASTNode* node) {
             free_ast(node->data.func_node.body);
             break;
         case NODE_CONDITIONAL:
+        case NODE_TYPE_SET_ATTR:
             free_ast(node->data.cond_node.body_true);
             free_ast(node->data.cond_node.body_false);
             free_ast(node->data.cond_node.cond);
@@ -301,6 +328,9 @@ void free_ast(ASTNode* node) {
             }
             for (int i = 0; i < node->data.type_node.def_count; i++) {
                 free_ast(node->data.type_node.definitions[i]);
+            }
+            for (int i = 0; i < node->data.type_node.p_arg_count; i++) {
+                free_ast(node->data.type_node.p_args[i]);
             }
             break;
         case NODE_TYPE_INST:
@@ -443,6 +473,20 @@ void print_ast(ASTNode* node, int indent) {
             for (int i = 0; i < arg_count; i++) {
                 print_ast(node->data.type_node.args[i], indent + 1);
             }
+            break;
+        case NODE_TYPE_GET_ATTR:
+            printf("Type member: \n");
+            for (int i = 0; i < indent+1; i++) printf("  ");
+            printf(" Instance:\n");
+            print_ast(node->data.op_node.left, indent + 2);
+            for (int i = 0; i < indent+1; i++) printf("  ");
+            printf(" Member:\n");
+            print_ast(node->data.op_node.right, indent + 2);
+            break;
+        case NODE_TYPE_SET_ATTR:
+            printf("Assignment:\n");
+            print_ast(node->data.cond_node.body_true, indent + 1);
+            print_ast(node->data.cond_node.body_false, indent + 1);
             break;
     }
 }

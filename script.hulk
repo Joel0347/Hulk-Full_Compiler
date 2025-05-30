@@ -181,10 +181,10 @@ print("factorial de 4:"@@fact(4));
 
 // fact(4);
 
-// let i = 0 in while (i<4) {
-//     print("hola");
-//     i += 1;
-// };
+let i = 0 in while (i<4) {
+    print("hola");
+    i += 1;
+};
 // let i =1, p = i+=2<1 in print(p+i);
 // function j(x) {
 //     let i = 1 in while (true) {
@@ -195,38 +195,33 @@ print("factorial de 4:"@@fact(4));
 
 // j("as");
 // j(2);
-// function d(x) => x+1;
-// d(2);
+function d(x) => x+1;
+d(2);
 
-// let x=5, y=7 in {
-//     function test(l){
+let x=5, y=7 in {
+    function test(l){
         
-//         l+x;
-//     }
-//     print (test(2));
-// };
+        l+x;
+    }
+    print (test(2));
+};
 // let i = 1 in while (true) {
 //     print(i);
 //     i += x;
 // };
-// let t=1 in {
-//     function key() => t + 1;
-//     function ch() => t := 1;
+let t=1 in {
+    function key() => t + 1;
+    function ch() => t := 1;
 
-//     ch();
-//     key();
-// };
-// function r(x) {
-//     function o(y) {
-//         x + y;
-//     }
-//     o(x);
-// }
-
-// type B(x) {
-//     x = 1;
-//     setX() => x+1;
-// }
+    ch();
+    key();
+};
+function r(x) {
+    function o(y) {
+        x + y;
+    }
+    o(x);
+}
 
 // type A inherits B {
 //     // x=y+1;
@@ -235,15 +230,43 @@ print("factorial de 4:"@@fact(4));
 //     g() => 1;
 // }
 
-// type Point(x:Number, y:Number) {
-//     x = x;
-//     y = y;
-//     //...
+// type B(x) {
+//     x = 1;
+//     setX() => x+1;
 // }
 
-// type PolarPoint(phi, rho) inherits Point(rho * sin(phi), rho * cos(phi)) {
-//     //...
+type Point inherits p {
+    x = x;
+    y = y;
+    
+    
+    // getY():Number => (new Point(2, 3)).getX(3); //revisar aqui SIGUE DANDO PUTO ERROR
+
+    // setX(x) => self.x := x;
+    // setY(y) => self.y := y;
+}
+// // function f(x:Number) => f("as");
+// // function g(y:String) => "";
+
+let pt = new Point(3, 4) in pt.getX(2);
+
+type PolarPoint(phi, rho) inherits Point(rho * sin(phi), rho * cos(phi)) {
+    g() => self.getX(2);
+    // get() => self.getX();
+}
+
+type p(x, y:Number) {
+    j = x;
+    getX(k) => self.j+k; //aqui puedo acceder sin el self
+    gc() => self.getX(2)@"as"; // igual aqui
+    // k() => gc()+1;
+}
+// type p {
+//     h() => self.g()@1;
+//     g() => 2;
 // }
+
+// function g(x) => k+x; // la encuentra en el scope
 
 // new PolarPoint("12", "4");
 

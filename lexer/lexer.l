@@ -18,6 +18,7 @@ int line_num = 1;
 ","             { return COMMA; }
 [0-9]+          { yylval.val = atof(yytext); return NUMBER; }
 [0-9]+\.[0-9]+  { yylval.val = atof(yytext); return NUMBER; }
+"."             { return DOT; }
 "+"             { return PLUS; }
 "-"             { return MINUS; }
 "*"             { return TIMES; }

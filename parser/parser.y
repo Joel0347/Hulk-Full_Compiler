@@ -53,7 +53,7 @@ void add_statement(ASTNode* stmt) {
 %token ERROR ARROW FUNCTION DEQUALS LET IN IF ELIF ELSE WHILE
 %token LPAREN RPAREN EQUALS SEMICOLON COMMA LBRACKET RBRACKET COLON
 
-%token CONCATEQUAL ANDEQUAL OREQUAL PLUSEQUAL MINUSEQUAL
+%token CONCATEQUAL ANDEQUAL OREQUAL PLUSEQUAL MINUSEQUAL DOT
 %token TIMESEQUAL DIVEQUAL MODEQUAL POWEQUAL TYPE INHERITS NEW
 
 %left IS AS
@@ -71,8 +71,8 @@ void add_statement(ASTNode* stmt) {
 
 %type <node> expression block_expr statement destructive_var_decl function_call
 %type <node> param function_declaration simple_var_decl let_in_exp conditional
-%type <node> elif_branch while_loop compound_operator type_declaration
-%type <node> type_body type_body_exp member_declaration type_instance
+%type <node> elif_branch while_loop compound_operator type_declaration destructive_member_decl
+%type <node> type_body type_body_exp member_declaration type_instance member_call
 
 %type <arg_list> list_args block_expr_list param_list let_definitions type_body_expr_list
 
@@ -244,8 +244,18 @@ let_definitions:
 ;
 
 destructive_var_decl:
-    ID COLON ID DEQUALS expression        { $$ = create_assignment_node($1, $5, $3, NODE_D_ASSIGNMENT); }
-    | ID DEQUALS expression               { $$ = create_assignment_node($1, $3, "", NODE_D_ASSIGNMENT); }
+    /* ID COLON ID DEQUALS expression        { $$ = create_assignment_node($1, $5, $3, NODE_D_ASSIGNMENT); } */
+    ID DEQUALS expression {
+        $$ = create_assignment_node($1, $3, "", NODE_D_ASSIGNMENT);
+    }
+;
+
+destructive_member_decl:
+    expression DOT ID DEQUALS expression  {
+        $$ = create_attr_setter_node(
+            $1, create_variable_node($3, "", 0), $5
+        );
+    }
 ;
 
 simple_var_decl:
@@ -289,6 +299,17 @@ member_declaration:
     }
     | ID LPAREN param_list RPAREN COLON ID block_expr {
         $$ = create_func_dec_node($1, $3->args, $3->arg_count, $7, $6);
+    }
+;
+
+member_call:
+    expression DOT ID { 
+        $$ = create_attr_getter_node(
+            $1, create_variable_node($3, "", 0)
+        ); 
+    }
+    | expression DOT function_call {
+        $$ = create_attr_getter_node($1, $3);
     }
 ;
 
@@ -416,7 +437,7 @@ compound_operator:
 ;
 
 type_instance:
-    NEW ID LPAREN list_args RPAREN       { $$ = create_type_instance($2, $4->args, $4->arg_count); }
+    NEW ID LPAREN list_args RPAREN       { $$ = create_type_instance_node($2, $4->args, $4->arg_count); }
 ;
 
 expression:
@@ -456,6 +477,8 @@ expression:
     | while_loop                         { $$ = $1; }
     | compound_operator                  { $$ = $1; }
     | type_instance                      { $$ = $1; }
+    | member_call                        { $$ = $1; }
+    | destructive_member_decl            { $$ = $1; }
     | ERROR { // Handle any other error
         yyerrok;
         YYABORT;
@@ -484,6 +507,7 @@ const char* token_to_str(int token) {
         case CONCATEQUAL:  return "'@='"     ; case MODEQUAL: return "'%='"        ; case TIMESEQUAL: return "'*='"    ;
         case WHILE:        return "'while'"  ; case IS:       return "'is'"        ; case AS:         return "'as'"    ;
         case TYPE:         return "'type'"   ; case INHERITS: return "'inherits'"  ; case NEW:        return "'new'"   ;
+        case DOT:          return "'.'"      ;
 
         default: return "";
     }
