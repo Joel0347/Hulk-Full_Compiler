@@ -26,28 +26,34 @@ void visit_assignment(Visitor* v, ASTNode* node) {
     int free_type = 0;
 
     if (strcmp(var_node->static_type, "") && !defined_type) {
-        // ContextItem* item = find_context_item(
-        //     node->context, var_node->static_type, 1, 0
-        // );
+        ContextItem* item = find_context_item(
+            node->context, var_node->static_type, 1, 0
+        );
 
-        // if (item) {
-        //     accept(v, item->declaration);
-        //     defined_type = find_defined_type(node->scope, var_node->static_type);
+        if (item) {
+            accept(v, item->declaration);
+            defined_type = find_defined_type(node->scope, var_node->static_type);
 
-        //     if (!defined_type) {
-        //         defined_type = (Symbol*)malloc(sizeof(Symbol));
-        //         defined_type->name = item->return_type->name;
-        //         defined_type->type = item->return_type;
-        //         free_type = 1;
-        //     }
+            if (!defined_type) {
+                defined_type = (Symbol*)malloc(sizeof(Symbol));
 
-        // } else {
+                if (item->return_type) {
+                    defined_type->name = item->return_type->name;
+                    defined_type->type = item->return_type;
+                } else {
+                    defined_type->name = "object";
+                    defined_type->type = &TYPE_OBJECT;
+                }
+
+                free_type = 1;
+            } 
+        } else {
             report_error(
                 v, "Variable '%s' was defined as '%s', which is not a valid"
                 " type. Line: %d.", var_node->data.variable_name, 
                 var_node->static_type, node->line
             );
-        // }
+        }
     }
 
     accept(v, val_node);
@@ -133,9 +139,9 @@ void visit_assignment(Visitor* v, ASTNode* node) {
         node->return_type = inferried_type;
     }
 
-    // if (free_type) {
-    //     free(defined_type);
-    // }
+    if (free_type) {
+        free(defined_type);
+    }
 }
 
 void visit_variable(Visitor* v, ASTNode* node) {
