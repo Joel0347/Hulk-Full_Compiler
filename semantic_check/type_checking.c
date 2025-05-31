@@ -33,12 +33,6 @@ void visit_attr_setter(Visitor* v, ASTNode* node) {
 }
 
 void visit_type_dec(Visitor* v, ASTNode* node) {
-    if (node->checked)
-        return;
-
-    node->checked = 1;
-    mro_list = add_type_to_mro(node->data.type_node.name, mro_list);
-    
     if (find_type_in_mro(node->data.type_node.parent_name, mro_list)) {
         report_error(
             v, "Circular inheritance detected. Line: %d.", node->line
@@ -46,6 +40,14 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
         mro_list = empty_mro_list(mro_list);
         return;
     }
+
+    if (node->checked) {
+        return;
+    }
+
+    node->checked = 1;
+
+    mro_list = add_type_to_mro(node->data.type_node.parent_name, mro_list);
 
     ASTNode** params = node->data.type_node.args;
     ASTNode** definitions = node->data.type_node.definitions;
@@ -71,12 +73,30 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
         params[i]->scope->parent = node->scope;
         params[i]->context->parent = node->context;
         Symbol* param_type = find_defined_type(node->scope, params[i]->static_type);
+        int free_type = 0;
 
         if (strcmp(params[i]->static_type, "") && !param_type) {
-            report_error(
-                v, "Parameter '%s' was defined as '%s', which is not a valid type. Line: %d.", 
-                params[i]->data.variable_name, params[i]->static_type, node->line
+             ContextItem* item = find_context_item(
+                node->context, params[i]->static_type, 1, 0
             );
+    
+            if (item) {
+                accept(v, item->declaration);
+                param_type = find_defined_type(node->scope, params[i]->static_type);
+    
+                if (!param_type) {
+                    param_type = (Symbol*)malloc(sizeof(Symbol));
+                    param_type->name = item->return_type->name;
+                    param_type->type = item->return_type;
+                    free_type = 1;
+                }
+            } else {
+                report_error(
+                    v, "Parameter '%s' was defined as '%s', which is not a valid type. Line: %d.", 
+                    params[i]->data.variable_name, params[i]->static_type, node->line
+                );
+                params[i]->return_type = &TYPE_ERROR;
+            }
         }
 
         if (!strcmp(params[i]->static_type, "")) {
@@ -89,6 +109,9 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
             node->scope, params[i]->data.variable_name,
             params[i]->return_type, 1, NULL
         );
+
+        if (free_type)
+            free(param_type);
     }
 
     Symbol* parent_info = find_defined_type(node->scope, node->data.type_node.parent_name);
@@ -105,11 +128,14 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
                 node->data.type_node.name, node->data.type_node.parent_name, node->line
             );
         } else {
+            printf("%s\n", item->declaration->data.type_node.name);
             accept(v, item->declaration);
             parent_info = find_defined_type(node->scope, node->data.type_node.parent_name);
 
-            if (!parent_info) {
+            if (!parent_info && item->return_type) {
                 parent_type = item->return_type;
+            } else if (!parent_info) {
+                // parent_type = create
             } else {
                 parent_type = parent_info->type;
             }
@@ -153,6 +179,7 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
             node->data.type_node.p_args,
             node->data.type_node.p_arg_count
         );
+
         parent->scope->parent = node->scope; // con mas de un  nivel de herencia no sirve
         parent->context->parent = node->context;
         accept(v, parent);
@@ -160,6 +187,7 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
 
     // if (parent_type)
     //     node->data.type_node.parent = parent_type;
+    mro_list = empty_mro_list(mro_list);
 
     Type* this = create_new_type(node->data.type_node.name, NULL, NULL, 0);
     this->parent = parent_type? parent_type : NULL;
@@ -248,6 +276,7 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
     }
 
     this->dec = node;
+    this->scope->functions = node->scope->functions;
     this->arg_count = node->data.type_node.arg_count;
     this->param_types = param_types;
     Scope* priv_scope = create_scope(NULL);
@@ -389,7 +418,12 @@ void visit_attr_getter(Visitor* v, ASTNode* node) {
             member->data.variable_name, instance_type->name, node->line
         );
         node->return_type = &TYPE_ERROR;
+        return;
     } else if (member->type == NODE_VARIABLE) {
+        member->data.variable_name = concat_str_with_underscore(
+            instance_type->name, member->data.variable_name
+        );
+
         Symbol* sym = get_type_attr(
             instance_type,
             member->data.variable_name
@@ -400,11 +434,26 @@ void visit_attr_getter(Visitor* v, ASTNode* node) {
             member->is_param = sym->is_param;
             member->derivations = sym->derivations;
         } else if (!type_equals(member->return_type, &TYPE_ERROR)) {
-            member->return_type = &TYPE_ERROR;
-            report_error(
-                v, "Type '%s' does not have an attribute named '%s'. Line: %d", 
-                instance_type->name, member->data.variable_name, node->line
+            ContextItem* item = find_item_in_type(
+                instance_type->context,
+                member->data.variable_name,
+                instance_type, 0
             );
+
+            if (!item) {
+                member->return_type = &TYPE_ERROR;
+                report_error(
+                    v, "Type '%s' does not have an attribute named '%s'. Line: %d", 
+                    instance_type->name, member->data.variable_name, node->line
+                );
+            } else {
+                accept(v, item->declaration);
+                sym = get_type_attr(instance_type, member->data.variable_name);
+                printf("hola\n");
+                member->return_type = sym->type;
+                member->is_param = sym->is_param;
+                member->derivations = sym->derivations;
+            }
         }
     }
 

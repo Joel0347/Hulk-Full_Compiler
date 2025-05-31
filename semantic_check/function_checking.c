@@ -147,26 +147,27 @@ void check_function_dec(Visitor* v, ASTNode* node, Type* type) {
         int free_type = 0;
 
         if (strcmp(params[i]->static_type, "") && !param_type) {
-            // ContextItem* item = find_context_item(
-            //     node->context, params[i]->static_type, 1, 0
-            // );
+            ContextItem* item = find_context_item(
+                node->context, params[i]->static_type, 1, 0
+            );
     
-            // if (item) {
-            //     accept(v, item->declaration);
-            //     param_type = find_defined_type(node->scope, params[i]->static_type);
+            if (item) {
+                accept(v, item->declaration);
+                param_type = find_defined_type(node->scope, params[i]->static_type);
     
-            //     if (!param_type) {
-            //         param_type= (Symbol*)malloc(sizeof(Symbol));
-            //         param_type->name = item->return_type->name;
-            //         param_type->type = item->return_type;
-            //         free_type = 1;
-            //     }
-            // } else {
+                if (!param_type) {
+                    param_type = (Symbol*)malloc(sizeof(Symbol));
+                    param_type->name = item->return_type->name;
+                    param_type->type = item->return_type;
+                    free_type = 1;
+                }
+            } else {
                 report_error(
                     v, "Parameter '%s' was defined as '%s', which is not a valid type. Line: %d.", 
                     params[i]->data.variable_name, params[i]->static_type, node->line
                 );
-            // }
+                params[i]->return_type = &TYPE_ERROR;
+            }
         }
 
         if (!strcmp(params[i]->static_type, "")) {
@@ -185,6 +186,7 @@ void check_function_dec(Visitor* v, ASTNode* node, Type* type) {
     }
 
     accept(v, body);
+    if (!strcmp(node->data.func_node.name, "_PolarPoint_g")) printf("body type: %s\n", body->return_type->name);
     ContextItem* item = type?
         find_item_in_type(
             type->context, 
@@ -216,12 +218,30 @@ void check_function_dec(Visitor* v, ASTNode* node, Type* type) {
         );
     }
 
+    int free_type = 0;
+
     if (strcmp(node->static_type, "") && !defined_type) {
-        report_error(
-            v,  "The return type of function '%s' was defined as '%s'"
-            ", which is not a valid type. Line: %d.", node->data.func_node.name,
-            node->static_type, node->line
+        ContextItem* item = find_context_item(
+            node->context, node->static_type, 1, 0
         );
+
+        if (item) {
+            accept(v, item->declaration);
+            defined_type = find_defined_type(node->scope, node->static_type);
+
+            if (!defined_type) {
+                defined_type = (Symbol*)malloc(sizeof(Symbol));
+                defined_type->name = item->return_type->name;
+                defined_type->type = item->return_type;
+                free_type = 1;
+            }
+        } else {
+            report_error(
+                v,  "The return type of function '%s' was defined as '%s'"
+                ", which is not a valid type. Line: %d.", node->data.func_node.name,
+                node->static_type, node->line
+            );
+        }
     }
 
     if (defined_type && !is_ancestor_type(defined_type->type, inferried_type) &&
@@ -276,5 +296,8 @@ void check_function_dec(Visitor* v, ASTNode* node, Type* type) {
             scope, node->data.func_node.arg_count,
             param_types, inferried_type, node->data.func_node.name
         );
+
+        if (free_type)
+            free(defined_type);
     }
 }

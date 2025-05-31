@@ -452,12 +452,13 @@ FuncData* get_type_func(Type* type, Function* f, Function* dec) {
 Symbol* get_type_attr(Type* type, char* attr_name) {
     if (!type->scope)
         return NULL;
+    Symbol* sym = find_symbol_in_scope(type->scope, attr_name);
 
-    char* name = concat_str_with_underscore(type->name, attr_name);
-    Symbol* sym = find_symbol_in_scope(type->scope, name);
-
-    if (!sym && type->parent)
-        return get_type_attr(type->parent, attr_name);
+    if (!sym && type->parent) {
+        char* name = delete_underscore_from_str(attr_name, type->name);
+        name = concat_str_with_underscore(type->parent->name, name);
+        return get_type_attr(type->parent, name);
+    }
     
     return sym;
 }

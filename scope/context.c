@@ -27,7 +27,7 @@ void destroy_context(Context* context) {
 }
 
 int save_context_item(Context* context, struct ASTNode* item) {
-    int type = item->type==NODE_TYPE_DEC;
+    int type = item->type == NODE_TYPE_DEC;
     char* name = !type ? 
         item->data.func_node.name : item->data.type_node.name;
 
