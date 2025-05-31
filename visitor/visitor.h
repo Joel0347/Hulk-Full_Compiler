@@ -50,7 +50,7 @@ struct Visitor {
     VisitConditional visit_conditional;
     VisitLoop visit_loop;
     VisitTypeDec visit_type_dec;
-    VisitTypeInst visit_type_inst;
+    VisitTypeInst visit_type_instance;
     VisitCastingType visit_casting_type;
     VisitTestType visit_test_type;
     VisitAttrGetter visit_attr_getter;

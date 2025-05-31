@@ -27,7 +27,7 @@ int analyze_semantics(ASTNode* node) {
         .visit_casting_type = visit_casting_type,
         .visit_test_type = visit_test_type,
         .visit_type_dec = visit_type_dec,
-        .visit_type_inst = visit_type_inst,
+        .visit_type_instance = visit_type_instance,
         .visit_attr_getter = visit_attr_getter,
         .visit_attr_setter = visit_attr_setter,
         .error_count = 0,

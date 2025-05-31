@@ -123,7 +123,7 @@ void check_function_dec(Visitor* v, ASTNode* node, Type* type) {
     body->context->parent = node->context;
 
     for (int i = 0; i < node->data.func_node.arg_count - 1; i++) {
-        for (int j = 1; j < node->data.func_node.arg_count; j++) {
+        for (int j = i + 1; j < node->data.func_node.arg_count; j++) {
             if (!strcmp(
                 params[i]->data.variable_name,
                 params[j]->data.variable_name
@@ -144,12 +144,29 @@ void check_function_dec(Visitor* v, ASTNode* node, Type* type) {
         params[i]->scope->parent = node->scope;
         params[i]->context->parent = node->context;
         Symbol* param_type = find_defined_type(node->scope, params[i]->static_type);
+        int free_type = 0;
 
         if (strcmp(params[i]->static_type, "") && !param_type) {
-            report_error(
-                v, "Parameter '%s' was defined as '%s', which is not a valid type. Line: %d.", 
-                params[i]->data.variable_name, params[i]->static_type, node->line
-            );
+            // ContextItem* item = find_context_item(
+            //     node->context, params[i]->static_type, 1, 0
+            // );
+    
+            // if (item) {
+            //     accept(v, item->declaration);
+            //     param_type = find_defined_type(node->scope, params[i]->static_type);
+    
+            //     if (!param_type) {
+            //         param_type= (Symbol*)malloc(sizeof(Symbol));
+            //         param_type->name = item->return_type->name;
+            //         param_type->type = item->return_type;
+            //         free_type = 1;
+            //     }
+            // } else {
+                report_error(
+                    v, "Parameter '%s' was defined as '%s', which is not a valid type. Line: %d.", 
+                    params[i]->data.variable_name, params[i]->static_type, node->line
+                );
+            // }
         }
 
         if (!strcmp(params[i]->static_type, "")) {
@@ -162,6 +179,9 @@ void check_function_dec(Visitor* v, ASTNode* node, Type* type) {
             node->scope, params[i]->data.variable_name,
             params[i]->return_type, 1, NULL
         );
+
+        if (free_type)
+            free(param_type);
     }
 
     accept(v, body);

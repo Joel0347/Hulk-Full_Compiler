@@ -51,7 +51,7 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
     ASTNode** definitions = node->data.type_node.definitions;
 
     for (int i = 0; i < node->data.type_node.arg_count - 1; i++) {
-        for (int j = 1; j < node->data.type_node.arg_count; j++) {
+        for (int j = i + 1; j < node->data.type_node.arg_count; j++) {
             if (!strcmp(
                 params[i]->data.variable_name,
                 params[j]->data.variable_name
@@ -92,7 +92,7 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
     }
 
     Symbol* parent_info = find_defined_type(node->scope, node->data.type_node.parent_name);
-    Type* parent_type = NULL;
+    Type* parent_type = &TYPE_OBJECT;
 
     if (strcmp(node->data.type_node.parent_name, "") && !parent_info) {
         ContextItem* item = find_context_item(
@@ -104,28 +104,22 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
                 v, "Type '%s' inherits from '%s', which is not a valid type. Line: %d.", 
                 node->data.type_node.name, node->data.type_node.parent_name, node->line
             );
-            parent_type = &TYPE_OBJECT;
         } else {
             accept(v, item->declaration);
             parent_info = find_defined_type(node->scope, node->data.type_node.parent_name);
 
             if (!parent_info) {
-                parent_type = create_new_type(
-                    node->data.type_node.parent_name, create_new_type(
-                        node->data.type_node.name, NULL, NULL, 0
-                    ), NULL, 0
-                );
-                parent_type->context = item->declaration->context;
-                parent_type->scope = item->declaration->scope;
-                parent_type->dec = item->declaration;
+                parent_type = item->return_type;
             } else {
                 parent_type = parent_info->type;
             }
 
-            // node->scope->parent = parent_type->dec->scope;
-            // node->context->parent = parent_type->dec->context;
-
-            node->scope->symbols = parent_type->dec->scope->symbols;
+            if (!is_builtin_type(parent_type)) {
+                node->scope->parent = parent_type->dec->scope;
+                node->context->parent = parent_type->dec->context;
+                // node->scope = copy_scope_symbols(parent_type->dec->scope, node->scope);
+            }
+            // node->scope = copy_scope_symbols(parent_type->dec->scope, node->scope);
         }
     } else if (
         strcmp(node->data.type_node.parent_name, "") && 
@@ -135,16 +129,14 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
             v, "Type '%s' can not inherit from '%s'. Line: %d.", 
             node->data.type_node.name, node->data.type_node.parent_name, node->line
         );
-        parent_type = &TYPE_OBJECT;
-    } else if (!strcmp(node->data.type_node.parent_name, "")) {
-        parent_type = &TYPE_OBJECT;
-    } else {
+    } else if (strcmp(node->data.type_node.parent_name, "")) {
         parent_type = parent_info->type;
         node->scope->parent = parent_type->dec->scope;
         node->context->parent = parent_type->dec->context;
+        // node->scope = copy_scope_symbols(parent_type->dec->scope, node->scope);
     }
 
-    if (parent_type && !is_builtin_type(parent_type) && !node->data.type_node.arg_count) {
+    if (!is_builtin_type(parent_type) && !node->data.type_node.arg_count) {
         Type* parent = parent_info->type;
         node->data.type_node.arg_count = parent->arg_count;
         node->data.type_node.args = malloc(sizeof(ASTNode*) * parent->arg_count);
@@ -155,7 +147,7 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
         }
 
         params = node->data.type_node.args;
-    } else if (parent_type && !is_builtin_type(parent_type)) {
+    } else if (!is_builtin_type(parent_type)) {
         ASTNode* parent = create_type_instance_node(
             parent_type->name,
             node->data.type_node.p_args,
@@ -173,8 +165,11 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
     this->parent = parent_type? parent_type : NULL;
     this->context = node->context;
     this->scope = create_scope(node->scope);
+    ContextItem* item = find_context_item(node->context->parent, this->name, 1, 0);
+    item->return_type = this;
+    this->dec = node;
 
-    for(int i = 0; i < node->data.type_node.def_count; i++) {
+    for (int i = 0; i < node->data.type_node.def_count; i++) {
         ASTNode* child =  definitions[i];
         child->context->parent = this->context;
         child->scope->parent = this->scope;
@@ -265,7 +260,7 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
     mro_list = empty_mro_list(mro_list);
 }
 
-void visit_type_inst(Visitor* v, ASTNode* node) {
+void visit_type_instance(Visitor* v, ASTNode* node) {
     ASTNode** args = node->data.type_node.args;
 
     for (int i = 0; i < node->data.type_node.arg_count; i++)
@@ -315,14 +310,18 @@ void visit_type_inst(Visitor* v, ASTNode* node) {
         dec->name = item->declaration->data.type_node.name;
         dec->arg_count = item->declaration->data.type_node.arg_count;
         dec->args_types = dec_args_types;
+        dec->result_type = item->return_type;
     }
 
     FuncData* funcData = find_type_data(node->scope, f, dec);
 
-    if (funcData->func)
+    if (funcData->func && funcData->func->result_type) {
+        node->return_type = funcData->func->result_type;
+    } else if (funcData->func) {
         node->return_type = create_new_type(
             node->data.type_node.name, NULL, NULL, 0
         );
+    }
 
     if (!funcData->state->matched) {
         if (!funcData->state->same_name) {
