@@ -11,6 +11,29 @@ Scope* create_scope(Scope* parent) {
     return scope;
 }
 
+Scope* copy_scope_symbols(Scope* from, Scope* to) {
+    Scope* scope = (Scope*)malloc(sizeof(Scope));
+    scope->symbols = to->symbols;
+    scope->functions = to->functions;
+    scope->defined_types = to->defined_types;
+    
+    Symbol* current = from->symbols;
+
+    while (current) {
+        Symbol* tmp = (Symbol*)malloc(sizeof(Symbol));
+        tmp->name = current->name;
+        tmp->type = current->type;
+        tmp->is_param = current->is_param;
+        tmp->derivations = current->derivations;
+        tmp->next = scope->symbols;
+        scope->symbols = tmp;
+
+        current = current->next;
+    }
+
+    return scope;
+}
+
 void free_symbol(Symbol* current_symbol) {
     while (current_symbol) {
         Symbol* next = current_symbol->next;
@@ -360,6 +383,7 @@ FuncData* find_type_data(Scope* scope, Function* f, Function* dec) {
             current->name = current_sym->name;
             current->arg_count = current_sym->type->arg_count;
             current->args_types = current_sym->type->param_types;
+            current->result_type = current_sym->type;
             Tuple* tuple = func_equals(current, f);
             if (tuple->matched) {
                 result->state = tuple;
@@ -387,7 +411,7 @@ FuncData* find_type_data(Scope* scope, Function* f, Function* dec) {
     
         return result;
     }
-    
+
     if (not_found && dec) {
         result->state = func_equals(dec, f);
         result->func = dec;

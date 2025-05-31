@@ -27,7 +27,7 @@ void visit_let_in(Visitor* v, ASTNode* node);
 void visit_conditional(Visitor* v, ASTNode* node);
 void visit_loop(Visitor* v, ASTNode* node);
 void visit_type_dec(Visitor* v, ASTNode* node);
-void visit_type_inst(Visitor* v, ASTNode* node);
+void visit_type_instance(Visitor* v, ASTNode* node);
 void visit_test_type(Visitor* v, ASTNode* node);
 void visit_casting_type(Visitor* v, ASTNode* node);
 void visit_attr_getter(Visitor* v, ASTNode* node);

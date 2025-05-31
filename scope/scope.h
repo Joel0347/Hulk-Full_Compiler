@@ -51,6 +51,7 @@ typedef struct Context {
 } Context;
 
 Scope* create_scope(Scope* parent);
+Scope* copy_scope_symbols(Scope* from, Scope* to);
 Context* create_context(Context* parent);
 void destroy_scope(Scope* scope);
 void destroy_context(Context* context);

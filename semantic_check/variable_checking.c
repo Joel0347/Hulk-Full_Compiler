@@ -23,13 +23,31 @@ void visit_assignment(Visitor* v, ASTNode* node) {
     val_node->context->parent = node->context;
 
     Symbol* defined_type = find_defined_type(node->scope, var_node->static_type);
+    int free_type = 0;
 
     if (strcmp(var_node->static_type, "") && !defined_type) {
-        report_error(
-            v, "Variable '%s' was defined as '%s', which is not a valid"
-            " type. Line: %d.", var_node->data.variable_name, 
-            var_node->static_type, node->line
-        );
+        // ContextItem* item = find_context_item(
+        //     node->context, var_node->static_type, 1, 0
+        // );
+
+        // if (item) {
+        //     accept(v, item->declaration);
+        //     defined_type = find_defined_type(node->scope, var_node->static_type);
+
+        //     if (!defined_type) {
+        //         defined_type = (Symbol*)malloc(sizeof(Symbol));
+        //         defined_type->name = item->return_type->name;
+        //         defined_type->type = item->return_type;
+        //         free_type = 1;
+        //     }
+
+        // } else {
+            report_error(
+                v, "Variable '%s' was defined as '%s', which is not a valid"
+                " type. Line: %d.", var_node->data.variable_name, 
+                var_node->static_type, node->line
+            );
+        // }
     }
 
     accept(v, val_node);
@@ -114,6 +132,10 @@ void visit_assignment(Visitor* v, ASTNode* node) {
     if (node->type == NODE_D_ASSIGNMENT) {
         node->return_type = inferried_type;
     }
+
+    // if (free_type) {
+    //     free(defined_type);
+    // }
 }
 
 void visit_variable(Visitor* v, ASTNode* node) {

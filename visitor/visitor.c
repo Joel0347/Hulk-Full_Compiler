@@ -53,7 +53,7 @@ void accept(Visitor* visitor, ASTNode* node) {
             visitor->visit_type_dec(visitor, node);
             break;
         case NODE_TYPE_INST:
-            visitor->visit_type_inst(visitor, node);
+            visitor->visit_type_instance(visitor, node);
             break;
         case NODE_TEST_TYPE:
             visitor->visit_test_type(visitor, node);
