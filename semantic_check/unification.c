@@ -236,22 +236,12 @@ IntList* unify_type(Visitor* v, ASTNode** args, Scope* scope, int arg_count, cha
     } else if (item && item->declaration->data.type_node.arg_count == arg_count) {
         for (int i = 0; i < item->declaration->data.type_node.arg_count; i++)
         {
-            // item->declaration->data.type_node.args[i]->data.variable_name = concat_str_with_underscore(
-            //     t_name, item->declaration->data.type_node.args[i]->data.variable_name
-            // );
-            
             if (unify_member(
                 v, item->declaration->data.type_node.args[i],
                 args[i]->return_type
             )) {
-                // item->declaration->data.type_node.args[i]->data.variable_name = delete_underscore_from_str(
-                //     item->declaration->data.type_node.args[i]->data.variable_name, t_name
-                // );
                 unified = add_int_list(unified, i);
             } else {
-                // item->declaration->data.type_node.args[i]->data.variable_name = delete_underscore_from_str(
-                //     item->declaration->data.type_node.args[i]->data.variable_name, t_name
-                // );
                 return NULL;
             }
         }

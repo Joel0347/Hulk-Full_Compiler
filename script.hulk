@@ -230,38 +230,39 @@
 //     g() => 1;
 // }
 
-// type B {
-//     x = 1;
-//     // setX() => self.x+1;
-// }
+type B {
+    x = 1;
+    // setX() => self.x+1;
+}
 
 type Point inherits p {
     x = x;
     y = y;
     
     // getY(x:p): p => (new p(2, 3)); //revisar tipado ahora
-    l=new PolarPoint(2,3);
+    // l=new PolarPoint(2,3);
     z = 1;
 
-    // setX(x) => self.x := x;
+    setX(x) => self.x := x;
     // setY(y) => self.y := y;
 }
 
-// let pt = new Point(3, 4) in pt.getX(2);
+let pt = new Point(1, 4) in pt.getX(2);
 
-type PolarPoint(phi, rho) inherits Point(rho * sin(phi), rho * cos(phi)) {
-    g() => self.j@1;
-    k() => self.z;
-    // get() => self.getX();
-}
+// type PolarPoint(phi, rho) inherits Point(rho * sin(phi), rho * cos(phi)) {
+//     g() => self.j@1;
+//     k() => self.z;
+//     // get() => self.getX();
+// }
 
 type p(x, y:Number) {
     j = x;
     // k: PolarPoint = 1;
-    getX(k) => self.j+k;
+    getX(k) => self.j:=k+1;
     // gc() => self.getX(2)@"as";
     // k() => gc()+1;
 }
+
 // function l(x): Number => x;
 // type p {
 //     h() => self.g()@1;
