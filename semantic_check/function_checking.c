@@ -186,7 +186,6 @@ void check_function_dec(Visitor* v, ASTNode* node, Type* type) {
     }
 
     accept(v, body);
-    if (!strcmp(node->data.func_node.name, "_PolarPoint_g")) printf("body type: %s\n", body->return_type->name);
     ContextItem* item = type?
         find_item_in_type(
             type->context, 
