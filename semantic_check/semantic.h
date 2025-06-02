@@ -32,3 +32,4 @@ void visit_test_type(Visitor* v, ASTNode* node);
 void visit_casting_type(Visitor* v, ASTNode* node);
 void visit_attr_getter(Visitor* v, ASTNode* node);
 void visit_attr_setter(Visitor* v, ASTNode* node);
+void visit_base_func(Visitor* v, ASTNode* node);

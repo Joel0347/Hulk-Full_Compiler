@@ -3,11 +3,6 @@
 
 void visit_assignment(Visitor* v, ASTNode* node) {
     ASTNode* var_node = node->data.op_node.left;
-
-    if (node->checked)
-        return;
-    
-    node->checked = 1;
     ASTNode* val_node = node->data.op_node.right;
 
     if (match_as_keyword(var_node->data.variable_name)) {
@@ -41,8 +36,8 @@ void visit_assignment(Visitor* v, ASTNode* node) {
                     defined_type->name = item->return_type->name;
                     defined_type->type = item->return_type;
                 } else {
-                    defined_type->name = "object";
-                    defined_type->type = &TYPE_OBJECT;
+                    // defined_type->name = "object";
+                    // defined_type->type = &TYPE_OBJECT;
                 }
 
                 free_type = 1;
@@ -98,6 +93,9 @@ void visit_assignment(Visitor* v, ASTNode* node) {
             var_node->data.variable_name, inferried_type,
             0, val_node
         );
+        Symbol* s = find_symbol(node->scope->parent, var_node->data.variable_name);
+        s->derivations = add_value_list(val_node, s->derivations);
+        val_node->return_type = inferried_type;
     } else if (
         is_ancestor_type(sym->type, inferried_type) ||
         type_equals(inferried_type, &TYPE_ANY) ||
@@ -122,9 +120,11 @@ void visit_assignment(Visitor* v, ASTNode* node) {
                     unify_member(v, value, inferried_type);
                 }
             }
+            val_node->return_type = inferried_type;
         }
 
         sym->derivations = add_value_list(val_node, sym->derivations);
+        node->derivations = add_value_list(var_node, node->derivations);
     } else {
         report_error(
             v, "Variable '%s' was initializated as "

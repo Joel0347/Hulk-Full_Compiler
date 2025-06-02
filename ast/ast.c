@@ -276,6 +276,22 @@ ASTNode* create_attr_setter_node(ASTNode* instance, ASTNode* member, ASTNode* va
     return node;
 }
 
+ASTNode* create_base_func_node(ASTNode** args, int arg_count) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->line = line_num;
+    node->type = NODE_BASE_FUNC;
+    node->scope = create_scope(NULL);
+    node->context = create_context(NULL);
+    node->return_type = &TYPE_OBJECT;
+    node->checked = 0;
+    node->data.func_node.args = malloc(sizeof(ASTNode*) * arg_count);
+    for (int i = 0; i < arg_count; i++) {
+        node->data.func_node.args[i] = args[i];
+    }
+    node->data.func_node.arg_count = arg_count;
+    return node;
+}
+
 void free_ast(ASTNode* node) {
     if (!node) {
         return;
@@ -302,6 +318,7 @@ void free_ast(ASTNode* node) {
             free(node->data.program_node.statements);
             break;
         case NODE_FUNC_CALL:
+        case NODE_BASE_FUNC:
             for (int i = 0; i < node->data.func_node.arg_count; i++) {
                 free_ast(node->data.func_node.args[i]);
             }
@@ -487,6 +504,13 @@ void print_ast(ASTNode* node, int indent) {
             printf("Assignment:\n");
             print_ast(node->data.cond_node.body_true, indent + 1);
             print_ast(node->data.cond_node.body_false, indent + 1);
+            break;
+        case NODE_BASE_FUNC:
+            printf("Base call to %s:\n", node->data.func_node.name);
+            arg_count = node->data.func_node.arg_count;
+            for (int i = 0; i < arg_count; i++) {
+                print_ast(node->data.func_node.args[i], indent + 1);
+            }
             break;
     }
 }

@@ -50,7 +50,7 @@ void add_statement(ASTNode* stmt) {
 %token <var> ID
 %token <str> STRING
 %token <str> BOOLEAN
-%token ERROR ARROW FUNCTION DEQUALS LET IN IF ELIF ELSE WHILE
+%token ERROR ARROW FUNCTION DEQUALS LET IN IF ELIF ELSE WHILE BASE
 %token LPAREN RPAREN EQUALS SEMICOLON COMMA LBRACKET RBRACKET COLON
 
 %token CONCATEQUAL ANDEQUAL OREQUAL PLUSEQUAL MINUSEQUAL DOT
@@ -75,6 +75,7 @@ void add_statement(ASTNode* stmt) {
 %type <node> type_body type_body_exp member_declaration type_instance member_call
 
 %type <arg_list> list_args block_expr_list param_list let_definitions type_body_expr_list
+%type <arg_list> param_list_not_empty list_args_not_empty
 
 %%
 
@@ -116,6 +117,22 @@ statement:
     | expression SEMICOLON           { $$ = $1; }
 ;
 
+list_args_not_empty:
+    expression {
+        $$ = malloc(sizeof(*$$));
+        $$->args = malloc(sizeof(ASTNode *) * 1);
+        $$->args[0] = $1;
+        $$->arg_count = 1;
+    }
+    | expression COMMA list_args_not_empty {
+        $$ = malloc(sizeof(*$$));
+        $$->args = malloc(sizeof(ASTNode *) * ($3->arg_count + 1));
+        $$->args[0] = $1;
+        memcpy($$->args + 1, $3->args, sizeof(ASTNode *) * $3->arg_count);
+        $$->arg_count = $3->arg_count + 1;
+        free($3->args);
+    }
+;
 
 list_args:
     expression {
@@ -124,7 +141,7 @@ list_args:
         $$->args[0] = $1;
         $$->arg_count = 1;
     }
-    | expression COMMA list_args {
+    | expression COMMA list_args_not_empty {
         $$ = malloc(sizeof(*$$));
         $$->args = malloc(sizeof(ASTNode *) * ($3->arg_count + 1));
         $$->args[0] = $1;
@@ -184,6 +201,24 @@ block_expr_list:
 param:
     ID            { $$ = create_variable_node($1, "", 1); }
     | ID COLON ID { $$ = create_variable_node($1, $3, 1); }
+;
+
+param_list_not_empty:
+    param {
+        $$ = malloc(sizeof(*$$));
+        $$->args = malloc(sizeof(ASTNode *) * 1);
+        $$->args[0] = $1;
+        $$->arg_count = 1;
+    }
+    | param COMMA param_list_not_empty {
+        $$ = malloc(sizeof(*$$));
+        $$->args = malloc(sizeof(ASTNode *) * ($3->arg_count + 1));
+        $$->args[0] = $1;
+        memcpy($$->args + 1, $3->args, sizeof(ASTNode *) * $3->arg_count);
+        $$->arg_count = $3->arg_count + 1;
+        free($3->args);
+    }
+;
 
 param_list:
     param {
@@ -192,7 +227,7 @@ param_list:
         $$->args[0] = $1;
         $$->arg_count = 1;
     }
-    | param COMMA param_list {
+    | param COMMA param_list_not_empty {
         $$ = malloc(sizeof(*$$));
         $$->args = malloc(sizeof(ASTNode *) * ($3->arg_count + 1));
         $$->args[0] = $1;
@@ -470,6 +505,7 @@ expression:
     | expression MOD expression          { $$ = create_binary_op_node(OP_MOD, "%", $1, $3, &TYPE_NUMBER); }
     | expression POWER expression        { $$ = create_binary_op_node(OP_POW, "^", $1, $3, &TYPE_NUMBER); }
     | MINUS expression %prec UMINUS      { $$ = create_unary_op_node(OP_NEGATE, "-", $2, &TYPE_NUMBER); }
+    | BASE LPAREN list_args RPAREN       { $$ = create_base_func_node($3->args, $3->arg_count); }
     | LPAREN expression RPAREN           { $$ = $2; }
     | destructive_var_decl               { $$ = $1; }
     | simple_var_decl                    { $$ = $1; }
@@ -507,7 +543,7 @@ const char* token_to_str(int token) {
         case CONCATEQUAL:  return "'@='"     ; case MODEQUAL: return "'%='"        ; case TIMESEQUAL: return "'*='"    ;
         case WHILE:        return "'while'"  ; case IS:       return "'is'"        ; case AS:         return "'as'"    ;
         case TYPE:         return "'type'"   ; case INHERITS: return "'inherits'"  ; case NEW:        return "'new'"   ;
-        case DOT:          return "'.'"      ;
+        case DOT:          return "'.'"      ; case BASE:     return "'base'"      ;
 
         default: return "";
     }

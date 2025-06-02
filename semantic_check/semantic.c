@@ -30,8 +30,11 @@ int analyze_semantics(ASTNode* node) {
         .visit_type_instance = visit_type_instance,
         .visit_attr_getter = visit_attr_getter,
         .visit_attr_setter = visit_attr_setter,
+        .visit_base_func = visit_base_func,
         .error_count = 0,
-        .errors = NULL
+        .errors = NULL,
+        .current_function = NULL,
+        .current_type = NULL
     };
     
     accept(&visitor, node);
