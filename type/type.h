@@ -5,9 +5,6 @@
 #include <stdlib.h>
 #include "../utils/utils.h"
 
-struct Scope;
-struct Function;
-struct FuncData;
 struct ASTNode;
 typedef enum {
     OP_ADD,
@@ -34,8 +31,6 @@ typedef struct Type {
     char* name;
     struct Type* sub_type;
     struct Type* parent;
-    struct Scope* scope;
-    struct Context* context;
     struct Type** param_types;
     struct ASTNode* dec;
     int arg_count;
@@ -71,5 +66,5 @@ int find_op_match(OperatorTypeRule* possible_match);
 int same_branch_in_type_hierarchy(Type* type1, Type* type2);
 int is_builtin_type(Type* type);
 Type* get_lca(Type* true_type, Type* false_type);
-Type* create_new_type(char* name, Type* parent, Type** param_types, int count);
+Type* create_new_type(char* name, Type* parent, Type** param_types, int count, struct ASTNode* dec);
 #endif

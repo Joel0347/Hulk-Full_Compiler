@@ -11,8 +11,8 @@ void visit_attr_setter(Visitor* v, ASTNode* node) {
     value->context->parent = node->context;
     instance->scope->parent = node->scope;
     instance->context->parent = node->context;
-    member->context->parent = instance->context;
-    member->scope->parent = instance->scope;
+    member->context->parent = node->context;
+    member->scope->parent = node->scope;
 
     accept(v, instance);
     Type* instance_type = find_type(instance);
@@ -22,10 +22,10 @@ void visit_attr_setter(Visitor* v, ASTNode* node) {
         return;
     }
 
-    if (instance_type->dec) {
-        member->context->parent = instance_type->dec->context;
-        member->scope->parent = instance_type->dec->scope; 
-    }
+    // if (instance_type->dec) {
+    //     member->context->parent = instance_type->dec->context;
+    //     member->scope->parent = instance_type->dec->scope; 
+    // }
 
     if ((instance->type == NODE_VARIABLE &&
         strcmp(instance->data.variable_name, "self"))
@@ -52,11 +52,12 @@ void visit_attr_setter(Visitor* v, ASTNode* node) {
 
     if (sym) {
         member->return_type = sym->type;
+        // printf("%s\n", sym->type->name);
         member->is_param = sym->is_param;
         member->derivations = sym->derivations;
-    } else if (!type_equals(member->return_type, &TYPE_ERROR)) {
+    } else {
         ContextItem* item = find_item_in_type(
-            instance_type->context,
+            instance_type->dec->context,
             member->data.variable_name,
             instance_type, 0
         );
@@ -77,7 +78,6 @@ void visit_attr_setter(Visitor* v, ASTNode* node) {
     }
 
     accept(v, value);
-
     Type* inferried_type = find_type(value);
 
     if (sym) {
@@ -91,7 +91,7 @@ void visit_attr_setter(Visitor* v, ASTNode* node) {
             ) {
                 if (unify_member(v, value, sym->type)) {
                     accept(v, value);
-                    inferried_type = find_type(value);
+                    inferried_type = sym->type;
                 }
             } else if (
                 type_equals(sym->type, &TYPE_ANY) &&
@@ -119,6 +119,11 @@ void visit_attr_setter(Visitor* v, ASTNode* node) {
 
     node->return_type = find_type(value);
     node->derivations = add_value_list(value, node->derivations);
+    node->derivations = add_value_list(member, node->derivations);
+}
+
+void check_params(Visitor* v, ASTNode* node) {
+    
 }
 
 void visit_type_dec(Visitor* v, ASTNode* node) {
@@ -135,6 +140,7 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
     }
 
     node->checked = 1;
+    Type* visitor_type = v->current_type;
     Scope* parent_scope = node->scope->parent;
 
     mro_list = add_type_to_mro(node->data.type_node.parent_name, mro_list);
@@ -230,8 +236,8 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
             }
 
             if (!is_builtin_type(parent_type)) {
-                node->scope->parent = parent_type->dec->scope;
-                node->context->parent = parent_type->dec->context;
+                // node->scope->parent = parent_type->dec->scope;
+                // node->context->parent = parent_type->dec->context;
                 // node->scope = copy_scope_symbols(parent_type->dec->scope, node->scope);
             }
             // node->scope = copy_scope_symbols(parent_type->dec->scope, node->scope);
@@ -246,22 +252,32 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
         );
     } else if (strcmp(node->data.type_node.parent_name, "")) {
         parent_type = parent_info->type;
-        node->scope->parent = parent_type->dec->scope;
-        node->context->parent = parent_type->dec->context;
+        // node->scope->parent = parent_type->dec->scope;
+        // node->context->parent = parent_type->dec->context;
         // node->scope = copy_scope_symbols(parent_type->dec->scope, node->scope);
     }
 
     if (!is_builtin_type(parent_type) && !node->data.type_node.arg_count) {
-        Type* parent = parent_info->type;
-        node->data.type_node.arg_count = parent->arg_count;
-        node->data.type_node.args = malloc(sizeof(ASTNode*) * parent->arg_count);
-        for (int i = 0; i < parent->arg_count; i++)
-        {
-            node->data.type_node.args[i] = parent->dec->data.type_node.args[i];
+        node->data.type_node.arg_count = parent_type->arg_count;
+        node->data.type_node.args = malloc(sizeof(ASTNode*) * parent_type->arg_count);
+
+        for (int i = 0; i < parent_type->arg_count; i++) {
+            node->data.type_node.args[i] = parent_type->dec->data.type_node.args[i];
             node->data.type_node.args[i]->line = node->line;
         }
 
         params = node->data.type_node.args;
+
+        for (int i = 0; i < node->data.type_node.arg_count; i++) {
+            params[i]->scope->parent = node->scope;
+            params[i]->context->parent = node->context;
+
+            declare_symbol(
+                node->scope, params[i]->data.variable_name,
+                params[i]->return_type, 1, NULL
+            );
+        }
+        
     } else if (!is_builtin_type(parent_type)) {
         ASTNode* parent = create_type_instance_node(
             parent_type->name,
@@ -269,29 +285,31 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
             node->data.type_node.p_arg_count
         );
 
-        parent->scope->parent = node->scope; // con mas de un  nivel de herencia no sirve
+        parent->scope->parent = node->scope;
         parent->context->parent = node->context;
+        parent->line = node->line;
         accept(v, parent);
+        free_ast(parent);
     }
 
     // if (parent_type)
     //     node->data.type_node.parent = parent_type;
     mro_list = empty_mro_list(mro_list);
 
-    Type* this = create_new_type(node->data.type_node.name, NULL, NULL, 0);
-    this->parent = parent_type? parent_type : NULL;
-    this->context = node->context;
-    this->scope = create_scope(node->scope);
+    Type* this = create_new_type(node->data.type_node.name, parent_type, NULL, 0, node);
+    // this->context = node->context;
+    // this->scope = create_scope(node->scope);
+    // this->scope = node->scope;
     ContextItem* item = find_context_item(node->context->parent, this->name, 1, 0);
     item->return_type = this;
-    this->dec = node;
+    v->current_type = this;
 
     for (int i = 0; i < node->data.type_node.def_count; i++) {
         ASTNode* child =  definitions[i];
-        child->context->parent = this->context;
-        child->scope->parent = this->scope;
+        child->context->parent = node->context;
+        child->scope->parent = node->scope;
 
-        if (!save_context_for_type(this->context, child, this->name)) {
+        if (!save_context_for_type(node->context, child, this->name)) {
             char* name = child->type == NODE_FUNC_DEC ?
                 child->data.func_node.name :
                 child->data.op_node.left->data.variable_name;
@@ -318,8 +336,7 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
     //     sym->name = concat_str_with_underscore(this->name, sym->name);
     // }
 
-    declare_symbol(this->scope, "self", this, 0, NULL);
-
+    declare_symbol(node->scope, "self", this, 0, NULL);
     for (int i = 0; i < node->data.type_node.def_count; i++)
     {
         ASTNode* current = definitions[i];
@@ -327,6 +344,8 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
             check_function_dec(v, current, this);
         }
     }
+
+    // node->scope->functions = this->scope->parent->functions;
 
     // for (int i = 0; i < node->data.type_node.arg_count; i++)
     // {
@@ -342,7 +361,7 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
 
     for (int i = 0; i < node->data.type_node.arg_count; i++)
     {
-        Symbol* param = find_parameter(this->scope, params[i]->data.variable_name);
+        Symbol* param = find_parameter(node->scope, params[i]->data.variable_name);
 
         if (type_equals(param->type, &TYPE_ANY)) {
             
@@ -365,17 +384,18 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
     }
 
     this->dec = node;
-    this->scope->functions = node->scope->functions;
+    // this->scope->functions = node->scope->functions;
     this->arg_count = node->data.type_node.arg_count;
     this->param_types = param_types;
-    Scope* priv_scope = create_scope(NULL);
-    Context* priv_context = create_context(NULL);
-    priv_scope->symbols = this->scope->symbols;
-    priv_scope->functions = this->scope->functions;
-    priv_context->first = this->context->first;
-    this->context = priv_context;
-    declare_type(priv_scope, this, parent_scope);
+    // Scope* priv_scope = create_scope(NULL);
+    // Context* priv_context = create_context(NULL);
+    // priv_scope->symbols = this->scope->symbols;
+    // priv_scope->functions = this->scope->functions;
+    // priv_context->first = this->context->first;
+    // this->context = priv_context;
+    declare_type(node->scope->parent, this);
     mro_list = empty_mro_list(mro_list);
+    v->current_type = visitor_type;
 }
 
 void visit_type_instance(Visitor* v, ASTNode* node) {
@@ -437,7 +457,7 @@ void visit_type_instance(Visitor* v, ASTNode* node) {
         node->return_type = funcData->func->result_type;
     } else if (funcData->func) {
         node->return_type = create_new_type(
-            node->data.type_node.name, NULL, NULL, 0
+            node->data.type_node.name, NULL, NULL, 0, item->declaration
         );
     }
 
@@ -479,8 +499,8 @@ void visit_attr_getter(Visitor* v, ASTNode* node) {
 
     instance->scope->parent = node->scope;
     instance->context->parent = node->context;
-    member->context->parent = instance->context;
-    member->scope->parent = instance->scope;
+    member->context->parent = node->context;
+    member->scope->parent = node->scope;
 
     accept(v, instance);
     Type* instance_type = find_type(instance);
@@ -490,10 +510,10 @@ void visit_attr_getter(Visitor* v, ASTNode* node) {
         return;
     }
 
-    if (instance_type->dec) {
-        member->context->parent = instance_type->dec->context;
-        member->scope->parent = instance_type->dec->scope; 
-    }
+    // if (instance_type->dec) {
+    //     member->context->parent = instance_type->dec->context;
+    //     member->scope->parent = instance_type->dec->scope; 
+    // }
 
     if (member->type == NODE_VARIABLE && ((
         instance->type == NODE_VARIABLE &&
@@ -522,9 +542,9 @@ void visit_attr_getter(Visitor* v, ASTNode* node) {
             member->return_type = sym->type;
             member->is_param = sym->is_param;
             member->derivations = sym->derivations;
-        } else if (!type_equals(member->return_type, &TYPE_ERROR)) {
+        } else {
             ContextItem* item = find_item_in_type(
-                instance_type->context,
+                instance_type->dec->context,
                 member->data.variable_name,
                 instance_type, 0
             );
@@ -541,6 +561,10 @@ void visit_attr_getter(Visitor* v, ASTNode* node) {
                 member->return_type = sym->type;
                 member->is_param = sym->is_param;
                 member->derivations = sym->derivations;
+                // member->derivations = add_value_list(
+                //     item->declaration->data.op_node.left,
+                //     member->derivations
+                // );
             }
         }
     }
@@ -551,8 +575,9 @@ void visit_attr_getter(Visitor* v, ASTNode* node) {
         if (!t) {
             ContextItem* t_item = find_context_item(node->context, instance_type->name, 1, 0);
             accept(v, t_item->declaration);
-            instance_type->context = t_item->declaration->context;
-            instance_type->scope = t_item->declaration->scope;
+            // instance_type->dec->context = t_item->declaration->context;
+            // instance_type->dec->scope = t_item->declaration->scope;
+            instance_type = t_item->return_type;
         } else {
             instance_type = t->type;
         }

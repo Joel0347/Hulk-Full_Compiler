@@ -67,6 +67,7 @@ ValueList* add_value_list(struct ASTNode* value, ValueList* list) {
     ValueList* new_list = (ValueList*)malloc(sizeof(ValueList));
     ListElement* element = (ListElement*)malloc(sizeof(ListElement));
     element->value = value;
+    element->next = NULL;
 
     if (list) {
         element->next = list->first;
@@ -81,18 +82,19 @@ ValueList* add_value_list(struct ASTNode* value, ValueList* list) {
 }
 
 struct ASTNode* at(int index, ValueList* list) {
-    if (index > list->count || index < 0 || !list) {
+    if (!list || index > list->count || index < 0) {
         return NULL;
     }
 
     ListElement* current = list->first;
-    
-    while (current)
-    {
-        if (!index) {
+    int i = 0;
+    while (i < list->count)
+    {  
+        if (index == i) {
             return current->value;
         }
-        index--;
+    
+        i++;
         current = current->next;
     }
     

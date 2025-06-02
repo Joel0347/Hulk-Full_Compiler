@@ -67,6 +67,9 @@ void accept(Visitor* visitor, ASTNode* node) {
         case NODE_TYPE_SET_ATTR:
             visitor->visit_attr_setter(visitor, node);
             break;
+        case NODE_BASE_FUNC:
+            visitor->visit_base_func(visitor, node);
+            break;
     }
 }
 

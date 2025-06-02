@@ -1,4 +1,5 @@
 #include "scope.h"
+#include "ast/ast.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -8,37 +9,44 @@ Scope* create_scope(Scope* parent) {
     scope->functions = NULL;
     scope->defined_types = NULL;
     scope->parent = parent;
+    scope->functions = (FuncTable*)malloc(sizeof(FuncTable));
+    scope->functions->count = 0;
+    scope->functions->first = NULL;
+    scope->s_count = 0;
+    scope->t_count = 0;
     return scope;
 }
 
-Scope* copy_scope_symbols(Scope* from, Scope* to) {
-    Scope* scope = (Scope*)malloc(sizeof(Scope));
-    scope->symbols = to->symbols;
-    scope->functions = to->functions;
-    scope->defined_types = to->defined_types;
+// Scope* copy_scope_symbols(Scope* from, Scope* to) {
+//     Scope* scope = (Scope*)malloc(sizeof(Scope));
+//     scope->symbols = to->symbols;
+//     scope->functions = to->functions;
+//     scope->defined_types = to->defined_types;
     
-    Symbol* current = from->symbols;
+//     Symbol* current = from->symbols;
 
-    while (current) {
-        Symbol* tmp = (Symbol*)malloc(sizeof(Symbol));
-        tmp->name = current->name;
-        tmp->type = current->type;
-        tmp->is_param = current->is_param;
-        tmp->derivations = current->derivations;
-        tmp->next = scope->symbols;
-        scope->symbols = tmp;
+//     while (current) {
+//         Symbol* tmp = (Symbol*)malloc(sizeof(Symbol));
+//         tmp->name = current->name;
+//         tmp->type = current->type;
+//         tmp->is_param = current->is_param;
+//         tmp->derivations = current->derivations;
+//         tmp->next = scope->symbols;
+//         scope->symbols = tmp;
 
-        current = current->next;
-    }
+//         current = current->next;
+//     }
 
-    return scope;
-}
+//     return scope;
+// }
 
-void free_symbol(Symbol* current_symbol) {
-    while (current_symbol) {
+void free_symbol(Symbol* current_symbol, int count) {
+    int i = 0;
+    while (i < count) {
         Symbol* next = current_symbol->next;
         free(current_symbol);
         current_symbol = next;
+        i++;
     }
 }
 
@@ -47,10 +55,12 @@ void free_func_table(FuncTable* table) {
         return;
 
     Function* current = table->first;
-    while (current != NULL) {
+    int i = 0;
+    while (i < table->count) {
         Function* next = current->next;
         free(current);
         current = next;
+        i++;
     }
 
     free(table);
@@ -61,8 +71,8 @@ void destroy_scope(Scope* scope) {
         return;
     }
 
-    free_symbol(scope->symbols);
-    free_symbol(scope->defined_types);
+    free_symbol(scope->symbols, scope->s_count);
+    free_symbol(scope->defined_types, scope->t_count);
     free_func_table(scope->functions);
 
     free(scope);
@@ -70,11 +80,13 @@ void destroy_scope(Scope* scope) {
 
 Symbol* find_symbol_in_scope(Scope* scope, const char* name) {
     Symbol* current = scope->symbols;
-    while (current) {
+    int i = 0;
+    while (i < scope->s_count) {
         if (!strcmp(current->name, name)) {
             return current;
         }
         current = current->next;
+        i++;
     }
 
     return NULL;
@@ -100,6 +112,7 @@ void declare_symbol(
     symbol->derivations = add_value_list(value, NULL);
     symbol->next = scope->symbols;
     scope->symbols = symbol;
+    scope->s_count += 1;
 }
 
 void declare_function(
@@ -109,9 +122,10 @@ void declare_function(
     Function* func = (Function*)malloc(sizeof(Function));
     func->name = name;
     func->arg_count = arg_count;
+    func->next = NULL;
     func->result_type = result_type;
 
-    if(arg_count > 0) {
+    if (arg_count > 0) {
         func->args_types = malloc(arg_count * sizeof(Type*));
         for (int i = 0; i < arg_count; i++) {
             func->args_types[i] = args_types[i];
@@ -120,43 +134,46 @@ void declare_function(
         func->args_types = NULL;
     }
 
-    if (scope->functions) {
+    // if (scope->functions) {
         func->next = scope->functions->first;
         scope->functions->first = func;
         scope->functions->count += 1;
-    } else {
-        FuncTable* table = (FuncTable*)malloc(sizeof(FuncTable));
-        table->first = func;
-        table->count = 1;
-        scope->functions = table;
-    }
+    // } else {
+    //     FuncTable* table = (FuncTable*)malloc(sizeof(FuncTable));
+    //     table->first = func;
+    //     table->count = 1;
+    //     scope->functions = table;
+    // }
 }
 
-void declare_type(Scope* scope, Type* type, Scope* parent_scope) {
+void declare_type(Scope* scope, Type* type) {
     Symbol* def_type = (Symbol*)malloc(sizeof(Symbol));
     def_type->name = type->name;
     def_type->type = type;
+    def_type->next = scope->defined_types;
 
-    if (!parent_scope) {
-        def_type->next = scope->defined_types;
-        def_type->type->scope = create_scope(NULL);
-        def_type->type->context = create_context(NULL);
+    // if (!parent_scope) {
+        // def_type->next = scope->defined_types;
+        // def_type->type->scope = create_scope(NULL);
+        // def_type->type->context = create_context(NULL);
         scope->defined_types = def_type;
-    } else {
-        def_type->type->scope = scope;
-        def_type->next = parent_scope->defined_types;
-        parent_scope->defined_types = def_type;
-    }
+        scope->t_count += 1;
+    // } else {
+        // def_type->type->scope = scope;
+        // def_type->next = parent_scope->defined_types;
+        // parent_scope->defined_types = def_type;
+        // parent_scope->t_count += 1;
+    // }
 }
 
 void init_builtins(Scope* scope) {
     // BUILTIN TYPES:
 
-    declare_type(scope, &TYPE_NUMBER, NULL); //number
-    declare_type(scope, &TYPE_STRING, NULL); // string
-    declare_type(scope, &TYPE_BOOLEAN, NULL); // boolean
-    declare_type(scope, &TYPE_OBJECT, NULL); // object
-    declare_type(scope, &TYPE_VOID, NULL); // void
+    declare_type(scope, &TYPE_NUMBER); //number
+    declare_type(scope, &TYPE_STRING); // string
+    declare_type(scope, &TYPE_BOOLEAN); // boolean
+    declare_type(scope, &TYPE_OBJECT); // object
+    declare_type(scope, &TYPE_VOID); // void
 
 
     // BUILTIN FUNCTIONS:
@@ -259,11 +276,13 @@ Symbol* find_parameter(Scope* scope, const char* name) {
     }
 
     Symbol* current = scope->symbols;
-    while (current) {
+    int i = 0;
+    while (i < scope->s_count) {
         if (current->is_param && !strcmp(current->name, name)) {
             return current;
         }
         current = current->next;
+        i++;
     }
 
     if (current)
@@ -284,9 +303,10 @@ FuncData* find_function(Scope* scope, Function* f, Function* dec) {
     FuncData* result = (FuncData*)malloc(sizeof(FuncData));
     int not_found = 1;
 
-    if (scope->functions) {
+    // if (scope->functions) {
         Function* current = scope->functions->first;
-        while (current) {
+        int i = 0;
+        while (i < scope->functions->count) {
             Tuple* tuple = func_equals(current, f);
             if (tuple->matched) {
                 result->state = tuple;
@@ -302,8 +322,9 @@ FuncData* find_function(Scope* scope, Function* f, Function* dec) {
             }
 
             current = current->next;
+            i++;
         }
-    }
+    // }
         
     if (scope->parent) {
         FuncData* data = find_function(scope->parent, f, dec);
@@ -331,15 +352,17 @@ Function* find_function_by_name(Scope* scope, char* name) {
         return NULL;
     }
 
-    if (scope->functions) {
+    // if (scope->functions) {
         Function* current = scope->functions->first;
-        while (current) {
+        int i = 0;
+        while (i < scope->functions->count) {
             if (!strcmp(current->name, name)) {
                 return current;
             }
             current = current->next;
+            i++;
         }
-    }
+    // }
     
     if (scope->parent) {
         return find_function_by_name(scope->parent, name);
@@ -354,11 +377,13 @@ Symbol* find_defined_type(Scope* scope, const char* name) {
     }
 
     Symbol* current = scope->defined_types;
-    while (current) {
+    int i = 0;
+    while (i < scope->t_count) {
         if (!strcmp(current->name, name)) {
             return current;
         }
         current = current->next;
+        i++;
     }
     
     if (scope->parent) {
@@ -378,7 +403,8 @@ FuncData* find_type_data(Scope* scope, Function* f, Function* dec) {
 
     if (scope->defined_types) {
         Symbol* current_sym = scope->defined_types;
-        while (current_sym) {
+        int i = 0;
+        while (i < scope->t_count) {
             Function* current = (Function*)malloc(sizeof(Function));
             current->name = current_sym->name;
             current->arg_count = current_sym->type->arg_count;
@@ -394,14 +420,15 @@ FuncData* find_type_data(Scope* scope, Function* f, Function* dec) {
                 not_found = 0;
                 if ((!result->state && !tuple->same_count) || tuple->same_count) {
                     result->state = tuple;
-                    result->func = current;
+                    result->func = &current;
                 }
             }
 
             current_sym = current_sym->next;
+            i++;
         }
     }
-        
+
     if (scope->parent) {
         FuncData* data = find_type_data(scope->parent, f, dec);
 
@@ -424,24 +451,26 @@ FuncData* find_type_data(Scope* scope, Function* f, Function* dec) {
 }
 
 FuncData* get_type_func(Type* type, Function* f, Function* dec) {
-    if (!type->scope) {
-        return NULL;
+    if (!type->dec) {
+        FuncData* data = (FuncData*)malloc(sizeof(FuncData));
+        Tuple* tuple = init_tuple_for_count(0, -1, -1);
+        data->state = tuple;
+        data->func = NULL;
+        data->state->same_name = 0;
+        return data;
     }
 
-    // f->name = concat_str_with_underscore(type->name, f->name);
-    
-    // if (dec)
-    //     dec->name = f->name;
-
-    FuncData* data = find_function(type->scope, f, dec);
+    FuncData* data = find_function(type->dec->scope, f, dec);
 
     if (data && (data->state->matched) || data->state->same_name) {
         return data;
     }
 
     if (type->parent) {
+        // printf("before: %s\n", f->name);
         f->name = delete_underscore_from_str(f->name, type->name);
         f->name = concat_str_with_underscore(type->parent->name, f->name);
+        // printf("after: %s\n", f->name);
 
         return get_type_func(type->parent, f, dec);
     }
@@ -450,9 +479,10 @@ FuncData* get_type_func(Type* type, Function* f, Function* dec) {
 }
 
 Symbol* get_type_attr(Type* type, char* attr_name) {
-    if (!type->scope)
+    if (!type->dec)
         return NULL;
-    Symbol* sym = find_symbol_in_scope(type->scope, attr_name);
+
+    Symbol* sym = find_symbol_in_scope(type->dec->scope, attr_name);
 
     if (!sym && type->parent) {
         char* name = delete_underscore_from_str(attr_name, type->name);
@@ -461,4 +491,21 @@ Symbol* get_type_attr(Type* type, char* attr_name) {
     }
     
     return sym;
+}
+
+char* find_base_func_dec(Type* type, char* name) {
+    if (!(type->parent) || !(type->parent->dec))
+        return NULL;
+    
+    char* parent_name = type->parent->name;
+    char* tmp_name = delete_underscore_from_str(name, type->name);
+    tmp_name = concat_str_with_underscore(parent_name, tmp_name);
+
+    Function* f = find_function_by_name(type->parent->dec->scope, tmp_name);
+
+    if (!f) {
+        return find_base_func_dec(type->parent, tmp_name);
+    }
+
+    return f->name;
 }

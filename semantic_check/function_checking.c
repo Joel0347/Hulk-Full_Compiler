@@ -13,7 +13,7 @@ void check_function_call(Visitor* v, ASTNode* node, Type* type) {
 
     ContextItem* item = type?
         find_item_in_type( // para funciones de tipos especificos
-            type->context,
+            type->dec->context,
             node->data.func_node.name,
             type, 1
         ) :
@@ -28,7 +28,8 @@ void check_function_call(Visitor* v, ASTNode* node, Type* type) {
             accept(v, item->declaration);
         }
     }
-    Scope* scope = type? type->scope : node->scope;
+    
+    Scope* scope = type? type->dec->scope : node->scope;
     IntList* unified = unify_func(
         v, args, scope, node->data.func_node.arg_count, 
         node->data.func_node.name, item
@@ -68,8 +69,9 @@ void check_function_call(Visitor* v, ASTNode* node, Type* type) {
         get_type_func(type, f, dec) : 
         find_function(node->scope, f, dec);
 
-    if (funcData->func)
+    if (funcData->func) {
         node->return_type = funcData->func->result_type;
+    }
 
     if (!funcData->state->matched) {
         if (!funcData->state->same_name) {
@@ -78,7 +80,6 @@ void check_function_call(Visitor* v, ASTNode* node, Type* type) {
                 v, "Undefined function '%s'. Line: %d.",
                 node->data.func_node.name, node->line
             );
-
         } else if (!funcData->state->same_count) {
             report_error(
                 v, "Function '%s' receives %d argument(s), but %d was(were) given. Line: %d.",
@@ -116,11 +117,22 @@ void check_function_dec(Visitor* v, ASTNode* node, Type* type) {
     }
 
     node->checked = 1;
+    char* visitor_function = v->current_function;
+
+    if (type)
+        v->current_function = node->data.func_node.name;
 
     ASTNode** params = node->data.func_node.args;
     ASTNode* body = node->data.func_node.body;
     body->scope->parent = node->scope;
     body->context->parent = node->context;
+
+    if (match_as_keyword(node->data.func_node.name)) {
+        report_error(
+            v, "Keyword '%s' can not be used as a function name. Line: %d.", 
+            node->data.func_node.name, node->line
+        );
+    }
 
     for (int i = 0; i < node->data.func_node.arg_count - 1; i++) {
         for (int j = i + 1; j < node->data.func_node.arg_count; j++) {
@@ -133,6 +145,7 @@ void check_function_dec(Visitor* v, ASTNode* node, Type* type) {
                     "function '%s' declaration. Line: %d.", params[i]->data.variable_name,
                     i + 1, j + 1, node->data.func_node.name, node->line
                 );
+                v->current_function = visitor_function;
                 return;
             }
         }
@@ -188,7 +201,7 @@ void check_function_dec(Visitor* v, ASTNode* node, Type* type) {
     accept(v, body);
     ContextItem* item = type?
         find_item_in_type(
-            type->context, 
+            type->dec->context, 
             node->data.func_node.name, 
             type, 1) :
         find_context_item(node->context, node->data.func_node.name, 0, 0);
@@ -199,7 +212,7 @@ void check_function_dec(Visitor* v, ASTNode* node, Type* type) {
         defined_type && unify_member(v, body, defined_type->type)
     ) {
         accept(v, body);
-        inferried_type = find_type(body);
+        inferried_type = defined_type->type;
     }
 
     if (!defined_type && item->return_type &&
@@ -268,12 +281,12 @@ void check_function_dec(Visitor* v, ASTNode* node, Type* type) {
 
     Function* func = find_function_by_name(node->scope, node->data.func_node.name);
     Type** param_types = find_types(params, node->data.func_node.arg_count);
-    
+
     if (!func) {
         for (int i = 0; i < node->data.func_node.arg_count; i++)
         {
             Symbol* param = find_parameter(node->scope, params[i]->data.variable_name);
-
+            
             if (type_equals(param->type, &TYPE_ANY)) {
                 accept(v, body);
                 if (type_equals(param->type, &TYPE_ANY)) {
@@ -290,13 +303,70 @@ void check_function_dec(Visitor* v, ASTNode* node, Type* type) {
             node->data.func_node.args[i]->return_type = param_types[i];
         }
 
-        Scope* scope = type? type->scope->parent : node->scope->parent;
         declare_function(
-            scope, node->data.func_node.arg_count,
+            node->scope->parent, node->data.func_node.arg_count,
             param_types, inferried_type, node->data.func_node.name
         );
 
+        // if (type && !strcmp(type->name, "p")) printf("%d\n", type->scope->parent->functions->count);
+
+        body->return_type = inferried_type;
+
         if (free_type)
             free(defined_type);
+
+        v->current_function = visitor_function;
     }
+}
+
+void visit_base_func(Visitor* v, ASTNode* node) {
+    ASTNode* args = node->data.func_node.args;
+    char* current_func = v->current_function;
+    Type* current_type = v->current_type;
+
+    if (!current_func) {
+        node->return_type = &TYPE_ERROR;
+        report_error(
+            v, "Keyword 'base' only can be used when referring to an ancestor"
+            " implementation of a function. Line: %d.", node->line
+        );
+        return;
+    }
+
+    char* f_name = find_base_func_dec(current_type, current_func);
+
+    if (!f_name) {
+        if (!is_builtin_type(current_type->parent)) {
+            ContextItem* item = find_item_in_type(
+                current_type->parent->dec->context, current_func, current_type->parent, 1
+            );
+
+            if (item) {
+                accept(v, item->declaration);
+                f_name = item->declaration->data.func_node.name;
+            }
+        }
+
+        if (!f_name) {
+            node->return_type = &TYPE_ERROR;
+            report_error(
+                v, "No ancestor of type '%s' has a definition for '%s'. Line: %d.",
+                current_type->name,
+                delete_underscore_from_str(current_func, current_type->name), node->line
+            );
+            return;
+        }
+    }
+
+    ASTNode* call = create_func_call_node(f_name, args, node->data.func_node.arg_count);
+    call->context->parent = node->context;
+    call->scope->parent = node->scope;
+    call->line = node->line;
+
+    check_function_call(v, call, current_type->parent);
+    node->derivations = add_value_list(call, node->derivations);
+    node->return_type = find_type(call);
+    node->data.func_node.name = f_name;
+
+    free_ast(call);
 }

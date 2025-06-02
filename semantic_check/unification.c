@@ -48,7 +48,13 @@ int unify_member(Visitor* v, ASTNode* node, Type* type) {
         {
             ASTNode* value = at(i, node->derivations);
             if (value && type_equals(value->return_type, &TYPE_ANY)) {
-                unified |= unify_member(v, value, type);
+                int u_member = unify_member(v, value, type);
+
+                if (u_member) {
+                    value->return_type = type;
+                }
+
+                unified |= u_member;
             }
         }
 
@@ -144,8 +150,9 @@ IntList* unify_func(Visitor* v, ASTNode** args, Scope* scope, int arg_count, cha
     while (scope)
     {
         if (scope->functions) {
-            Function* current = scope->functions->first; 
-            while (current)
+            Function* current = scope->functions->first;
+            int i = 0;
+            while (i < scope->functions->count)
             {
                 if (!strcmp(f_name, current->name) &&
                     arg_count == current->arg_count
@@ -159,6 +166,7 @@ IntList* unify_func(Visitor* v, ASTNode** args, Scope* scope, int arg_count, cha
                 }
 
                 current = current->next;
+                i++;
             }
         }
 
@@ -201,8 +209,9 @@ IntList* unify_type(Visitor* v, ASTNode** args, Scope* scope, int arg_count, cha
     while (scope)
     {
         if (scope->defined_types) {
-            Symbol* current = scope->defined_types; 
-            while (current)
+            Symbol* current = scope->defined_types;
+            int i = 0;
+            while (i < scope->t_count)
             {
                 if (!strcmp(t_name, current->name) &&
                     arg_count == current->type->arg_count
@@ -216,6 +225,7 @@ IntList* unify_type(Visitor* v, ASTNode** args, Scope* scope, int arg_count, cha
                 }
 
                 current = current->next;
+                i++;
             }
         }
 
@@ -262,4 +272,8 @@ int unify_conditional(Visitor* v, ASTNode* node, Type* type) {
             unify_member(v, node->data.cond_node.body_false, type)
         )
     );
+}
+
+int unify_attr(Visitor* v, ASTNode* node, Type* type) {
+    
 }

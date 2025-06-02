@@ -95,7 +95,10 @@ void visit_unary_op(Visitor* v, ASTNode* node) {
 }
 
 void visit_block(Visitor* v, ASTNode* node) {
-    get_context(v, node);
+    if (!node->checked)
+        get_context(v, node);
+
+    node->checked = 1;
     ASTNode* current = NULL;
     
     for (int i = 0; i < node->data.program_node.count; i++) {

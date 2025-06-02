@@ -4,18 +4,18 @@
 char* keywords[] = { 
     "Number", "String", "Boolean", "Object", "Void",
     "true", "false", "PI", "E", "function", "let", "in",
-    "is", "as", "type", "inherits", "new"
+    "is", "as", "type", "inherits", "new", "base"
 };
 char scape_chars[] = { 'n', 't', '\\', '\"' };
 
 // Basic types instances
-Type TYPE_OBJECT = { "Object", NULL, NULL, NULL, NULL, NULL, NULL, 0 };
-Type TYPE_NUMBER = { "Number", NULL, &TYPE_OBJECT, NULL, NULL, NULL, NULL, 0 };
-Type TYPE_STRING = { "String", NULL, &TYPE_OBJECT, NULL, NULL, NULL, NULL, 0 };
-Type TYPE_BOOLEAN = { "Boolean", NULL, &TYPE_OBJECT, NULL, NULL, NULL, NULL, 0 };
-Type TYPE_VOID = { "Void", NULL, &TYPE_OBJECT, NULL, NULL, NULL, NULL, 0 };
-Type TYPE_ERROR = { "Error", NULL, NULL, NULL, NULL, NULL, NULL, 0 };
-Type TYPE_ANY = { "Any", NULL, NULL, NULL, NULL, NULL, NULL, 0 };
+Type TYPE_OBJECT = { "Object", NULL, NULL, NULL, NULL, 0 };
+Type TYPE_NUMBER = { "Number", NULL, &TYPE_OBJECT, NULL, NULL, 0 };
+Type TYPE_STRING = { "String", NULL, &TYPE_OBJECT, NULL, NULL, 0 };
+Type TYPE_BOOLEAN = { "Boolean", NULL, &TYPE_OBJECT, NULL, NULL, 0 };
+Type TYPE_VOID = { "Void", NULL, &TYPE_OBJECT, NULL, NULL, 0 };
+Type TYPE_ERROR = { "Error", NULL, NULL, NULL, NULL, 0 };
+Type TYPE_ANY = { "Any", NULL, NULL, NULL, NULL, 0 };
 
 OperatorTypeRule operator_rules[] = {
 
@@ -173,12 +173,13 @@ int find_op_match(OperatorTypeRule* possible_match) {
     return 0;
 }
 
-Type* create_new_type(char* name, Type* parent, Type** param_types, int count) {
+Type* create_new_type(char* name, Type* parent, Type** param_types, int count, struct ASTNode* dec) {
     Type* new_type = (Type*)malloc(sizeof(Type));
     new_type->name = name;
     new_type->parent = parent;
     new_type->param_types = param_types;
     new_type->arg_count = count;
+    new_type->dec = dec;
     return new_type;
 }
 
@@ -188,6 +189,7 @@ int is_builtin_type(Type* type) {
         type_equals(type, &TYPE_STRING)  ||
         type_equals(type, &TYPE_NUMBER)  ||
         type_equals(type, &TYPE_BOOLEAN) ||
-        type_equals(type, &TYPE_VOID)
+        type_equals(type, &TYPE_VOID)    ||
+        type_equals(type, &TYPE_ERROR)
     );
 }

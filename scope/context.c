@@ -6,6 +6,7 @@ Context* create_context(Context* parent) {
     Context* context = (Context*)malloc(sizeof(Context));
     context->first = NULL;
     context->parent = parent;
+    context->count = 0;
 
     return context;
 }
@@ -48,6 +49,7 @@ int save_context_item(Context* context, struct ASTNode* item) {
 
     new->next = context->first;
     context->first = new;
+    context->count++;
 
     return 1;
 }
@@ -58,7 +60,8 @@ struct ContextItem* find_context_item(Context* context, char* name, int type, in
     }
 
     ContextItem* current = context->first;
-    while (current) {
+    int i = 0;
+    while (i < context->count) {
         if ((!type && !var && current->declaration->type == NODE_FUNC_DEC &&
             !strcmp(current->declaration->data.func_node.name, name)) ||
             (type && !var && current->declaration->type == NODE_TYPE_DEC &&
@@ -69,6 +72,7 @@ struct ContextItem* find_context_item(Context* context, char* name, int type, in
             return current;
         }
         current = current->next;
+        i++;
     }
     
     if (context->parent) {
@@ -84,8 +88,8 @@ struct ContextItem* find_item_in_type_context(Context* context, char* name, int 
     }
     
     ContextItem* current = context->first;
-
-    while (current) {
+    int i = 0;
+    while (i < context->count) {
         if ((func_dec && current->declaration->type == NODE_FUNC_DEC &&
             !strcmp(current->declaration->data.func_node.name, name)) ||
             (!func_dec && current->declaration->type == NODE_ASSIGNMENT &&
@@ -94,6 +98,7 @@ struct ContextItem* find_item_in_type_context(Context* context, char* name, int 
             return current;
         }
         current = current->next;
+        i++;
     }
     
     return NULL;
@@ -127,16 +132,17 @@ int save_context_for_type(Context* context, struct ASTNode* item, char* type_nam
 
     new->next = context->first;
     context->first = new;
+    context->count++;
 
     return 1;
 }
 
 struct ContextItem* find_item_in_type(Context* context, char* name, Type* type, int func_dec) {
     ContextItem* item = find_item_in_type_context(context, name, func_dec);
-    if (!item && type->parent && type->parent->context) {
+    if (!item && type->parent && type->parent->dec && type->parent->dec->context) {
         name = delete_underscore_from_str(name, type->name);
         name = concat_str_with_underscore(type->parent->name, name);
-        return find_item_in_type(type->parent->context, name, type->parent, func_dec);
+        return find_item_in_type(type->parent->dec->context, name, type->parent, func_dec);
     }
     
     return item;
