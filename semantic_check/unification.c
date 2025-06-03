@@ -59,6 +59,13 @@ int unify_member(Visitor* v, ASTNode* node, Type* type) {
         }
 
         if (unified) {
+            if (node->type == NODE_VARIABLE) {
+                Symbol* s = find_symbol(node->scope, node->data.variable_name);
+
+                if (s) {
+                    s->type = type;
+                }
+            }
             node->return_type = type;
         }
     }
@@ -149,7 +156,7 @@ IntList* unify_func(Visitor* v, ASTNode** args, Scope* scope, int arg_count, cha
 
     while (scope)
     {
-        if (scope->functions) {
+        // if (scope->functions) {
             Function* current = scope->functions->first;
             int i = 0;
             while (i < scope->functions->count)
@@ -168,7 +175,7 @@ IntList* unify_func(Visitor* v, ASTNode** args, Scope* scope, int arg_count, cha
                 current = current->next;
                 i++;
             }
-        }
+        // }
 
         scope = scope->parent;
     }
@@ -272,8 +279,4 @@ int unify_conditional(Visitor* v, ASTNode* node, Type* type) {
             unify_member(v, node->data.cond_node.body_false, type)
         )
     );
-}
-
-int unify_attr(Visitor* v, ASTNode* node, Type* type) {
-    
 }

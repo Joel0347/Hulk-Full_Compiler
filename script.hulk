@@ -293,8 +293,8 @@ type Point(x, y) {
     y = y;
     getX(): Number => self.x;
     getY(): Number => self.y;
-    setX(x):Number => self.x := x; //inferencia
-    setY(y):Number => self.y := y;//inferencia
+    setX(x) => self.x := x;
+    setY(y) => self.y := y;
 }
 
 let pt:Point = new Point(3, 4) in // imprime: x: 3; y: 4
