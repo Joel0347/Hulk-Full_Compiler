@@ -52,7 +52,6 @@ void visit_attr_setter(Visitor* v, ASTNode* node) {
 
     if (sym) {
         member->return_type = sym->type;
-        // printf("%s\n", sym->type->name);
         member->is_param = sym->is_param;
         member->derivations = sym->derivations;
     } else {
