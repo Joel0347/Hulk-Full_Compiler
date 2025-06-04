@@ -1,5 +1,3 @@
-#include <stdbool.h>
-#include <stdio.h>
 #include "interpreter.h"
 
 char* expand_set(const char *set, bool is_negated) {
