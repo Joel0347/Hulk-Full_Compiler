@@ -1,7 +1,10 @@
 #ifndef INTERPRETER_H
 #define INTERPRETER_H
 
-#define EPSILON 'ε'
+#include <stdbool.h>
+#include <stdio.h>
+
+#define EPSILON ' '
 #define MAX_SYMBOLS 128
 #define MAX_STACK 256
 #define MAX_SET_LENGTH 128

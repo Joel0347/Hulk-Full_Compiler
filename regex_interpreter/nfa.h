@@ -1,7 +1,7 @@
 #ifndef NFA_H
 #define NFA_H
 
-#include "interpreter.c"
+#include "interpreter.h"
 
 #define MAX_TRANSITIONS 1024
 #define MAX_STATES 256
