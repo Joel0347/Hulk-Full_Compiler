@@ -1,0 +1,146 @@
+\documentclass{llncs}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish]{babel}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{hyperref}
+
+\hypersetup{
+    colorlinks=true,
+    urlcolor=blue
+}
+
+\lstset{
+    basicstyle=\ttfamily\footnotesize,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    keywordstyle=\color{blue},
+    commentstyle=\color{gray},
+}
+
+% Configuración de encabezados y pies de página
+\pagestyle{headings}
+\title{Proyecto Final de Compilación: Diseño e Implementación de un Compilador para el Lenguaje HULK}
+\author{Claudia Hernández Pérez \and Joel Aparicio Tamayo \and Kendry J. Del Pino Barbosa}
+\institute{Facultad de Matemática y Computación, Universidad de La Habana} 
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Este documento describe el diseño e implementación de un compilador para HULK en el lenguaje C. El 
+diseño del compilador agrupa 4 partes: \textit{lexer}, \textit{parser}, \textit{chequeo semántico} y \textit{generación de código}.
+
+El \textit{lexer} y el \textit{parser} se basan en los frameworks proporcionados por Lex y Yacc, respectivamente, aunque el proyecto cuenta con
+una implementación propia de un \textit{lexer} basado en la teoría de autómatas finitos. El \textit{chequeo semántico} es responsable de validar las reglas del lenguaje,
+reduciendo los errores en tiempo de ejecución. Para ello se ha implementado el patrón Visitor, que permite recorrer el árbol de sintaxis abstracta (AST) y aplicar las reglas semánticas correspondientes. Además,
+cuenta con una arquitectura que permite la unificación de expresiones con tipos, lo que facilita la inferencia. Finalmente, la \textit{generación de código} se realiza mediante un generador de código intermedio que
+también implementa el patrón Visitor para traducir el AST a código LLVM.
+
+Al ejecutar el compilador de HULK, se genera un \texttt{output.ll} en la carpeta \textit{build}, donde se encuentra 
+el código generado, y luego se invoca al compilador de LLVM para ejecutar dicho archivo, y devolver la salida del programa.
+\vspace{10pt}
+\keywords{Compilador \and Lexer \and Parser \and Chequeo Semántico \and AST \and Scope \and Generación de código \and LLVM \and Inferencia \and Expresión \and Tipo}
+\end{abstract}
+
+\section{Introducción}
+Los compiladores son herramientas fundamentales en la ciencia computacional, actuando como puentes entre abstracciones de alto nivel y ejecución eficiente. Específicamente, HULK (Havana University Language for Kompilers),
+es un lenguaje de programación didáctico, seguro de tipos, orientado a objetos e incremental. Este proyecto tiene la finalidad de compilar un subconjunto de dicho 
+lenguaje, siendo consistente con las especificaciones en su \href{https://matcom.in/hulk/guide/intro}{definición formal}, aunque añadiendo algunas extensiones sintácticas propias.
+
+Para compilar HULK, se ha diseñado un flujo de trabajo sencillo y por capas. El punto de entrada del programa es 
+el archivo \texttt{main.c}, que intenta leer un archivo \texttt{script.hulk} en formato de cadena de texto y luego invoca al \textit{lexer} y al \textit{parser} para generar un árbol de sintaxis abstracta (AST). Posteriormente,
+si no hubo errores léxicos ni sintácticos, se realiza el \textit{chequeo semántico} a partir del nodo raíz del AST. Finalmente, si no hubo errores semánticos, se procede a la \textit{generación de código} intermedio, que se traduce a código LLVM. En
+este punto concluye el proceso de compilación, generando un archivo \texttt{output.ll} en la carpeta \textit{build}. Para cada proceso del programa (compilación, ejecución, limpieza) existe una receta en el \texttt{Makefile} que lo ejecuta: 
+\begin{lstlisting}[language=bash]
+make compile // para compilar y generar el build/outout.ll
+make execute // para ejecutar el compilador de LLVM 
+make clean // para limpiar el directorio de compilacion
+\end{lstlisting}
+
+A continuacón se detallan los disitntos aspectos de la implementación.
+\vspace{10pt}
+\section{Lexer y Parser}
+
+
+\begin{figure}[h]
+\centering
+% \includegraphics[width=0.8\textwidth]{compiler_phases.pdf}
+\caption{Arquitectura modular del compilador}
+\label{fig:arquitectura}
+\end{figure}
+
+\vspace{10pt}
+\section{Análisis Semántico}
+
+Como se ha mencionado anteriormente, la entrada del \textit{chequeo semántico} es el nodo raíz del AST, que es donde comienzan los chequeos, utilizando el
+patrón Visitor. La implementación de este patrón (ver Figura~\ref{fig:visitor}) contiene: 
+\begin{itemize}
+    \item \textbf{Funciones de visita para cada tipo de nodo del AST}: Para cada nodo hay una función que sabe analizarlo y aplicar las reglas semánticas correspondientes.
+    \item \textbf{Lista de errores semánticos encontrados}: Se mantiene una lista de errores semánticos encontrados durante el análisis, que se reportan al usuario al finalizar el chequeo.
+    \item \textbf{Cantidad de errores semánticos encontrados}: Longitud de la lista de errores encontrados (recordar que en C no se puede obtener el tamaño de un array dinámico, por lo que se debe mantener un contador)
+    \item \textbf{Recolector de contextos}: Se encarga de recolectar todas las declaraciones de funciones y tipos en el contexto actual, antes de analizarlas
+    \item \textbf{Nombre de la función actual}: Se mantiene el nombre de la función que se está analizando actualmente, para evitar tener que subir de nuevo en el AST cuando se necesite, como por ejemplo al usar: \textit{base(...)}
+    \item \textbf{Tipo actual}: Similar al caso anterior e igualmente necesario para el ejemplo brindado, pues en el caso del uso de \textit{base(...)} se debe saber el tipo de la clase actual para poder buscar el método en algún ancestro.
+\end{itemize}
+
+\begin{figure}[h]
+\centering
+% \includegraphics[width=0.8\textwidth]{compiler_phases.pdf}
+\caption{Implementación del patrón Visitor para el chequeo semántico}
+\label{fig:visitor}
+\end{figure}
+
+El inicio del análisis se encuentra en el archivo \texttt{semantic.c}, donde primero se inicializa el visitor y luego se visita al nodo raíz del AST. La implementación de la función de
+visita de ese nodo, primero realiza las declaraciones de tipos y funciones builtin del lenguaje, luego recoge el contexto del programa y finalmente visita cada uno de sus
+descendientes. Al concluir el análisis, se imprimen en consola (con fuente en color Rojo) los errores reportados, y continúa el flujo del compilador. 
+Para el chequeo semántico, cada nodo contará con un tipo de retorno, un ámbito (scope) y un contexto asociados (cada campo cumple una función específica y serán analizados posteriormente), y en caso de no
+especificar lo contrario, se asumirá de aquí en adelante que en cada visita el ámbito y contexto padres son los del nodo padre (NULL en caso de la raíz).
+
+Ahora se explicará detalladamente cada uno de 
+los chequeos que se realizan a cada nodo.
+
+\subsection{Análisis de Expresiones Básicas}
+
+En la implementación, se consideran como expresiones básicas a los literales (números, cadenas, booleanos), operaciones unarias (!, -), 
+operaciones binarias $(+, -, *, /, \%, ^, \&, |, ==, !=, <, >, <=, >=, @, @@)$, así como los bloques de expresiones.
+\begin{enumerate}
+    \item \textbf{Literales}: En el caso de los números y booleanos, las funciones de visita están vacías, pues no hay nada que chequear; sin embargo,
+    en el caso de las cadenas, se verifica que los caracteres de escape utilizados (si los hay) sean correctos.
+    \item \textbf{Operaciones unarias}: Primero se visita al nodo de la expresión hija y luego se chequea la compatibilidad del tipo de dicha expresión con
+    la operación unaria dada. (La compatibilidad de tipos con operadores se explicará más adelante). Luego se actualiza el tipo de retorno del nodo según el operador.
+    \item \textbf{Operaciones binarias}: Similiar a las operaciones unarias, se visitan primeros los nodos de las expresiones con las que se quiere operar y luego 
+    se chequea la compatibilidad de ambos tipos con el operador binario dado (La compatibilidad de tipos con operadores se explicará más adelante). Luego se actualiza el tipo 
+    de retorno del nodo según el operador.
+    \item \textbf{Bloques de expresiones}: Similar al nodo raíz, el nodo bloque funciona como un mini programa, por lo cual se recolecta primero su contexto y luego se visita cada uno de sus 
+    descendientes, manteniendo siempre el último visitado para poder al final actualizar el tipo de retorno del nodo bloque con el tipo de su último descendiente. Si el bloque esta vacío, automáticamente 
+    se le otorga tipo de retorno \texttt{Void}.
+\end{enumerate}
+
+\textbf{Compatibilidad de tipos con operadores}: En el archivo \texttt{type.c} se definen todas las reglas de compatibilidad de tipos. En el arreglo \texttt{operator\_rules} se almacenan las reglas para los 
+operadores de la forma \{\texttt{tipo de la izquierda, tipo de la derecha, tipo de retorno, operador}\}. En caso que un operador pueda utilizarse con varios tipos, como es el caso del '==' por ejemplo, aparece una regla por cada
+uso del operador. De esta forma, es más sencillo revisar la compatibilidad de tipos con operadores, pues solo se tienen que recorrer las reglas y comparar los tipos izquierdos y derechos (NULL para los unarios) según el operador.
+
+\vspace{10pt}
+\section{Generación de Código}
+\vspace{10pt}
+\begin{thebibliography}{9}
+\bibitem{aho06}
+Aho, A.V., Lam, M.S., Sethi, R., Ullman, J.D.: 
+Compilers: Principles, Techniques, and Tools (2nd Edition). 
+Addison-Wesley (2006)
+
+\bibitem{appel98}
+Appel, A.W.: Modern Compiler Implementation in C. 
+Cambridge University Press (1998)
+
+\bibitem{llvm}
+Lattner, C., Adve, V.: 
+LLVM: A Compilation Framework for Lifelong Program Analysis \& Transformation. 
+CGO 2004, LNCS 3161, Springer (2004)
+\end{thebibliography}
+\end{document}

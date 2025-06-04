@@ -26,6 +26,13 @@
 *.a
 *.lib
 
+# LaTex compiled files
+*.aux
+*.log
+*.fls
+*.fdb_latexmk
+*.gz
+
 # Executables
 *.exe
 *.out
