@@ -64,7 +64,7 @@ make clean // para limpiar el directorio de compilacion
 
 A continuacón se detallan los disitntos aspectos de la implementación.
 \vspace{10pt}
-\section{Lexer y Parser}
+\section{Lexer y parser}
 
 
 \begin{figure}[h]
@@ -75,7 +75,7 @@ A continuacón se detallan los disitntos aspectos de la implementación.
 \end{figure}
 
 \vspace{10pt}
-\section{Análisis Semántico}
+\section{Análisis semántico}
 
 Como se ha mencionado anteriormente, la entrada del \textit{chequeo semántico} es el nodo raíz del AST, que es donde comienzan los chequeos, utilizando el
 patrón Visitor. La implementación de este patrón (ver Figura~\ref{fig:visitor}) contiene: 
@@ -104,7 +104,7 @@ especificar lo contrario, se asumirá de aquí en adelante que en cada visita el
 Ahora se explicará detalladamente cada uno de 
 los chequeos que se realizan a cada nodo.
 
-\subsection{Análisis de Expresiones Básicas}
+\subsection{Análisis de expresiones básicas}
 
 En la implementación, se consideran como expresiones básicas a los literales (números, cadenas, booleanos), operaciones unarias (!, -), 
 operaciones binarias $(+, -, *, /, \%, ^, \&, |, ==, !=, <, >, <=, >=, @, @@)$, así como los bloques de expresiones.
@@ -121,9 +121,72 @@ operaciones binarias $(+, -, *, /, \%, ^, \&, |, ==, !=, <, >, <=, >=, @, @@)$, 
     se le otorga tipo de retorno \texttt{Void}.
 \end{enumerate}
 
-\textbf{Compatibilidad de tipos con operadores}: En el archivo \texttt{type.c} se definen todas las reglas de compatibilidad de tipos. En el arreglo \texttt{operator\_rules} se almacenan las reglas para los 
+\textbf{Compatibilidad de tipos con operadores}: En el archivo \texttt{type.c} se definen todas las reglas de compatibilidad de tipos. En el arreglo \texttt{operator\_rules} (ver Figura~\ref{fig:operadores}) se almacenan las reglas para los 
 operadores de la forma \{\texttt{tipo de la izquierda, tipo de la derecha, tipo de retorno, operador}\}. En caso que un operador pueda utilizarse con varios tipos, como es el caso del '==' por ejemplo, aparece una regla por cada
 uso del operador. De esta forma, es más sencillo revisar la compatibilidad de tipos con operadores, pues solo se tienen que recorrer las reglas y comparar los tipos izquierdos y derechos (NULL para los unarios) según el operador.
+
+\begin{figure}[h]
+\centering
+% \includegraphics[width=0.8\textwidth]{compiler_phases.pdf}
+\caption{Reglas para los operadores}
+\label{fig:operadores}
+\end{figure}
+
+\textbf{Errores}: De manera general y como se expuso con anterioridad, en las expresiones básicas los errores más comunes son 
+los respectivos a secuencias de escapes inválidas en cadenas e incompatibilidad con los operadores (ver ejemplo Figura~\ref{fig:errores_1}).
+\begin{figure}[h]
+\centering
+% \includegraphics[width=0.8\textwidth]{compiler_phases.pdf}
+\caption{Errores comunes en expresiones básicas}
+\label{fig:errores_1}
+\end{figure}
+
+\subsection{Análisis de variables y ámbitos (scopes)}
+
+La revisión de variables, en general, contempla el chequeo de asignaciones, el uso de variables y
+las expresiones \textit{let-in}. Para comprender mejor esta sección, se comenzará explicando la estructura 
+de un \textit{scope} y las posibles acciones que se pueden realizar sobre él.
+
+Un \textbf{scope}, en la implementación dada, es una estructura que contiene, a grandes rasgos, una tabla de
+símbolos, una tabla de funciones y una tabla de tipos definidos, las cuales actúan como bases de datos para las
+respectivas definciones en los distintos ámbitos del programa, además de una referencia al \textit{scope} padre.
+Sobre los \textit{scopes} se pueden realizar diversas  acciones, iniciando claramente por su creación y
+finalizando con su destrucción al concluir el chequeo semántico (en C la liberación de memoria es manual). Esas
+acciones incluyen:
+\begin{itemize}
+    \item Guardar símbolos, funciones o tipos en las tablas.
+    \item Buscar específicamente algún símbolo, función o tipo definidos.
+    \item Inicializar tipos y funciones \textit{builtin}.
+    \item Liberar memoria para cada tabla.
+\end{itemize}
+
+Luego de entender la estructura de los \textit{scopes}, se abordarán los distintos tipos de análisis realizados en el caso 
+de las variables: 
+
+\begin{enumerate}
+    \item \textbf{Asignaciones}: La revisión comienza chequeando que el nombre dado a la variable no sea un \textit{keyword}, de lo contrario se reporta un error. También 
+    con respecto a la variable, se verifica si fue tipada o no, y en caso que sí, se analiza que el tipo sea válido. Luego, se pasa al chequeo de la parte derecha de la asignación, 
+    invocando su función de visita. Una vez termina de visitar la expresión de la derecha, se revisa la compatibilidad del tipo de dicha expresión con el tipo impuesto a la variable 
+    (en caso de haber sido tipada, en otro caso no sucede nada) y se guarda en dependencia del operador de asignación. Si se utiliza \texttt{==} se crea un nuevo símbolo en el
+    \textit{scope} padre, y en caso del operador destructivo \texttt{:=}, se busca el símbolo en la tabla de símbolos (de algún \textit{scope} ancestro) y se verifica que sean compatibles 
+    los tipos de la inicialización y la reasignación. En caso que no, o que no se haya encontrado el símbolo se reportará error. En el caso del uso de asignación destructiva 
+    el tipo de retorno del nodo es el mismo que el de la variable asignada (la cual toma el tipo de la expresión de la derecha si no fue tipada), y en caso contrario el retorno es \texttt{Void}.
+    \item \textbf{Uso de variables}: Esta revisión es más sencilla, pues basta con buscar la variable en algún \textit{scope} ancestro y si no existe se reporta error.
+    \item \textbf{Let-in}: Esta expresión esta compuesta por un conjunto de asignaciones y un cuerpo. Por tanto, la revisión consta de 
+    visitar cada una de las asignaciones y luego visitar el cuerpo. El tipo de retorno es el mismo que el tipo de retorno del cuerpo.
+\end{enumerate}
+
+\textbf{Errores}: Como se expuso anteriormente, los errores detectados en estas revisiones son: tipo no definido al tipar una variable, 
+incompatibilidad de tipos en asignaciones (en el caso de las que son tipadas), reasignar una variable que no ha sido inicializada antes, intentar reasignar una variable con un tipo incompatible 
+con el tipo de su inicialización, variable indefinida, entre otros.  (ver ejemplo Figura~\ref{fig:errores_2}).
+\begin{figure}[h]
+\centering
+% \includegraphics[width=0.8\textwidth]{compiler_phases.pdf}
+\caption{Errores comunes en variables}
+\label{fig:errores_2}
+\end{figure}
+
+\subsection{Análisis de funciones}
 
 \vspace{10pt}
 \section{Generación de Código}
