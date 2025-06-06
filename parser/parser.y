@@ -50,8 +50,8 @@ void add_statement(ASTNode* stmt) {
 %token <var> ID
 %token <str> STRING
 %token <str> BOOLEAN
-%token ERROR ARROW FUNCTION DEQUALS LET IN IF ELIF ELSE WHILE BASE
-%token LPAREN RPAREN EQUALS SEMICOLON COMMA LBRACKET RBRACKET COLON
+%token ERROR ARROW FUNCTION DEQUALS LET IN IF ELIF ELSE WHILE BASE FOR
+%token LPAREN RPAREN EQUALS SEMICOLON COMMA LBRACKET RBRACKET COLON RANGE
 
 %token CONCATEQUAL ANDEQUAL OREQUAL PLUSEQUAL MINUSEQUAL DOT
 %token TIMESEQUAL DIVEQUAL MODEQUAL POWEQUAL TYPE INHERITS NEW
@@ -70,7 +70,7 @@ void add_statement(ASTNode* stmt) {
 %left UMINUS
 
 %type <node> expression block_expr statement destructive_var_decl function_call
-%type <node> param function_declaration simple_var_decl let_in_exp conditional
+%type <node> param function_declaration simple_var_decl let_in_exp conditional for_loop
 %type <node> elif_branch while_loop compound_operator type_declaration destructive_member_decl
 %type <node> type_body type_body_exp member_declaration type_instance member_call
 
@@ -112,6 +112,7 @@ statement:
     | type_declaration               { $$ = $1; }
     | conditional                    { $$ = $1; }
     | while_loop                     { $$ = $1; }
+    | for_loop                       { $$ = $1; }
     | function_declaration SEMICOLON { $$ = $1; }
     | block_expr                     { $$ = $1; }
     | expression SEMICOLON           { $$ = $1; }
@@ -318,6 +319,12 @@ while_loop:
     WHILE LPAREN expression RPAREN expression { $$ = create_loop_node($3, $5); }
 ;
 
+for_loop:
+    FOR LPAREN ID IN RANGE LPAREN list_args RPAREN RPAREN expression { 
+        $$ = create_for_loop_node($3, $7->args, $10, $7->arg_count);
+    }
+;
+
 type_body:
     LBRACKET type_body_expr_list RBRACKET { $$ = create_program_node($2->args, $2->arg_count, NODE_BLOCK); }
 ;
@@ -511,6 +518,7 @@ expression:
     | simple_var_decl                    { $$ = $1; }
     | conditional                        { $$ = $1; }
     | while_loop                         { $$ = $1; }
+    | for_loop                           { $$ = $1; }
     | compound_operator                  { $$ = $1; }
     | type_instance                      { $$ = $1; }
     | member_call                        { $$ = $1; }
@@ -543,7 +551,8 @@ const char* token_to_str(int token) {
         case CONCATEQUAL:  return "'@='"     ; case MODEQUAL: return "'%='"        ; case TIMESEQUAL: return "'*='"    ;
         case WHILE:        return "'while'"  ; case IS:       return "'is'"        ; case AS:         return "'as'"    ;
         case TYPE:         return "'type'"   ; case INHERITS: return "'inherits'"  ; case NEW:        return "'new'"   ;
-        case DOT:          return "'.'"      ; case BASE:     return "'base'"      ;
+        case DOT:          return "'.'"      ; case BASE:     return "'base'"      ; case FOR:        return "'for'"   ;
+        case RANGE:        return "'range'"  ;
 
         default: return "";
     }
