@@ -3,9 +3,9 @@ CC = gcc
 CFLAGS = -Wall -Wextra -g
 
 # Archivos fuente
-SRC = main.c dfa.c nfa.c interpreter.c
+SRC = main.c match.c dfa.c nfa.c interpreter.c
 OBJ = $(SRC:.c=.o)
-HEADERS = dfa.h nfa.h interpreter.h
+HEADERS = match.h dfa.h nfa.h interpreter.h
 
 # Nombre del ejecutable
 TARGET = regex_engine

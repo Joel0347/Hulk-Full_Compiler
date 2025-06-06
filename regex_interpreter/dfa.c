@@ -1,16 +1,20 @@
 #include "dfa.h"
+#include <stdlib.h>
 
-int* epsilon_clousure(NFA* nfa, int* states) {
+State epsilon_clousure(NFA* nfa, int* states, int count) {
     int queue[nfa->states];
     int* set_states = (int*)malloc(sizeof(int) * nfa->states);
     bool visited[nfa->states];
     int index = 0;
+    int count_set = 0;
 
     for (int i = 0; i < nfa->states; i++) {
-        if (states[i]) {
-            queue[index++] = i;
-            visited[i] = true;
-        }
+        visited[i] = false;
+    }
+
+    for (int i = 0; i < count; i++) {
+        queue[index++] = states[i];
+        visited[states[i]] = true;
     }
 
     while (index > 0) {
@@ -25,51 +29,73 @@ int* epsilon_clousure(NFA* nfa, int* states) {
             }
 
             if (t.from == s && t.symbol != EPSILON) {
-                set_states[s] = 1;
+                set_states[count_set++] = s;
             }
         }
 
         for (int i = 0; i < nfa->finals_count; i++) {
             if (nfa->finals[i] == s) {
-                set_states[s] = 1;
+                set_states[count_set++] = s;
                 break;
             }
         }
     }
 
-    for (int i = 0; i < nfa->states; i++) {
-        if (!set_states[i]) {
-            set_states[i] = 0;
+    State* set = (State*)malloc(sizeof(State));
+    set->count = count_set;
+    for (int i = 0; i < set->count; i++) {
+        set->set[i] = set_states[i];
+    }
+
+    return *set;
+}
+
+void copy_state_set(State* dest, State* src) {
+    dest->count = src->count;
+
+    for (int i = 0; i < src->count; i++) {
+        dest->set[i] = src->set[i];
+    }
+}
+
+int set_equals(State* x, State* y) {
+    for (int i = 0; i < x->count; i++) {
+        if (!state_contains_element(y, x->set[i])) {
+            return 0;
         }
     }
 
-    return set_states;
-}
-
-void copy_state_set(int* dest, int* src, int size) {
-    for (int i = 0; i < size; i++) {
-        dest[i] = src[i];
+    for (int i = 0; i < y->count; i++) {
+        if (!state_contains_element(x, y->set[i])) {
+            return 0;
+        }
     }
+
+    return 1;
 }
 
-int dfa_contains_state(NFA* nfa, DFA* dfa, int* state) {
+int dfa_contains_state(DFA* dfa, State* state) {
     if (!dfa)
         return 0;
 
     for (int i = 0; i < dfa->states_count; i++) {
-        int count = 0;
-        int empty = 0;
-        for (int j = 0; j < nfa->states; j++) {
-            if (state[j] == dfa->state_masks[i][j]) {
-                count++;
-            }
+        State actual_state = dfa->state_masks[i];
 
-            if (state[j] == 0) {
-                empty++;
-            }
+        if (state->count != actual_state.count) {
+            continue;
         }
 
-        if (count == nfa->states || empty == nfa->states) {
+        if (set_equals(state, &actual_state)) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+int state_contains_element(State* state, int element) {
+    for (int i = 0; i < state->count; i++) {
+        if (state->set[i] == element) {
             return 1;
         }
     }
@@ -82,9 +108,7 @@ DFA* nfa_to_dfa(NFA* nfa) {
     dfa->finals_count = 0;
     dfa->states_count = 0;
     dfa->transitions_count = 0;
-    int* start = (int*)malloc(sizeof(int) * nfa->states);
-    start[0] = 1;
-    dfa->start = epsilon_clousure(nfa, start);
+    dfa->start = epsilon_clousure(nfa, &(nfa->start), 1);
 
     bool symbol_used[256] = {false};
     char symbols[MAX_SYMBOLS];
@@ -98,52 +122,41 @@ DFA* nfa_to_dfa(NFA* nfa) {
         }
     }
 
-    int* queue[MAX_DFA_STATES];
+    State queue[MAX_STATES];
     int index = 0;
     queue[index++] = dfa->start;
-    copy_state_set(dfa->state_masks[dfa->states_count++], dfa->start, nfa->states);
+    copy_state_set(&(dfa->state_masks[dfa->states_count++]), &(dfa->start));
     
     while (index>0)
     {
-        int* Q = queue[--index];
+        State Q = queue[--index];
         for (int s = 0; s < symbols_count; s++) { // for symbol in symbols
-            int sub_set[nfa->states];
+            int sub_set[MAX_DFA_STATES];
             int states_count = 0;
-            for (int q = 0; q < nfa->states; q++) { // for q in Q 
+            for (int q = 0; q < Q.count; q++) { // for q in Q 
                 for (int t = 0; t < nfa->transitions_count; t++) { // for transition in nfa.transitions
                     Transition transition = nfa->transitions[t];
 
-                    if (transition.from == q && Q[q] == 1 && transition.symbol == symbols[s]) {
-                        sub_set[transition.to] = 1;
-                        states_count++;
+                    if (transition.from == Q.set[q] && transition.symbol == symbols[s]) {
+                        sub_set[states_count++] = transition.to;
                     }
                 }
             }
 
-            for (int i = 0; i < nfa->states; i++) {
-                if (sub_set[i] != 1) {
-                    sub_set[i] = 0;
-                }
-            }
-
             if (states_count) {
-                int* new_Q = epsilon_clousure(nfa, sub_set);
+                State new_Q = epsilon_clousure(nfa, sub_set, states_count);
 
                 DFA_Transition* new_transition = (DFA_Transition*)malloc(sizeof(DFA_Transition));
-                copy_state_set(new_transition->from, Q, nfa->states);
+                copy_state_set(&(new_transition->from), &Q);
                 new_transition->symbol = symbols[s];
-                copy_state_set(new_transition->to, new_Q, nfa->states);
+                copy_state_set(&(new_transition->to), &new_Q);
 
                 dfa->transitions[dfa->transitions_count++] = *new_transition;
 
-                if (!dfa_contains_state(nfa, dfa, new_Q)) {
-                    copy_state_set(dfa->state_masks[dfa->states_count++], new_Q, nfa->states);
+                if (!dfa_contains_state(dfa, &new_Q)) {
+                    copy_state_set(&(dfa->state_masks[dfa->states_count++]), &new_Q);
                     queue[index++] = new_Q;
                 }
-            }
-
-            for (int i = 0; i < nfa->states; i++) {
-                sub_set[i] = 0;
             }
         }
     }
@@ -151,44 +164,44 @@ DFA* nfa_to_dfa(NFA* nfa) {
     for (int i = 0; i < nfa->finals_count; i++) { // for final in nfa
         for (int j = 0; j < dfa->states_count; j++) { // for estados in dfa
             for (int k = 0; k < nfa->states; k++) {      // for estado en estados
-                if (nfa->finals[i] == k && dfa->state_masks[j][k] == 1) {
-                    copy_state_set(dfa->finals[dfa->finals_count++], dfa->state_masks[j], nfa->states);
+                if (nfa->finals[i] == dfa->state_masks[j].set[k]) {
+                    copy_state_set(&(dfa->finals[dfa->finals_count++]), &(dfa->state_masks[j]));
                     continue;
                 }                    
             }
         }
     }   
     
-    printf("finales: %d\n", dfa->finals_count);
-    printf("estados: %d\n", dfa->states_count);
+    // printf("finales: %d\n", dfa->finals_count);
+    // printf("estados: %d\n", dfa->states_count);
 
-    for (int i = 0; i < dfa->states_count; i++) {
-        printf("estado: %d: ", i);
-        for (int j = 0; j < nfa->states; j++) {
-            printf("%d, ", dfa->state_masks[i][j]);
-        }
-        printf("\n");
-    }
+    // for (int i = 0; i < dfa->states_count; i++) {
+    //     printf("estado: %d: ", i);
+    //     for (int j = 0; j < dfa->state_masks[i].count; j++) {
+    //         printf("%d, ", dfa->state_masks[i].set[j]);
+    //     }
+    //     printf("\n");
+    // }
 
-    printf("transiciones:\n");
+    // printf("transiciones:\n");
 
-    for (int i = 0; i < dfa->transitions_count; i++) {
-        DFA_Transition t = dfa->transitions[i];
+    // for (int i = 0; i < dfa->transitions_count; i++) {
+    //     DFA_Transition t = dfa->transitions[i];
 
-        printf("from:");
-        for (int j = 0; j < nfa->states; j++) {
-            printf("%d, ", t.from[j]);
-        }
-        printf("\n");
+    //     printf("from:");
+    //     for (int j = 0; j < t.from.count; j++) {
+    //         printf("%d, ", t.from.set[j]);
+    //     }
+    //     printf("\n");
 
-        printf("symbol: %c\n", t.symbol);
+    //     printf("symbol: %c\n", t.symbol);
 
-        printf("to:");
-        for (int j = 0; j < nfa->states; j++) {
-            printf("%d, ", t.to[j]);
-        }
-        printf("\n");
-    }
+    //     printf("to:");
+    //     for (int j = 0; j < t.to.count; j++) {
+    //         printf("%d, ", t.to.set[j]);
+    //     }
+    //     printf("\n");
+    // }
 
     return dfa;
 }

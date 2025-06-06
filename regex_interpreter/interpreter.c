@@ -121,15 +121,6 @@ void tokenize(const char *input, Token *tokens, int *count) {
     *count = j + 1;
 }
 
-// Recursive Descent Parser for regex grammar
-// E -> T X
-// X -> | T X | ε
-// T -> F Y
-// Y -> F Y | ε
-// F -> A Z
-// Z -> * Z | ε
-// A -> ( E ) | symbol | ε
-
 Node *parse_E(ParserState *ps) {
     Node *t = parse_T(ps);
     return parse_X(ps, t);

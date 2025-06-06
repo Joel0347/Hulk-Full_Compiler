@@ -1,12 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <stdbool.h>
-#include "dfa.h"
+#include "match.h"
 
 int main() {
-    // char input[256] = "[0-9]+\\.[0-9]+";
-    char input[256] = "if";
+    char input[256] = "[0-9]+";
+    // char input[256] = "[a-i]+";
     Token tokens[256];
     int token_count = 0;
     tokenize(input, tokens, &token_count);
@@ -24,7 +23,11 @@ int main() {
 
     printf("\n");
 
-    nfa_to_dfa(&nfa);
+    DFA* dfa = nfa_to_dfa(&nfa);
+
+    int matched = match(&nfa, dfa, "18");
+
+    printf("hubo match: %d\n", matched);
 
     return 0;
 }
