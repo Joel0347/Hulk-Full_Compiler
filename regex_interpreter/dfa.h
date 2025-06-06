@@ -7,27 +7,34 @@
 #define MAX_DFA_STATES 1024 // Ajustar según necesidad
 
 typedef struct {
-    int from[MAX_STATES];
+    int set[MAX_STATES];
+    int count;
+} State;
+
+typedef struct {
+    State from;
     char symbol;
-    int to[MAX_STATES];
+    State to;
 } DFA_Transition;
 
 typedef struct {
     int states_count;
-    int* start;
-    int finals[MAX_DFA_STATES][MAX_STATES];
+    State start;
+    State finals[MAX_DFA_STATES];
     int finals_count;
     DFA_Transition transitions[MAX_DFA_STATES];
     int transitions_count;
-    int state_masks[MAX_DFA_STATES][MAX_STATES]; // Máscaras de bits para cada estado DFA
+    State state_masks[MAX_DFA_STATES];
 } DFA;
 
-typedef struct {
-    int states[MAX_STATES];
-    int count;
-} StateClosure;
+// typedef struct {
+//     int* states;
+//     int count;
+// } StateClosure;
 
-int* epsilon_clousure(NFA* nfa, int* states);
+State epsilon_clousure(NFA* nfa, int* states, int count);
+void copy_state_set(State* dest, State* src);
+int set_equals(State* x, State* y);
 DFA* nfa_to_dfa(NFA* nfa);
 
 #endif
