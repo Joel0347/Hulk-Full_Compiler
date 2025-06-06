@@ -7,6 +7,7 @@ Type* find_type(ASTNode* node);
 Type** find_types(ASTNode** args, int args_count);
 int unify_op(Visitor* v, ASTNode* left, ASTNode* right, Operator op, char* op_name);
 int unify_conditional(Visitor* v, ASTNode* node, Type* type);
+int unify_type_by_attr(Visitor* v, ASTNode* node);
 IntList* unify_func(Visitor* v, ASTNode** args, Scope* scope, int arg_count, char* f_name, ContextItem* item);
 IntList* unify_type(Visitor* v, ASTNode** args, Scope* scope, int arg_count, char* t_name, ContextItem* item);
 int unify_member(Visitor* v, ASTNode* node, Type* type);

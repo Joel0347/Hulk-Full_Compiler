@@ -507,6 +507,14 @@ void visit_attr_getter(Visitor* v, ASTNode* node) {
     if (type_equals(instance_type, &TYPE_ERROR)) {
         node->return_type = &TYPE_ERROR;
         return;
+    } else if (type_equals(instance_type, &TYPE_ANY)) {
+        if (!unify_type_by_attr(v, node)) {
+            node->return_type = &TYPE_ERROR;
+            return;
+        } else {
+            accept(v, instance);
+            instance_type = find_type(instance);
+        }
     }
 
     // if (instance_type->dec) {
@@ -520,8 +528,10 @@ void visit_attr_getter(Visitor* v, ASTNode* node) {
         || 
         instance->type != NODE_VARIABLE)
     ) {
+        // instance_type->name = type_equals(instance_type, &TYPE_ANY)? 
+        //     "(not matter)" : instance_type->name;
         report_error(
-            v, "Impossible to access to '%s'  in type '%s' because all"
+            v, "Impossible to access to '%s' in type '%s' because all"
             " attributes are private. Line: %d.",
             member->data.variable_name, instance_type->name, node->line
         );
