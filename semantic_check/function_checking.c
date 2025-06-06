@@ -279,7 +279,7 @@ void check_function_dec(Visitor* v, ASTNode* node, Type* type) {
         }
     }
 
-    Function* func = find_function_by_name(node->scope, node->data.func_node.name);
+    Function* func = find_function_by_name(node->scope, node->data.func_node.name, 1);
     Type** param_types = find_types(params, node->data.func_node.arg_count);
 
     if (!func) {

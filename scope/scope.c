@@ -347,7 +347,7 @@ FuncData* find_function(Scope* scope, Function* f, Function* dec) {
     return result;
 }
 
-Function* find_function_by_name(Scope* scope, char* name) {
+Function* find_function_by_name(Scope* scope, char* name, int see_parent) {
     if (!scope) {
         return NULL;
     }
@@ -364,8 +364,8 @@ Function* find_function_by_name(Scope* scope, char* name) {
         }
     // }
     
-    if (scope->parent) {
-        return find_function_by_name(scope->parent, name);
+    if (see_parent && scope->parent) {
+        return find_function_by_name(scope->parent, name, see_parent);
     }
     
     return NULL;
@@ -501,11 +501,60 @@ char* find_base_func_dec(Type* type, char* name) {
     char* tmp_name = delete_underscore_from_str(name, type->name);
     tmp_name = concat_str_with_underscore(parent_name, tmp_name);
 
-    Function* f = find_function_by_name(type->parent->dec->scope, tmp_name);
+    Function* f = find_function_by_name(type->parent->dec->scope, tmp_name, 1);
 
     if (!f) {
         return find_base_func_dec(type->parent, tmp_name);
     }
 
     return f->name;
+}
+
+int type_contains_attr(Type* type, char* name, int see_parent) {
+    if (!type->dec)
+        return 0;
+        
+    char* tmp_name = concat_str_with_underscore(
+        type->name, name
+    );
+
+    if (find_function_by_name(type->dec->scope, tmp_name, 0))
+        return 1;
+
+    if (see_parent)
+        return type_contains_attr(type->parent, name, see_parent);
+
+    return 0;
+}
+
+Type* get_type_by_attr(Scope* scope, char* name) {
+   Type* current = NULL;
+    
+    while (scope) {
+        int i = 0;
+        Symbol* s = scope->defined_types;
+        while (i < scope->t_count) {
+            Type* t = s->type;
+
+            if (type_contains_attr(t, name, 0)) {
+                if (!current)
+                    current = t;
+                else {
+                    Type* tmp = get_lca(current, t);
+                    
+                    if (type_contains_attr(tmp, name, 1))
+                        current = tmp;
+                    else
+                        return NULL;
+                }
+            }
+
+            s = s->next;
+            i++;
+        }
+
+        scope = scope->parent;
+    }
+
+    return current;
 }

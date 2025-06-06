@@ -280,3 +280,24 @@ int unify_conditional(Visitor* v, ASTNode* node, Type* type) {
         )
     );
 }
+
+int unify_type_by_attr(Visitor* v, ASTNode* node) {
+    ASTNode* instance = node->data.op_node.left;
+    ASTNode* member = node->data.op_node.right;
+    int unified = 0;
+
+    if (member->type == NODE_VARIABLE)
+        return 1;
+    
+    Type* type = get_type_by_attr(node->scope, member->data.func_node.name);
+
+    if (type) {
+        unified = unify_member(v, instance, type);
+
+        if (unified) {
+            instance->return_type = type;
+        }
+    }
+
+    return unified;
+}

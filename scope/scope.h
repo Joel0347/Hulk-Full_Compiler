@@ -66,7 +66,7 @@ void declare_type(Scope* scope, Type* type);
 int save_context_item(Context* context, struct ASTNode* item);
 int save_context_for_type(Context* context, struct ASTNode* item, char* type_name);
 struct ContextItem* find_item_in_type(Context* context, char* name, Type* type, int func_dec);
-Function* find_function_by_name(Scope* scope, char* name);
+Function* find_function_by_name(Scope* scope, char* name, int see_parent);
 void init_builtins(Scope* scope);
 Symbol* find_symbol(Scope* scope, const char* name);
 FuncData* find_function(Scope* scope, Function* f, Function* dec);
@@ -77,6 +77,7 @@ Symbol* find_parameter(Scope* scope, const char* name);
 FuncData* get_type_func(Type* type, Function* f, Function* dec);
 Symbol* get_type_attr(Type* type, char* attr_name);
 char* find_base_func_dec(Type* type, char* name);
+Type* get_type_by_attr(Scope* scope, char* name);
 void free_ast(struct ASTNode* node);
 
 #endif
