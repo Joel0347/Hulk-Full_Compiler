@@ -191,6 +191,24 @@ ASTNode* create_loop_node(ASTNode* condition, ASTNode* body) {
     return node;
 }
 
+ASTNode* create_for_loop_node(char* var_name, ASTNode** params, ASTNode* body, int count) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->line = line_num;
+    node->type = NODE_FOR_LOOP;
+    node->return_type = &TYPE_OBJECT;
+    node->scope = create_scope(NULL);
+    node->context = create_context(NULL);
+    node->data.func_node.name = var_name;
+    node->checked = 0;
+    node->data.func_node.args = malloc(sizeof(ASTNode*) * count);
+    for (int i = 0; i < count; i++) {
+        node->data.func_node.args[i] = params[i];
+    }
+    node->data.func_node.arg_count = count;
+    node->data.func_node.body = body;
+    return node;
+}
+
 ASTNode* create_test_casting_type_node(ASTNode* exp, char* type_name, int test) {
     ASTNode* node = malloc(sizeof(ASTNode));
     node->line = line_num;
@@ -298,9 +316,6 @@ void free_ast(ASTNode* node) {
     }
 
     switch (node->type) {
-        case NODE_VARIABLE:
-            free(node->data.variable_name);
-            break;
         case NODE_BINARY_OP:
         case NODE_UNARY_OP:
         case NODE_ASSIGNMENT:

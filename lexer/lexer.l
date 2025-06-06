@@ -70,6 +70,8 @@ int line_num = 1;
 "inherits"      { return INHERITS; }
 "new"           { return NEW; }
 "base"          { return BASE; }
+"for"           { return FOR; }
+"range"         { return RANGE; }
 
 [a-zA-ZñÑ][a-zA-ZñÑ0-9_]*  { yylval.var = strdup(yytext); return ID; }
 "//"[^\n]*?   { /* COMMENT */ }

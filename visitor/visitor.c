@@ -49,6 +49,9 @@ void accept(Visitor* visitor, ASTNode* node) {
         case NODE_LOOP:
             visitor->visit_loop(visitor, node);
             break;
+        case NODE_FOR_LOOP:
+            visitor->visit_for_loop(visitor, node);
+            break;
         case NODE_TYPE_DEC:
             visitor->visit_type_dec(visitor, node);
             break;
