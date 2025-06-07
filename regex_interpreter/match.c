@@ -11,48 +11,31 @@ int equals(int* x, int* y, int count) {
         }
     }
 
-    // printf("equals: %d\n", equals);
-
     return equals;
 }
 
-int match(NFA* nfa, DFA* dfa, char* str) {
+String_Match* match(DFA* dfa, char* str) {
+    String_Match* match = (String_Match*)malloc(sizeof(String_Match));
+    match->matched = 0;
+    match->matches = 0;
+    
     int length = strlen(str);
     State actual_state = dfa->start;
     int change = 1;
 
     for (int i = 0; i < length; i++) {
         if (!change) break; 
+
+        if (str[i] == ' ') {
+            continue;
+        }
+
         change = 0;
 
         for (int j = 0; j < dfa->transitions_count; j++) {
             DFA_Transition transition = dfa->transitions[j];
 
-            // printf("\nfrom: ");
-            // for (int j = 0; j < nfa->states; j++) {
-            //     printf("%d, ", transition.from[j]);
-            // }
-            // printf("\n");
-
-            // printf("symbol:%c\n", transition.symbol);
-
-            // printf("to: ");
-            // for (int j = 0; j < nfa->states; j++) {
-            //     printf("%d, ", transition.to[j]);
-            // }
-
-            // printf("\n actual state: ");
-            // for (int j = 0; j < nfa->states; j++) {
-            //     printf("%d, ", actual_state[j]);
-            // }
-            // printf("\n");
-
-            // printf("symbol:%c\n", str[i]);
-
-            // printf("symbols equals: %d\n", str[i] == transition.symbol);
-
             if (set_equals(&actual_state, &(transition.from)) && str[i] == transition.symbol) {
-                // printf("change\n");
                 copy_state_set(&actual_state, &(transition.to));
                 change = 1;
                 break;
@@ -60,15 +43,20 @@ int match(NFA* nfa, DFA* dfa, char* str) {
         }
     }
 
-    int is_final = 0;
     if (change) {
         for (int i = 0; i < dfa->finals_count; i++) {
             if (set_equals(&actual_state, &(dfa->finals[i]))) {
-                is_final = 1;
+                match->matched = 1;
+                match->matches = dfa->finals[i].matches;
+                match->tokens = (char**)malloc(sizeof(char) * 256 * sizeof(char) * 50);
+
+                for (int j = 0; j < dfa->finals[i].matches; j++) {
+                    match->tokens[j] = dfa->finals[i].tokens[j];
+                }
                 break;
             }
         }
     }
 
-    return is_final;
+    return match;
 }

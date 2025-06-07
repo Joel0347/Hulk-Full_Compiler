@@ -9,6 +9,8 @@
 typedef struct {
     int set[MAX_STATES];
     int count;
+    char* tokens[256];
+    int matches;
 } State;
 
 typedef struct {
@@ -26,11 +28,6 @@ typedef struct {
     int transitions_count;
     State state_masks[MAX_DFA_STATES];
 } DFA;
-
-// typedef struct {
-//     int* states;
-//     int count;
-// } StateClosure;
 
 State epsilon_clousure(NFA* nfa, int* states, int count);
 void copy_state_set(State* dest, State* src);
