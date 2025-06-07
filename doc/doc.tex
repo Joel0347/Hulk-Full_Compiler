@@ -188,6 +188,36 @@ con el tipo de su inicialización, variable indefinida, entre otros.  (ver ejemp
 
 \subsection{Análisis de funciones}
 
+El análisis de funciones agrupa dos tipos de revisiones: chequeo de la declaración y chequeo del llamado. Como las funciones pueden declararse en cualquier sección del programa 
+se necesita primero recoger el contexto de todas las declaraciones. Para eso se utiliza una estructura denominada \textit{context}.
+
+El \textit{context}, al igual que el \textit{scope} sirve como una base de datos, pero dedicada a guardar los nodos de las declaraciones de funciones (o tipos, que se verán más adelante). 
+Sobre un \textit{context} se puede: 
+\begin{itemize}
+    \item Guardar una declaración.
+    \item Buscar una declaración.
+\end{itemize}
+
+Ahora se explicará cada una de las revisiones dichas anteriormente:
+\begin{enumerate}
+    \item \textbf{Llamado a función}: Lo primero que se se hace es visitar cada uno de los argumentos. Luego se busca la función en el \textit{context} y se revisa su declaración para que queden guardados sus 
+    datos en el \textit{scope} (en caso de haber sido o estar en proceso de ser revisada, no sucede nada). Finalmente se chequea que la cantidad de argumentos y los tipos de los argumentos coincidan con la declaración 
+    de dicha función y se actualiza el tipo de retorno del nodo del llamado con el guardado en el \textit{scope}.
+    \item \textbf{Declaración de función}: Al igual que con la asignación de variables, se comienza revisando que el nombre de la función no sea una \textit{keyword}. Después se hace un pequeño chequeo para descartar que existan 
+    nombres de parámetros repetidos. Luego se pasa a declarar en el \textit{scope} de la declaración cada uno de los parámetros para que sean accesibles en el cuerpo de la función, revisando primero que si son tipados, tengan un tipo válido. Al terminar 
+    con los parámetros, se chequea el cuerpo, comenzando por ver si la función tiene un tipo de retorno definido, y en ese caso igualmente revisar que sea un tipo válido y más adelante que sea compatible con el tipo inferido del cuerpo; y luego se llama a su
+    función de visita.
+\end{enumerate}
+
+\textbf{Errores}: Existen diversos tipos de errores que se detectan en estas revisiones: incompatibilidad de tipos en los parámetros, en el retorno, repetición de un 
+mismo símbolo en los argumentos de una declaración, función no definida, cantidad de argumentos no compatible, entre otros (ver ejemplo Figura~\ref{fig:errores_3}).
+\begin{figure}[h]
+\centering
+% \includegraphics[width=0.8\textwidth]{compiler_phases.pdf}
+\caption{Errores comunes en funciones}
+\label{fig:errores_3}
+\end{figure}
+
 \vspace{10pt}
 \section{Generación de Código}
 \vspace{10pt}
