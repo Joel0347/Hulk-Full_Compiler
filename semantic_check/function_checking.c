@@ -165,14 +165,22 @@ void check_function_dec(Visitor* v, ASTNode* node, Type* type) {
             );
     
             if (item) {
-                accept(v, item->declaration);
-                param_type = find_defined_type(node->scope, params[i]->static_type);
-    
-                if (!param_type) {
+                if (!item->declaration->checked) {
+                    accept(v, item->declaration);
+                    param_type = find_defined_type(node->scope, params[i]->static_type);
+                } else if (item->return_type) {
                     param_type = (Symbol*)malloc(sizeof(Symbol));
                     param_type->name = item->return_type->name;
                     param_type->type = item->return_type;
                     free_type = 1;
+                }
+    
+                if (!param_type) {
+                    report_error(
+                        v, "Parameter '%s' was defined as '%s', but that type produces a "
+                        "cirular reference. Line: %d.", params[i]->data.variable_name, 
+                        params[i]->static_type, node->line
+                    );
                 }
             } else {
                 report_error(
@@ -238,15 +246,23 @@ void check_function_dec(Visitor* v, ASTNode* node, Type* type) {
         );
 
         if (item) {
-            accept(v, item->declaration);
-            defined_type = find_defined_type(node->scope, node->static_type);
-
-            if (!defined_type) {
+            if (!item->declaration->checked) {
+                accept(v, item->declaration);
+                defined_type = find_defined_type(node->scope, node->static_type);
+            } else if (item->return_type) {
                 defined_type = (Symbol*)malloc(sizeof(Symbol));
                 defined_type->name = item->return_type->name;
                 defined_type->type = item->return_type;
                 free_type = 1;
             }
+
+            if (!defined_type) {
+                report_error(
+                    v, "The return type of function '%s' was defined as '%s', but that type produces a "
+                    "cirular reference. Line: %d.", node->data.variable_name, 
+                    node->static_type, node->line
+                );
+            } 
         } else {
             report_error(
                 v,  "The return type of function '%s' was defined as '%s'"
@@ -367,6 +383,4 @@ void visit_base_func(Visitor* v, ASTNode* node) {
     node->derivations = add_value_list(call, node->derivations);
     node->return_type = find_type(call);
     node->data.func_node.name = f_name;
-
-    free_ast(call);
 }

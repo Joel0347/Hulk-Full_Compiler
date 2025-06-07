@@ -223,48 +223,60 @@
 //     o(x);
 // }
 
-// type A inherits B {
+// type A inherits C {
 //     // x=y+1;
 //     // y=x;
-//     x = new A("s");
+//     // x:B = new B();
 //     g() => 1;
 // }
 
-// type B {
-//     x = 1;
+// type B inherits A {
+//     // x: A = new A();
 //     // setX() => self.x+1;
 // }
 
-type Point inherits p {
-    x = x;
-    y = y;
+// type C inherits B {
+
+// }
+
+// type Point inherits p {
+//     x = x;
+//     y = y;
     
-    // // getY(x:p): p => (new p(2, 3)); //revisar tipado ahora
-    // // l=new PolarPoint(2,3);
-    // z = 1;
+//     // // getY(x:p): p => (new p(2, 3)); //revisar tipado ahora
+//     // // l=new PolarPoint(2,3);
+//     // z = 1;
 
-    // setX(x) => self.x := x;
-    getX(x) {
-        base(x)@"AS";
-    }
-    setY(y) => self.y := y;
-}
+//     // setX(x) => self.x := x;
+//     getX(x) {
+//         base(x)@"AS";
+//     }
+//     setY(y) => self.y := y;
+// }
 
-let pt:Point = new Point(1, 4) in pt.getX(2);
+// let pt:Point = new Point(1, 4) in pt.getX(2);
 
-type PolarPoint(phi, rho) inherits Point(rho * sin(phi), rho * cos(phi)) {
-    g() => self.kl(2)+1;
-    // k() => self.z;
-    // get() => self.getX();
-}
+// type PolarPoint(phi, rho) inherits Point(rho * sin(phi), rho * cos(phi)) {
+//     g() => phi+1;
+//     // k() => self.z;
+//     // get() => self.getX();
+// }
 
-type p(x, y:Number) {
-    j = x;
-    // k: PolarPoint = 1;
-    getX(k) => self.j:=k+1;
-    gc() => self.getX(2);
-    k() => self.gc()+1;
-}
+// type p(x, y:Number) {
+//     j = x;
+//     k: p = new p(2,3);
+//     getX(k) => self.j:=k+1;
+//     gc() => self.getX(2);
+//     k() => self.gc()+1;
+// }
+
+// type p(x, y:Number) {
+//     j = x;
+//     k: Point = new PolarPoint(2,3);
+//     getX(k) => self.j:=k+1;
+//     gc() => self.getX(2);
+//     k() => self.gc()+1;
+// }
 
 // function l(x): Number => x;
 // type p {
@@ -288,44 +300,44 @@ type p(x, y:Number) {
 
 // print(odd(7));
 
-// type Point(x, y) {
-//     x = x;
-//     y = y;
-//     getX(): Number => self.x;
-//     getY(): Number => self.y;
-//     setX(x) => self.x := x;
-//     setY(y) => self.y := y;
-// }
+type Point(x, y) {
+    x = x;
+    y = y;
+    getX(): Number => self.x;
+    getY(): Number => self.y;
+    setX(x) => self.x := x;
+    setY(y) => self.y := y;
+}
 
-// let pt:Point = new Point(3, 4) in // imprime: x: 3; y: 4
-//     print("x: " @ pt.getX() @ "; y: " @ pt.getY());
+let pt:Point = new Point(3, 4) in // imprime: x: 3; y: 4
+    print("x: " @ pt.getX() @ "; y: " @ pt.getY());
 
-// type PolarPoint inherits Point {
-//     rho() => sqrt(self.getX()^2 + self.getY()^2);
-// }
+type PolarPoint inherits Point {
+    rho() => sqrt(self.getX()^2 + self.getY()^2);
+}
 
-// let pt = new PolarPoint(3, 4) in // imprime: rho: 5
-//     print("rho: " @ pt.rho());
+let pt = new PolarPoint(3, 4) in // imprime: rho: 5
+    print("rho: " @ pt.rho());
 
-// type PolarPoint2(phi, rho) inherits Point(rho * sin(phi), rho * cos(phi)) { }
+type PolarPoint2(phi, rho) inherits Point(rho * sin(phi), rho * cos(phi)) { }
 
-// let pt = new PolarPoint2(3, 4) in {
-//     print("x: " @ pt.getX());
-//     print("y: " @ pt.getY());
-// };
+let pt = new PolarPoint2(3, 4) in {
+    print("x: " @ pt.getX());
+    print("y: " @ pt.getY());
+};
 
-// type Person(firstName: String, lastName: String) {
-//     firstName = firstName;
-//     lastName = lastName;
-//     name() => self.firstName @@ self.lastName;
-// }
+type Person(firstName: String, lastName: String) {
+    firstName = firstName;
+    lastName = lastName;
+    name() => self.firstName @@ self.lastName;
+}
 
-// type Knight inherits Person {
-//     name() => "Sir" @@ base();
-// }
+type Knight inherits Person {
+    name() => "Sir" @@ base();
+}
 
-// let p: Person = new Knight("Phil", "Collins") in
-//     print(p.name()); // imprime: Sir Phil Collins
+let p: Person = new Knight("Phil", "Collins") in
+    print(p.name()); // imprime: Sir Phil Collins
 
 // function l(x) {
 //     x.getX();

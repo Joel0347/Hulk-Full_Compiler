@@ -17,29 +17,6 @@ Scope* create_scope(Scope* parent) {
     return scope;
 }
 
-// Scope* copy_scope_symbols(Scope* from, Scope* to) {
-//     Scope* scope = (Scope*)malloc(sizeof(Scope));
-//     scope->symbols = to->symbols;
-//     scope->functions = to->functions;
-//     scope->defined_types = to->defined_types;
-    
-//     Symbol* current = from->symbols;
-
-//     while (current) {
-//         Symbol* tmp = (Symbol*)malloc(sizeof(Symbol));
-//         tmp->name = current->name;
-//         tmp->type = current->type;
-//         tmp->is_param = current->is_param;
-//         tmp->derivations = current->derivations;
-//         tmp->next = scope->symbols;
-//         scope->symbols = tmp;
-
-//         current = current->next;
-//     }
-
-//     return scope;
-// }
-
 void free_symbol(Symbol* current_symbol, int count) {
     int i = 0;
     while (i < count) {
@@ -92,6 +69,30 @@ Symbol* find_symbol_in_scope(Scope* scope, const char* name) {
     return NULL;
 }
 
+// Scope* copy_scope_symbols(Scope* from) {
+//     Scope* scope = create_scope(NULL);
+//     int i = 0;
+//     Symbol* current = from->symbols;
+
+//     while (i < from->s_count) {
+//         if (!find_parameter(from, current->name)) {
+//             declare_symbol(scope, current->name, current->type, 0, NULL);
+//             Symbol* s = find_symbol_in_scope(scope, current->name);
+//             for (int j = 0; j < current->derivations->count; j++) {
+//                 ASTNode* value = at(j, current->derivations);
+
+//                 if (value)
+//                     s->derivations = add_value_list(value, s->derivations);
+//             }
+//         }
+
+//         current = current->next;
+//         i++;
+//     }
+    
+//     return scope;
+// }
+
 void declare_symbol(
     Scope* scope, const char* name, Type* type, 
     int is_param, struct ASTNode* value
@@ -109,6 +110,7 @@ void declare_symbol(
     symbol->name = strdup(name);
     symbol->type = type;
     symbol->is_param = is_param;
+    symbol->is_type_param = 0;
     symbol->derivations = add_value_list(value, NULL);
     symbol->next = scope->symbols;
     scope->symbols = symbol;

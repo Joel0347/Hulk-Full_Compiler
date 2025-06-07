@@ -26,21 +26,22 @@ void visit_assignment(Visitor* v, ASTNode* node) {
         );
 
         if (item) {
-            accept(v, item->declaration);
-            defined_type = find_defined_type(node->scope, var_node->static_type);
+            if (!item->declaration->checked) {
+                accept(v, item->declaration);
+                defined_type = find_defined_type(node->scope, var_node->static_type);
+            } else if (item->return_type) {
+                defined_type = (Symbol*)malloc(sizeof(Symbol));
+                defined_type->name = item->return_type->name;
+                defined_type->type = item->return_type;
+                free_type = 1;
+            }
 
             if (!defined_type) {
-                defined_type = (Symbol*)malloc(sizeof(Symbol));
-
-                if (item->return_type) {
-                    defined_type->name = item->return_type->name;
-                    defined_type->type = item->return_type;
-                } else {
-                    // defined_type->name = "object";
-                    // defined_type->type = &TYPE_OBJECT;
-                }
-
-                free_type = 1;
+                report_error(
+                    v, "Variable '%s' was defined as '%s', but that type produces a "
+                    "cirular reference. Line: %d.", var_node->data.variable_name, 
+                    var_node->static_type, node->line
+                );
             } 
         } else {
             report_error(
@@ -148,9 +149,17 @@ void visit_variable(Visitor* v, ASTNode* node) {
     Symbol* sym = find_symbol(node->scope, node->data.variable_name);
 
     if (sym) {
-        node->return_type = sym->type;
-        node->is_param = sym->is_param;
-        node->derivations = sym->derivations;
+        if (!sym->is_type_param) {
+            node->return_type = sym->type;
+            node->is_param = sym->is_param;
+            node->derivations = sym->derivations;
+        } else {
+            node->return_type = &TYPE_ERROR;
+            report_error(
+                v, "The use of constructor parameter '%s' is not allowed. Line: %d", 
+                node->data.variable_name, node->line
+            );
+        }
     } else if (!type_equals(node->return_type, &TYPE_ERROR)) {
         ContextItem* item = find_context_item(
             node->context, node->data.variable_name, 0, 1
