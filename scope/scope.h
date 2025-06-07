@@ -8,6 +8,7 @@ typedef struct Symbol {
     char* name;
     Type* type;
     int is_param;
+    int is_type_param;
     ValueList* derivations;
     struct Symbol* next;
 } Symbol;
@@ -53,7 +54,7 @@ typedef struct Context {
 } Context;
 
 Scope* create_scope(Scope* parent);
-// Scope* copy_scope_symbols(Scope* from, Scope* to);
+// Scope* copy_scope_symbols(Scope* from);
 Context* create_context(Context* parent);
 void destroy_scope(Scope* scope);
 void destroy_context(Context* context);

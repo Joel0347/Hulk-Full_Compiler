@@ -176,14 +176,22 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
             );
     
             if (item) {
-                accept(v, item->declaration);
-                param_type = find_defined_type(node->scope, params[i]->static_type);
-    
-                if (!param_type) {
+                if (!item->declaration->checked) {
+                    accept(v, item->declaration);
+                    param_type = find_defined_type(node->scope, params[i]->static_type);
+                } else if (item->return_type) {
                     param_type = (Symbol*)malloc(sizeof(Symbol));
                     param_type->name = item->return_type->name;
                     param_type->type = item->return_type;
                     free_type = 1;
+                }
+    
+                if (!param_type) {
+                    report_error(
+                        v, "Parameter '%s' was defined as '%s', but that type produces a "
+                        "cirular reference. Line: %d.", params[i]->data.variable_name, 
+                        params[i]->static_type, node->line
+                    );
                 }
             } else {
                 report_error(
@@ -223,13 +231,22 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
                 node->data.type_node.name, node->data.type_node.parent_name, node->line
             );
         } else {
-            accept(v, item->declaration);
-            parent_info = find_defined_type(node->scope, node->data.type_node.parent_name);
-
-            if (!parent_info && item->return_type) {
+            if (!item->declaration->checked) {
+                accept(v, item->declaration);
+                parent_info = find_defined_type(node->scope, node->data.type_node.parent_name);
+            } else if (item->return_type) {
                 parent_type = item->return_type;
-            } else if (!parent_info) {
-                // parent_type = create
+            }
+            
+            if (!parent_info) {
+                report_error(
+                    v, "Type '%s' inherits from '%s', but that type produces a "
+                    "cirular reference that can not be solved. Line: %d.", node->data.type_node.name, 
+                    node->data.type_node.parent_name, node->line
+                );
+                node->checked = 0;
+                mro_list = empty_mro_list(mro_list);
+                return;
             } else {
                 parent_type = parent_info->type;
             }
@@ -327,13 +344,13 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
         }
     }
     
-    // for (int i = 0; i < node->data.type_node.arg_count; i++)
-    // {
-    //     Symbol* sym = find_parameter(
-    //         this->scope, node->data.type_node.args[i]->data.variable_name
-    //     );
-    //     sym->name = concat_str_with_underscore(this->name, sym->name);
-    // }
+    for (int i = 0; i < node->data.type_node.arg_count; i++)
+    {
+        Symbol* sym = find_parameter(
+            node->scope, node->data.type_node.args[i]->data.variable_name
+        );
+        sym->is_type_param = 1;
+    }
 
     declare_symbol(node->scope, "self", this, 0, NULL);
     for (int i = 0; i < node->data.type_node.def_count; i++)
@@ -344,18 +361,14 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
         }
     }
 
-    // node->scope->functions = this->scope->parent->functions;
+    for (int i = 0; i < node->data.type_node.arg_count; i++)
+    {
+        Symbol* sym = find_parameter(
+            node->scope, node->data.type_node.args[i]->data.variable_name
+        );
+        sym->is_type_param = 0;
+    }
 
-    // for (int i = 0; i < node->data.type_node.arg_count; i++)
-    // {
-    //     Symbol* sym = find_parameter(
-    //         this->scope, concat_str_with_underscore(
-    //             this->name,
-    //             node->data.type_node.args[i]->data.variable_name
-    //         )
-    //     );
-    //     sym->name = delete_underscore_from_str(sym->name,this->name);
-    // }
     Type** param_types = find_types(params, node->data.type_node.arg_count);
 
     for (int i = 0; i < node->data.type_node.arg_count; i++)
@@ -383,15 +396,8 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
     }
 
     this->dec = node;
-    // this->scope->functions = node->scope->functions;
     this->arg_count = node->data.type_node.arg_count;
     this->param_types = param_types;
-    // Scope* priv_scope = create_scope(NULL);
-    // Context* priv_context = create_context(NULL);
-    // priv_scope->symbols = this->scope->symbols;
-    // priv_scope->functions = this->scope->functions;
-    // priv_context->first = this->context->first;
-    // this->context = priv_context;
     declare_type(node->scope->parent, this);
     mro_list = empty_mro_list(mro_list);
     v->current_type = visitor_type;
@@ -437,7 +443,7 @@ void visit_type_instance(Visitor* v, ASTNode* node) {
 
     Function* dec = NULL;
 
-    if (item) {
+    if (item && item->return_type) {
         Type** dec_args_types = find_types(
             item->declaration->data.type_node.args, 
             item->declaration->data.type_node.arg_count
