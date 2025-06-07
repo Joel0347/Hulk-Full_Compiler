@@ -229,6 +229,7 @@ Tuple* args_type_equals(Type** args1, Type** args2, int count) {
             !type_equals(args2[i], &TYPE_ANY)
             ) &&
             (!type_equals(args1[i], &TYPE_ANY) &&
+            !type_equals(args1[i], &TYPE_ERROR) &&
             !is_ancestor_type(args1[i], args2[i])
             )
         ) {
