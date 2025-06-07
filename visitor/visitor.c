@@ -46,6 +46,9 @@ void accept(Visitor* visitor, ASTNode* node) {
         case NODE_CONDITIONAL:
             visitor->visit_conditional(visitor, node);
             break;
+        case NODE_Q_CONDITIONAL:
+            visitor->visit_q_conditional(visitor, node);
+            break;
         case NODE_LOOP:
             visitor->visit_loop(visitor, node);
             break;

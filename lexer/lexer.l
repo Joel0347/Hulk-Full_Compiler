@@ -29,6 +29,7 @@ int line_num = 1;
 ")"             { return RPAREN; }
 "{"             { return LBRACKET; }
 "}"             { return RBRACKET; }
+"?"             { return QUESTION; }
 "+="            { return PLUSEQUAL; }
 "-="            { return MINUSEQUAL; }
 "*="            { return TIMESEQUAL; }

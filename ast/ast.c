@@ -178,6 +178,21 @@ ASTNode* create_conditional_node(ASTNode* condition, ASTNode* body_true, ASTNode
     return node;
 }
 
+ASTNode* create_q_conditional_node(ASTNode* exp, ASTNode* body_true, ASTNode* body_false) {
+    ASTNode* node = malloc(sizeof(ASTNode));
+    node->line = line_num;
+    node->type = NODE_Q_CONDITIONAL;
+    node->return_type = &TYPE_OBJECT;
+    node->scope = create_scope(NULL);
+    node->context = create_context(NULL);
+    node->derivations = add_value_list(body_true, NULL);
+    node->derivations = add_value_list(body_false, node->derivations);
+    node->data.cond_node.cond = exp;
+    node->data.cond_node.body_true = body_true;
+    node->data.cond_node.body_false = body_false;
+    return node;
+}
+
 ASTNode* create_loop_node(ASTNode* condition, ASTNode* body) {
     ASTNode* node = malloc(sizeof(ASTNode));
     node->line = line_num;

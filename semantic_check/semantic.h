@@ -26,6 +26,7 @@ void visit_block(Visitor* v, ASTNode* node);
 void visit_function_dec(Visitor* v, ASTNode* node);
 void visit_let_in(Visitor* v, ASTNode* node);
 void visit_conditional(Visitor* v, ASTNode* node);
+void visit_q_conditional(Visitor* v, ASTNode* node);
 void visit_loop(Visitor* v, ASTNode* node);
 void visit_for_loop(Visitor* v, ASTNode* node);
 void visit_type_dec(Visitor* v, ASTNode* node);

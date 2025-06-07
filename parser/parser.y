@@ -53,7 +53,7 @@ void add_statement(ASTNode* stmt) {
 %token ERROR ARROW FUNCTION DEQUALS LET IN IF ELIF ELSE WHILE BASE FOR
 %token LPAREN RPAREN EQUALS SEMICOLON COMMA LBRACKET RBRACKET COLON RANGE
 
-%token CONCATEQUAL ANDEQUAL OREQUAL PLUSEQUAL MINUSEQUAL DOT
+%token CONCATEQUAL ANDEQUAL OREQUAL PLUSEQUAL MINUSEQUAL DOT QUESTION
 %token TIMESEQUAL DIVEQUAL MODEQUAL POWEQUAL TYPE INHERITS NEW
 
 %left IS AS
@@ -69,7 +69,7 @@ void add_statement(ASTNode* stmt) {
 %left POWER
 %left UMINUS
 
-%type <node> expression block_expr statement destructive_var_decl function_call
+%type <node> expression block_expr statement destructive_var_decl function_call q_conditional
 %type <node> param function_declaration simple_var_decl let_in_exp conditional for_loop
 %type <node> elif_branch while_loop compound_operator type_declaration destructive_member_decl
 %type <node> type_body type_body_exp member_declaration type_instance member_call
@@ -111,6 +111,7 @@ statement:
     | function_declaration           { $$ = $1; }
     | type_declaration               { $$ = $1; }
     | conditional                    { $$ = $1; }
+    | q_conditional                  { $$ = $1; }
     | while_loop                     { $$ = $1; }
     | for_loop                       { $$ = $1; }
     | function_declaration SEMICOLON { $$ = $1; }
@@ -315,6 +316,17 @@ elif_branch:
     | ELIF LPAREN expression RPAREN expression elif_branch     { $$ = create_conditional_node($3, $5, $6); }
 ;
 
+q_conditional:
+    IF QUESTION LPAREN ID RPAREN expression ELSE expression {
+        $$ = create_q_conditional_node(
+            create_variable_node($4, "", 0), $6, $8
+        );
+    }
+    | IF QUESTION LPAREN member_call RPAREN expression ELSE expression {
+        $$ = create_q_conditional_node($4, $6, $8);
+    }
+;
+
 while_loop:
     WHILE LPAREN expression RPAREN expression { $$ = create_loop_node($3, $5); }
 ;
@@ -517,6 +529,7 @@ expression:
     | destructive_var_decl               { $$ = $1; }
     | simple_var_decl                    { $$ = $1; }
     | conditional                        { $$ = $1; }
+    | q_conditional                      { $$ = $1; }
     | while_loop                         { $$ = $1; }
     | for_loop                           { $$ = $1; }
     | compound_operator                  { $$ = $1; }
@@ -552,7 +565,7 @@ const char* token_to_str(int token) {
         case WHILE:        return "'while'"  ; case IS:       return "'is'"        ; case AS:         return "'as'"    ;
         case TYPE:         return "'type'"   ; case INHERITS: return "'inherits'"  ; case NEW:        return "'new'"   ;
         case DOT:          return "'.'"      ; case BASE:     return "'base'"      ; case FOR:        return "'for'"   ;
-        case RANGE:        return "'range'"  ;
+        case RANGE:        return "'range'"  ; case QUESTION: return "'?'"         ;
 
         default: return "";
     }

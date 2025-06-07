@@ -42,11 +42,71 @@ void visit_conditional(Visitor* v, ASTNode* node) {
         accept(v, true_body);
         false_type = find_type(false_body);
         true_type = find_type(true_body);
-    } else {
+    } else if (
+        is_builtin_type(true_type) &&
+        !type_equals(true_type, &TYPE_OBJECT)
+    ) {
         false_type = find_type(true_body);
+    } else {
+        false_type = &TYPE_NULL;
     }
 
     node->return_type = get_lca(true_type, false_type);
+}
+
+void visit_q_conditional(Visitor* v, ASTNode* node) {
+    ASTNode* exp = node->data.cond_node.cond;
+    ASTNode* null_body = node->data.cond_node.body_true;
+    ASTNode* ok_body = node->data.cond_node.body_false;
+
+    exp->context->parent = node->context;
+    null_body->context->parent = node->context;
+    exp->scope->parent = node->scope;
+    null_body->scope->parent = node->scope;
+    ok_body->context->parent = node->context;
+    ok_body->scope->parent = node->scope;
+
+    accept(v, exp);
+
+    if (type_equals(exp->return_type, &TYPE_ERROR)) {
+        node->return_type = &TYPE_ERROR;
+        return;
+    }
+
+    Symbol* s = NULL;
+    if (exp->type == NODE_TYPE_GET_ATTR) {
+        Type* t = find_type(exp->data.op_node.left);
+        int attr = exp->data.op_node.right->type == NODE_VARIABLE;
+
+        if (attr) {
+            s = get_type_attr(t, exp->data.op_node.right->data.variable_name);
+        } else {
+            report_error(
+                v, "Clause 'if?' is still in trial period. It only accepts variables as arguments. Line: %d", 
+                exp->line
+            );
+            node->return_type = &TYPE_ERROR;
+            return;
+        }
+    } else {
+        s = find_symbol(node->scope, exp->data.variable_name);
+    }
+
+    Type* exp_type = s->type;
+    s->type = &TYPE_NULL;
+    accept(v, null_body);
+    s->type = exp_type->sub_type? exp_type->sub_type : exp_type;
+    int any = type_equals(s->type, &TYPE_ANY);
+    accept(v, ok_body);
+    exp_type = any? s->type : exp_type;
+    s->type = &TYPE_NULL;
+    accept(v, null_body);
+    s->type = exp_type;
+
+    Type* ok_type = find_type(ok_body);
+    Type* null_type = find_type(null_body);
+
+    node->return_type = get_lca(ok_type, null_type);
 }
 
 void visit_loop(Visitor* v, ASTNode* node) {
