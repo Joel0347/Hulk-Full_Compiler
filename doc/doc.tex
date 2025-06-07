@@ -90,7 +90,7 @@ patrón Visitor. La implementación de este patrón (ver Figura~\ref{fig:visitor
 
 \begin{figure}[h]
 \centering
-% \includegraphics[width=0.8\textwidth]{compiler_phases.pdf}
+\includegraphics[width=1\textwidth]{images/visitor.png}
 \caption{Implementación del patrón Visitor para el chequeo semántico}
 \label{fig:visitor}
 \end{figure}
@@ -125,9 +125,9 @@ operaciones binarias $(+, -, *, /, \%, ^, \&, |, ==, !=, <, >, <=, >=, @, @@)$, 
 operadores de la forma \{\texttt{tipo de la izquierda, tipo de la derecha, tipo de retorno, operador}\}. En caso que un operador pueda utilizarse con varios tipos, como es el caso del '==' por ejemplo, aparece una regla por cada
 uso del operador. De esta forma, es más sencillo revisar la compatibilidad de tipos con operadores, pues solo se tienen que recorrer las reglas y comparar los tipos izquierdos y derechos (NULL para los unarios) según el operador.
 
-\begin{figure}[h]
+\begin{figure}
 \centering
-% \includegraphics[width=0.8\textwidth]{compiler_phases.pdf}
+\includegraphics[width=1\textwidth]{images/op_rules.png}
 \caption{Reglas para los operadores}
 \label{fig:operadores}
 \end{figure}
@@ -136,7 +136,7 @@ uso del operador. De esta forma, es más sencillo revisar la compatibilidad de t
 los respectivos a secuencias de escapes inválidas en cadenas e incompatibilidad con los operadores (ver ejemplo Figura~\ref{fig:errores_1}).
 \begin{figure}[h]
 \centering
-% \includegraphics[width=0.8\textwidth]{compiler_phases.pdf}
+\includegraphics[width=1\textwidth]{images/basic_errors.png}
 \caption{Errores comunes en expresiones básicas}
 \label{fig:errores_1}
 \end{figure}
@@ -181,7 +181,7 @@ incompatibilidad de tipos en asignaciones (en el caso de las que son tipadas), r
 con el tipo de su inicialización, variable indefinida, entre otros.  (ver ejemplo Figura~\ref{fig:errores_2}).
 \begin{figure}[h]
 \centering
-% \includegraphics[width=0.8\textwidth]{compiler_phases.pdf}
+\includegraphics[width=1\textwidth]{images/var_errors.png}
 \caption{Errores comunes en variables}
 \label{fig:errores_2}
 \end{figure}
@@ -213,7 +213,7 @@ Ahora se explicará cada una de las revisiones dichas anteriormente:
 mismo símbolo en los argumentos de una declaración, función no definida, cantidad de argumentos no compatible, entre otros (ver ejemplo Figura~\ref{fig:errores_3}).
 \begin{figure}[h]
 \centering
-% \includegraphics[width=0.8\textwidth]{compiler_phases.pdf}
+\includegraphics[width=1\textwidth]{images/func_errors.png}
 \caption{Errores comunes en funciones}
 \label{fig:errores_3}
 \end{figure}
