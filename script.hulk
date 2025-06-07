@@ -1,4 +1,4 @@
-// KENDRY TODO ESTO TIENE QUE PINCHAR
+// // KENDRY TODO ESTO TIENE QUE PINCHAR
 // let w = 2 == 3 & !(3<4), x = 1+2, z = exp(x) in {
 //     print(x-2);
 //     print(w);
@@ -300,42 +300,43 @@
 
 // print(odd(7));
 
-type Point(x, y) {
-    x = x;
-    y = y;
-    getX(): Number => self.x;
-    getY(): Number => self.y;
-    setX(x) => self.x := x;
-    setY(y) => self.y := y;
-}
+// type Point(x, y) {
+//     x = x;
+//     y = y;
+//     getX(): Number => self.x;
+//     getY(): Number => self.y;
+//     setX(x) => self.x := x;
+//     setY(y) => self.y := y;
+// }
 
-let pt:Point = new Point(3, 4) in // imprime: x: 3; y: 4
-    print("x: " @ pt.getX() @ "; y: " @ pt.getY());
+// let pt:Point = new Point(3, 4) in // imprime: x: 3; y: 4
+//     print("x: " @ pt.getX() @ "; y: " @ pt.getY());
 
-type PolarPoint inherits Point {
-    rho() => sqrt(self.getX()^2 + self.getY()^2);
-}
+// type PolarPoint inherits Point {
+//     rho() => sqrt(self.getX()^2 + self.getY()^2);
+// }
 
-let pt = new PolarPoint(3, 4) in // imprime: rho: 5
-    print("rho: " @ pt.rho());
+// let pt = new PolarPoint(3, 4) in // imprime: rho: 5
+//     print("rho: " @ pt.rho());
 
-type PolarPoint2(phi, rho) inherits Point(rho * sin(phi), rho * cos(phi)) { }
+// type PolarPoint2(phi, rho) inherits Point(rho * sin(phi), rho * cos(phi)) { }
 
-let pt = new PolarPoint2(3, 4) in {
-    print("x: " @ pt.getX());
-    print("y: " @ pt.getY());
-};
+// let pt = new PolarPoint2(3, 4) in {
+//     print("x: " @ pt.getX());
+//     print("y: " @ pt.getY());
+// };
 
-type Person(firstName: String, lastName: String) {
-    firstName = firstName;
-    lastName = lastName;
-    name() => self.firstName @@ self.lastName;
-}
+// type Person(firstName: String, lastName: String) {
+//     firstName = firstName;
+//     lastName = lastName;
+//     name() => self.firstName @@ self.lastName;
+// }
 
-type Knight inherits Person {
-    name() => "Sir" @@ base();
-}
+// type Knight inherits Person {
+//     name() => "Sir" @@ base();
+// }
 
+<<<<<<< HEAD
 let p: Person = new Knight("Phil", "Collins") in
     print(p.name()); // imprime: Sir Phil Collins
 
@@ -346,3 +347,7 @@ let p: Person = new Knight("Phil", "Collins") in
 
 // function l(x) => for (i in range(x)) i+1;
 // l("asd");
+=======
+// let p: Person = new Knight("Phil", "Collins") in
+//     print(p.name()); // imprime: Sir Phil Collins
+>>>>>>> d811535 (feat/added the types logic in the llvm generation)

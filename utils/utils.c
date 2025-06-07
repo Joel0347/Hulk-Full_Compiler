@@ -101,19 +101,19 @@ struct ASTNode* at(int index, ValueList* list) {
     return NULL;
 }
 
-char* concat_str_with_underscore(char* s1, char* s2) {
-    if (s2[0] == '_')
-        return s2;
+char* concat_str_with_underscore(char* type, char* name) {
+    if (name[0] == '_')
+        return name;
         
-    int n = strlen(s1) + strlen(s2) + 3;
+    int n = strlen(type) + strlen(name) + 3;
     char* new_s = (char*)malloc(n);
-    snprintf(new_s, n, "_%s_%s", s1, s2);
+    snprintf(new_s, n, "_%s_%s", type, name);
     return new_s;
 }
 
-char* delete_underscore_from_str(char* s, char* sub_s) {
-    int len = strlen(sub_s);
-    const char *s1_ptr = s + len + 2;
+char* delete_underscore_from_str(char* name, char* type) {
+    int len = strlen(type);
+    const char *s1_ptr = name + len + 2;
 
     return strdup(s1_ptr);
 }

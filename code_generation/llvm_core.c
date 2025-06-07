@@ -64,34 +64,6 @@ void declare_external_functions(void) {
         (LLVMTypeRef[]){LLVMPointerType(LLVMInt8Type(), 0)}, 1, 0);
     LLVMAddFunction(module, "strlen", strlen_type);
 
-    LLVMTypeRef malloc_type = LLVMFunctionType(
-        LLVMPointerType(LLVMInt8Type(), 0),
-        (LLVMTypeRef[]){LLVMInt64Type()}, 1, 0);
-    LLVMAddFunction(module, "malloc", malloc_type);
-
-    LLVMTypeRef snprintf_type = LLVMFunctionType(LLVMInt32Type(),
-        (LLVMTypeRef[]){
-            LLVMPointerType(LLVMInt8Type(), 0),
-            LLVMInt64Type(),
-            LLVMPointerType(LLVMInt8Type(), 0)
-        }, 3, 1);
-    LLVMAddFunction(module, "snprintf", snprintf_type);
-
-    LLVMTypeRef strcmp_type = LLVMFunctionType(LLVMInt32Type(),
-        (LLVMTypeRef[]){
-            LLVMPointerType(LLVMInt8Type(), 0),
-            LLVMPointerType(LLVMInt8Type(), 0)
-        }, 2, 0);
-    LLVMAddFunction(module, "strcmp", strcmp_type);
-
-    LLVMTypeRef pow_type = LLVMFunctionType(LLVMDoubleType(),
-        (LLVMTypeRef[]){LLVMDoubleType(), LLVMDoubleType()}, 2, 0);
-    LLVMAddFunction(module, "pow", pow_type);
-
-    LLVMTypeRef fmod_type = LLVMFunctionType(LLVMDoubleType(),
-        (LLVMTypeRef[]){LLVMDoubleType(), LLVMDoubleType()}, 2, 0);
-    LLVMAddFunction(module, "fmod", fmod_type);
-
     // Declarar printf
     LLVMTypeRef printf_type = LLVMFunctionType(LLVMInt32Type(),
         (LLVMTypeRef[]){LLVMPointerType(LLVMInt8Type(), 0)}, 1, 1);
@@ -111,4 +83,45 @@ void declare_external_functions(void) {
             (LLVMTypeRef[]){LLVMPointerType(LLVMInt8Type(), 0)}, 1, 0);
         LLVMAddFunction(module, "puts", puts_type);
     }
+
+    // Declare type-related functions
+    // Memory allocation for types
+    LLVMTypeRef malloc_type = LLVMFunctionType(
+        LLVMPointerType(LLVMInt8Type(), 0),
+        (LLVMTypeRef[]){LLVMInt64Type()}, 1, 0
+    );
+    LLVMAddFunction(module, "malloc", malloc_type);
+
+    // Free memory
+    LLVMTypeRef free_type = LLVMFunctionType(
+        LLVMVoidType(),
+        (LLVMTypeRef[]){LLVMPointerType(LLVMInt8Type(), 0)}, 1, 0
+    );
+    LLVMAddFunction(module, "free", free_type);
+    
+    // memcpy for copying type instances
+    LLVMTypeRef memcpy_type = LLVMFunctionType(
+        LLVMPointerType(LLVMInt8Type(), 0),
+        (LLVMTypeRef[]){
+            LLVMPointerType(LLVMInt8Type(), 0),
+            LLVMPointerType(LLVMInt8Type(), 0),
+            LLVMInt64Type()
+        }, 3, 0
+    );
+    LLVMAddFunction(module, "memcpy", memcpy_type);
+
+    LLVMTypeRef strcmp_type = LLVMFunctionType(LLVMInt32Type(),
+        (LLVMTypeRef[]){
+            LLVMPointerType(LLVMInt8Type(), 0),
+            LLVMPointerType(LLVMInt8Type(), 0)
+        }, 2, 0);
+    LLVMAddFunction(module, "strcmp", strcmp_type);
+
+    LLVMTypeRef pow_type = LLVMFunctionType(LLVMDoubleType(),
+        (LLVMTypeRef[]){LLVMDoubleType(), LLVMDoubleType()}, 2, 0);
+    LLVMAddFunction(module, "pow", pow_type);
+
+    LLVMTypeRef fmod_type = LLVMFunctionType(LLVMDoubleType(),
+        (LLVMTypeRef[]){LLVMDoubleType(), LLVMDoubleType()}, 2, 0);
+    LLVMAddFunction(module, "fmod", fmod_type);
 }
