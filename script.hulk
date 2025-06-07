@@ -336,9 +336,8 @@
 //     name() => "Sir" @@ base();
 // }
 
-<<<<<<< HEAD
-let p: Person = new Knight("Phil", "Collins") in
-    print(p.name()); // imprime: Sir Phil Collins
+// let p: Person = new Knight("Phil", "Collins") in
+//     print(p.name()); // imprime: Sir Phil Collins
 
 // function l(x) {
 //     x.getX();
@@ -347,7 +346,10 @@ let p: Person = new Knight("Phil", "Collins") in
 
 // function l(x) => for (i in range(x)) i+1;
 // l("asd");
-=======
-// let p: Person = new Knight("Phil", "Collins") in
-//     print(p.name()); // imprime: Sir Phil Collins
->>>>>>> d811535 (feat/added the types logic in the llvm generation)
+
+function f0(x:A) => x;
+function f1(x, x) => x;
+function f2(x: Number):Number => x < 2;
+
+f2(2, 1);
+f0("hola");
