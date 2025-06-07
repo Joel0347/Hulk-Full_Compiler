@@ -1,7 +1,9 @@
 #include "dfa.h"
 #include <stdlib.h>
+#include <string.h>
 
 State epsilon_clousure(NFA* nfa, int* states, int count) {
+    State* set = (State*)malloc(sizeof(State));
     int queue[nfa->states];
     int* set_states = (int*)malloc(sizeof(int) * nfa->states);
     bool visited[nfa->states];
@@ -23,25 +25,32 @@ State epsilon_clousure(NFA* nfa, int* states, int count) {
         for (int i = 0; i < nfa->transitions_count; i++) {
             Transition t = nfa->transitions[i];
 
-            if (t.from == s && t.symbol == EPSILON && !visited[t.to]) {
-                queue[index++] = t.to;
-                visited[t.to] = 1;
+            if (t.from.state == s && t.symbol == EPSILON && !visited[t.to.state]) {
+                queue[index++] = t.to.state;
+                visited[t.to.state] = 1;
             }
 
-            if (t.from == s && t.symbol != EPSILON) {
+            if (t.from.state == s && t.symbol != EPSILON) {
                 set_states[count_set++] = s;
+
+                if (!state_contains_token(set, t.from.token)) {
+                    set->tokens[set->matches++] = t.from.token;
+                }
             }
         }
 
         for (int i = 0; i < nfa->finals_count; i++) {
-            if (nfa->finals[i] == s) {
+            if (nfa->finals[i].state == s) {
                 set_states[count_set++] = s;
+            
+                if (!state_contains_token(set, nfa->finals[i].token)) {
+                    set->tokens[set->matches++] = nfa->finals[i].token;
+                }
                 break;
             }
         }
     }
 
-    State* set = (State*)malloc(sizeof(State));
     set->count = count_set;
     for (int i = 0; i < set->count; i++) {
         set->set[i] = set_states[i];
@@ -50,11 +59,28 @@ State epsilon_clousure(NFA* nfa, int* states, int count) {
     return *set;
 }
 
+int state_contains_token(State* state, char* token) {
+    if (!strcmp("error", token)) return 1;
+    
+    for (int i = 0; i < state->matches; i++) {
+        if (!strcmp(state->tokens[i], token)) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 void copy_state_set(State* dest, State* src) {
     dest->count = src->count;
+    dest->matches = src->matches;
 
     for (int i = 0; i < src->count; i++) {
         dest->set[i] = src->set[i];
+    }
+
+    for (int i = 0; i < src->matches; i++) {
+        dest->tokens[i] = src->tokens[i];
     }
 }
 
@@ -137,8 +163,8 @@ DFA* nfa_to_dfa(NFA* nfa) {
                 for (int t = 0; t < nfa->transitions_count; t++) { // for transition in nfa.transitions
                     Transition transition = nfa->transitions[t];
 
-                    if (transition.from == Q.set[q] && transition.symbol == symbols[s]) {
-                        sub_set[states_count++] = transition.to;
+                    if (transition.from.state == Q.set[q] && transition.symbol == symbols[s]) {
+                        sub_set[states_count++] = transition.to.state;
                     }
                 }
             }
@@ -164,7 +190,7 @@ DFA* nfa_to_dfa(NFA* nfa) {
     for (int i = 0; i < nfa->finals_count; i++) { // for final in nfa
         for (int j = 0; j < dfa->states_count; j++) { // for estados in dfa
             for (int k = 0; k < nfa->states; k++) {      // for estado en estados
-                if (nfa->finals[i] == dfa->state_masks[j].set[k]) {
+                if (nfa->finals[i].state == dfa->state_masks[j].set[k]) {
                     copy_state_set(&(dfa->finals[dfa->finals_count++]), &(dfa->state_masks[j]));
                     continue;
                 }                    
@@ -192,7 +218,10 @@ DFA* nfa_to_dfa(NFA* nfa) {
     //     for (int j = 0; j < t.from.count; j++) {
     //         printf("%d, ", t.from.set[j]);
     //     }
-    //     printf("\n");
+    //     printf("tokens: %d\n", t.from.matches);
+    //     for (int j = 0; j < t.from.matches; j++) {
+    //         printf("%s, ", t.from.tokens[j]);
+    //     }
 
     //     printf("symbol: %c\n", t.symbol);
 
@@ -200,7 +229,10 @@ DFA* nfa_to_dfa(NFA* nfa) {
     //     for (int j = 0; j < t.to.count; j++) {
     //         printf("%d, ", t.to.set[j]);
     //     }
-    //     printf("\n");
+    //     printf("tokens: %d\n", t.to.matches);
+    //     for (int j = 0; j < t.to.matches; j++) {
+    //         printf("%s, ", t.to.tokens[j]);
+    //     }
     // }
 
     return dfa;

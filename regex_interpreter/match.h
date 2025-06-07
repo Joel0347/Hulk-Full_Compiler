@@ -3,6 +3,12 @@
 
 #include "dfa.h"
 
-int match(NFA* nfa, DFA* dfa, char* str);
+typedef struct {
+    int matched;
+    char** tokens;
+    int matches;
+} String_Match;
+
+String_Match* match(DFA* dfa, char* str);
 
 #endif
