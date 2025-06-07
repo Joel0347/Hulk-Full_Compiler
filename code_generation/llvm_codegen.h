@@ -24,4 +24,11 @@ LLVMValueRef make_function_dec(LLVM_Visitor* v, ASTNode* node);
 LLVMValueRef generate_conditional(LLVM_Visitor* v, ASTNode* node);
 LLVMValueRef generate_loop(LLVM_Visitor* v, ASTNode* node);
 
+// Type-related codegen functions
+LLVMValueRef generate_type_declaration(LLVM_Visitor* v, ASTNode* node);
+LLVMValueRef generate_type_instance(LLVM_Visitor* v, ASTNode* node);
+LLVMValueRef generate_field_access(LLVM_Visitor* v, ASTNode* node);
+LLVMValueRef generate_method_call(LLVM_Visitor* v, ASTNode* node);
+static int find_field_index(Type* type, const char* field_name);
+
 #endif // LLVM_CODEGEN_H

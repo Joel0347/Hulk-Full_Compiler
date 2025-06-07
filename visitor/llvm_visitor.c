@@ -1,5 +1,6 @@
 #include "llvm_visitor.h"
 #include <stdlib.h>
+#include <stdio.h>
 
 LLVMValueRef accept_gen(LLVM_Visitor* visitor, ASTNode* node) {
     if (!node) {
@@ -25,6 +26,7 @@ LLVMValueRef accept_gen(LLVM_Visitor* visitor, ASTNode* node) {
         case NODE_VARIABLE:
             return visitor->visit_variable(visitor, node);
         case NODE_FUNC_CALL:
+            // Handle both regular function calls and method calls
             return visitor->visit_function_call(visitor, node);
         case NODE_BLOCK:
             return visitor->visit_block(visitor, node);
@@ -36,7 +38,19 @@ LLVMValueRef accept_gen(LLVM_Visitor* visitor, ASTNode* node) {
             return visitor->visit_conditional(visitor, node);
         case NODE_LOOP:
             return visitor->visit_loop(visitor, node);
+        case NODE_TYPE_DEC:
+            return visitor->visit_type_dec(visitor, node);
+        case NODE_TYPE_INST:
+            return visitor->visit_type_inst(visitor, node);
+        case NODE_TYPE_GET_ATTR:
+        if (node->data.op_node.right->type == NODE_FUNC_CALL) {
+            // This is likely a method call (contains _ in name)
+            printf("''%s\n",node->data.func_node.name);
+            return visitor->visit_type_method(visitor, node);
+        }
+            return visitor->visit_type_get_attr(visitor, node);
         default:
+            fprintf(stderr, "Unknown node type in code generation\n");
             exit(1);
     }
 }

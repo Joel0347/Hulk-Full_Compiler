@@ -21,8 +21,17 @@ LLVMTypeRef get_llvm_type(Type* type) {
     } else if (type_equals(type, &TYPE_OBJECT)) {
         // usamos un puntero void* que puede apuntar a cualquier tipo
         return LLVMPointerType(LLVMInt8Type(), 0);
+    } else if (type->dec != NULL) {
+        // Es un tipo personalizado
+        LLVMTypeRef struct_type = LLVMGetTypeByName(module, type->name);
+        if (!struct_type) {
+            fprintf(stderr, "Error: Tipo %s no encontrado\n", type->name);
+            exit(1);
+        }
+        // Retornamos un puntero al tipo estructurado
+        return LLVMPointerType(struct_type, 0);
     }
-
+    
     fprintf(stderr, "Error: Tipo desconocido %s\n", type->name);
     exit(1);
 }
@@ -42,19 +51,25 @@ void generate_main_function(ASTNode* ast, const char* filename) {
         .visit_function_dec = generate_function_body,
         .visit_let_in = generate_let_in,
         .visit_conditional = generate_conditional,
-        .visit_loop = generate_loop
+        .visit_loop = generate_loop,
+        .visit_type_dec = generate_type_declaration,
+        .visit_type_inst = generate_type_instance,
+        .visit_type_get_attr = generate_field_access,
+        .visit_type_method = generate_method_call
     };
-
-    // Initialize LLVM
     init_llvm();
+    
     
     // Declare external functions
     declare_external_functions();
+    
+    // Process function and type declarations
     find_function_dec(&visitor, ast);
     make_body_function_dec(&visitor, ast);
+    
+    
     // Create scope
     push_scope();
-    
     // Create main function
     LLVMTypeRef main_type = LLVMFunctionType(LLVMInt32Type(), NULL, 0, 0);
     LLVMValueRef main_func = LLVMAddFunction(module, "main", main_type);
@@ -62,13 +77,12 @@ void generate_main_function(ASTNode* ast, const char* filename) {
     // Create entry block
     LLVMBasicBlockRef entry = LLVMAppendBasicBlock(main_func, "entry");
     LLVMPositionBuilderAtEnd(builder, entry);
-    
+
     // Generate code for AST
     if (ast) {
         accept_gen(&visitor, ast);
     }
 
-    
     // Make sure we're in the right block for the return
     LLVMBasicBlockRef current_block = LLVMGetInsertBlock(builder);
     if (!LLVMGetBasicBlockTerminator(current_block)) {
@@ -334,9 +348,6 @@ LLVMValueRef generate_function_body(LLVM_Visitor* v, ASTNode* node) {
         LLVMBuildStore(builder, param, alloca);
         declare_variable(params[i]->data.variable_name, alloca);
     }
-
-
-    // Generar código para el cuerpo
     LLVMValueRef body_val = accept_gen(v, body);
 
     // Branch al bloque de salida
@@ -394,7 +405,6 @@ LLVMValueRef generate_let_in(LLVM_Visitor* v, ASTNode* node) {
 
     // Evaluar el cuerpo
     LLVMValueRef result = accept_gen(v, node->data.func_node.body);
-    
     // Asegurar que estamos en el bloque correcto después de la evaluación
     LLVMPositionBuilderAtEnd(builder, LLVMGetInsertBlock(builder));
     
@@ -504,4 +514,458 @@ LLVMValueRef generate_loop(LLVM_Visitor* v, ASTNode* node) {
         // Si el cuerpo es void, simplemente retornamos NULL
         return NULL;
     }
+}
+
+LLVMTypeRef generate_struct_type(const char* type_name, ASTNode* type_node) {
+    // Create struct type
+    LLVMTypeRef struct_type = LLVMStructCreateNamed(context, type_name);
+    
+    // Count fields to allocate
+    int field_count = 0;
+    for (int i = 0; i < type_node->data.type_node.def_count; i++) {
+        ASTNode* def = type_node->data.type_node.definitions[i];
+        if (def->type == NODE_ASSIGNMENT) {
+            field_count++;
+        }
+    }
+
+    // Create array for field types 
+    LLVMTypeRef* field_types = malloc(field_count * sizeof(LLVMTypeRef));
+    int field_idx = 0;
+
+    // Add fields from parent first if inheriting
+    if (type_node->data.type_node.parent_name[0] != '\0') {
+        LLVMTypeRef parent_type = LLVMGetTypeByName(module, type_node->data.type_node.parent_name);
+        if (parent_type) {
+            // Add parent fields
+            unsigned parent_field_count = LLVMCountStructElementTypes(parent_type);
+            for (unsigned i = 0; i < parent_field_count; i++) {
+                LLVMTypeRef field_type = LLVMStructGetTypeAtIndex(parent_type, i);
+                field_types[field_idx++] = field_type;
+            }
+        }
+    }
+
+    // Add this type's fields
+    for (int i = 0; i < type_node->data.type_node.def_count; i++) {
+        ASTNode* def = type_node->data.type_node.definitions[i];
+        if (def->type == NODE_ASSIGNMENT) {
+            field_types[field_idx++] = get_llvm_type(def->data.op_node.right->return_type);
+        }
+    }
+    
+    LLVMStructSetBody(struct_type, field_types, field_count, 0);
+    free(field_types);
+    
+    return struct_type;
+}
+
+void generate_type_methods(LLVM_Visitor* visitor, const char* type_name, LLVMTypeRef struct_type, ASTNode* type_node) {
+    // First generate vtable type
+    // Guardar builder actual
+    LLVMBuilderRef saved_builder = builder;
+    builder = LLVMCreateBuilder();
+    int method_count = 0;
+    for (int i = 0; i < type_node->data.type_node.def_count; i++) {
+        if (type_node->data.type_node.definitions[i]->type == NODE_FUNC_DEC) {
+            method_count++;
+        }
+    }
+    
+    LLVMTypeRef* method_types = malloc(method_count * sizeof(LLVMTypeRef));
+    char** method_names = malloc(method_count * sizeof(char*));
+    int method_idx = 0;
+
+    // Generate methods and collect their types
+    for(int i = 0; i < type_node->data.type_node.def_count; i++) {
+        ASTNode* def = type_node->data.type_node.definitions[i];
+        if(def->type == NODE_FUNC_DEC) {
+            char* method_name = strdup(def->data.func_node.name);
+            // Generate method name
+            // char* method_name = malloc(strlen(type_name) + strlen(def->data.func_node.name) + 3);
+            // sprintf(method_name, "%s__%s", type_name, def->data.func_node.name);
+            printf("Generating method %s for type %s\n", def->data.func_node.name, type_name);
+            method_names[method_idx] = method_name;
+            
+            // Create function type that takes struct pointer as first arg
+            LLVMTypeRef* param_types = malloc((def->data.func_node.arg_count + 1) * sizeof(LLVMTypeRef));
+            param_types[0] = LLVMPointerType(struct_type, 0); // 'this' pointer
+            
+            for(int j = 0; j < def->data.func_node.arg_count; j++) {
+                param_types[j+1] = get_llvm_type(def->data.func_node.args[j]->return_type);
+            }
+            
+            // Use the correct return type from the method declaration
+            LLVMTypeRef return_type = get_llvm_type(def->data.func_node.body->return_type);
+            
+            LLVMTypeRef func_type = LLVMFunctionType(
+                return_type,
+                param_types,
+                def->data.func_node.arg_count + 1,
+                0
+            );
+            method_types[method_idx] = func_type;
+
+            // Add function declaration
+            LLVMValueRef func = LLVMAddFunction(module, method_name, func_type);
+            
+            // Generate method body
+            LLVMBasicBlockRef entry = LLVMAppendBasicBlock(func, "entry");
+            LLVMPositionBuilderAtEnd(builder, entry);
+            
+            // Store old scope and create new one
+            push_scope();
+            
+            // Add 'this' pointer to scope
+            LLVMValueRef this_ptr = LLVMGetParam(func, 0);
+            declare_variable("self", this_ptr);
+            
+            // Add parameters to scope
+            for(int j = 0; j < def->data.func_node.arg_count; j++) {
+                LLVMValueRef param = LLVMGetParam(func, j + 1);
+                declare_variable(def->data.func_node.args[j]->data.variable_name, param);
+            }
+            
+            // Generate body and return value
+            LLVMValueRef result = accept_gen(visitor, def->data.func_node.body);
+            // Para funciones void, ignorar el valor de retorno de las llamadas
+            if (type_equals(def->data.func_node.body->return_type, &TYPE_VOID)) {
+                LLVMBuildRetVoid(builder);
+                result = NULL;
+            } else {
+                LLVMBuildRet(builder, result);
+            }
+            
+            pop_scope();
+            method_idx++;
+            free(param_types);
+        }
+    }
+
+    // Create vtable with correctly typed function pointers
+    char vtable_name[256];
+    sprintf(vtable_name, "%s_vtable", type_name);
+    
+    // Create vtable type using the actual method types
+    LLVMTypeRef* vtable_fn_types = malloc(method_count * sizeof(LLVMTypeRef));
+    for(int i = 0; i < method_count; i++) {
+        vtable_fn_types[i] = LLVMPointerType(method_types[i], 0);
+    }
+    
+    LLVMTypeRef vtable_type = LLVMStructType(vtable_fn_types, method_count, 0);
+    LLVMValueRef vtable = LLVMAddGlobal(module, vtable_type, vtable_name);
+    LLVMSetLinkage(vtable, LLVMPrivateLinkage);
+    
+    // Initialize vtable with method pointers
+    LLVMValueRef* method_ptrs = malloc(method_count * sizeof(LLVMValueRef));
+    for(int i = 0; i < method_count; i++) {
+        method_ptrs[i] = LLVMGetNamedFunction(module, method_names[i]);
+    }
+    
+    LLVMValueRef vtable_init = LLVMConstStruct(method_ptrs, method_count, 0);
+    LLVMSetInitializer(vtable, vtable_init);
+
+    // Cleanup
+    free(vtable_fn_types);
+    for(int i = 0; i < method_count; i++) {
+        free(method_names[i]);
+    }
+    free(method_names);
+    free(method_types);
+    free(method_ptrs);
+    LLVMDisposeBuilder(builder);
+    builder = saved_builder;
+}
+
+LLVMValueRef generate_type_declaration(LLVM_Visitor* v, ASTNode* node) {
+    const char* type_name = node->data.type_node.name;
+    
+    // Store type parameters in scope for use in field initializations
+    push_scope();
+    
+    // Add type parameters to scope
+    for(int i = 0; i < node->data.type_node.arg_count; i++) {
+        ASTNode* param = node->data.type_node.args[i];
+        // Create an alloca for each parameter
+        LLVMTypeRef param_type = get_llvm_type(param->return_type);
+        LLVMValueRef param_alloca = LLVMBuildAlloca(builder, param_type, param->data.variable_name);
+        declare_variable(param->data.variable_name, param_alloca);
+    }
+    // Create the struct type for this class
+    LLVMTypeRef struct_type = generate_struct_type(type_name, node);
+    // Generate methods for this type
+    generate_type_methods(v, type_name, struct_type, node);
+    pop_scope();
+    return NULL;
+}
+
+LLVMValueRef generate_type_instance(LLVM_Visitor* v, ASTNode* node) {
+    const char* type_name = node->data.type_node.name;
+    // Get struct type
+    LLVMTypeRef struct_type = LLVMGetTypeByName(module, type_name);
+    if (!struct_type) {
+        fprintf(stderr, "Type %s not found\n", type_name);
+        exit(1);
+    }
+
+    // Allocate memory for instance
+    LLVMValueRef instance = LLVMBuildMalloc(builder, struct_type, "instance");
+    
+    // Get the type definition to match parameters to fields
+    Type* type = node->return_type;
+    ASTNode* type_def = type->dec;
+    
+    // Keep track of which fields have been initialized
+    int field_count = LLVMCountStructElementTypes(struct_type);
+    char** initialized_fields = calloc(field_count, sizeof(char*));
+    int initialized_count = 0;
+
+    // First handle constructor parameters
+    for(int i = 0; i < node->data.type_node.arg_count; i++) {
+        LLVMValueRef arg_value = accept_gen(v, node->data.type_node.args[i]);
+        // Find matching field
+        const char* param_name = type_def->data.type_node.args[i]->data.variable_name;
+        int field_index = find_field_index(type, param_name);
+        
+        if (field_index >= 0) {
+            // Store constructor parameter value to field
+            LLVMValueRef field_ptr = LLVMBuildStructGEP2(
+                builder, struct_type, instance, field_index, "field_ptr");
+            LLVMBuildStore(builder, arg_value, field_ptr);
+            
+            // Mark field as initialized
+            initialized_fields[initialized_count++] = strdup(param_name);
+        }
+    }
+
+    // Initialize remaining fields with default values
+    for(int i = 0; i < field_count; i++) {
+        // Check if field was already initialized
+        int already_initialized = 0;
+        for(int j = 0; j < initialized_count; j++) {
+            if (initialized_fields[j] && !strcmp(
+                type_def->data.type_node.definitions[i]->data.op_node.left->data.variable_name,
+                initialized_fields[j])) {
+                already_initialized = 1;
+                break;
+            }
+        }
+        if (!already_initialized) {
+            LLVMTypeRef field_type = LLVMStructGetTypeAtIndex(struct_type, i);
+            LLVMValueRef field_ptr = LLVMBuildStructGEP2(
+                builder, struct_type, instance, i, "field_ptr");
+            
+            // Initialize with appropriate default value based on field type
+            LLVMValueRef default_value;
+            LLVMTypeKind type_kind = LLVMGetTypeKind(field_type);
+            
+            // Get the actual Type* from the AST node for this field
+            Type* field_ast_type = type_def->data.type_node.definitions[i]->data.op_node.right->return_type;
+            
+            if (type_equals(field_ast_type, &TYPE_NUMBER)) {
+                default_value = LLVMConstReal(field_type, 0.0);
+            }
+            else if (type_equals(field_ast_type, &TYPE_STRING)) {
+                // Empty string
+                default_value = LLVMBuildGlobalStringPtr(builder, "", "empty_str");
+            }
+            else if (type_equals(field_ast_type, &TYPE_BOOLEAN)) {
+                default_value = LLVMConstInt(field_type, 0, 0); // false
+            }
+            else if (field_ast_type->dec != NULL) {
+                // Es un tipo definido por el usuario
+                default_value = LLVMConstPointerNull(field_type);
+            }
+            else {
+                // Para cualquier otro tipo, usar null como valor por defecto
+                default_value = LLVMConstPointerNull(field_type);
+            }
+            
+            LLVMBuildStore(builder, default_value, field_ptr);
+        }
+    }
+
+    // Cleanup
+    for(int i = 0; i < initialized_count; i++) {
+        free(initialized_fields[i]);
+    }
+    free(initialized_fields);
+    return instance;
+}
+
+LLVMValueRef generate_field_access(LLVM_Visitor* v, ASTNode* node) {
+    // Get instance pointer
+    LLVMValueRef instance = accept_gen(v, node->data.op_node.left);
+    const char* name = node->data.op_node.right->data.variable_name;
+    
+    // Get type info from AST node
+    Type* instance_type = node->data.op_node.left->return_type;
+    
+    // Primero intentamos buscar como campo
+    int field_index = find_field_index(instance_type, name);
+    
+    if (field_index >= 0) {
+        // Es un campo, procesarlo como antes
+        LLVMTypeRef struct_type = LLVMGetElementType(LLVMTypeOf(instance));
+        LLVMValueRef field_ptr = LLVMBuildStructGEP2(
+            builder, struct_type, instance, field_index, "field_ptr");
+        
+        return LLVMBuildLoad2(
+            builder, 
+            LLVMGetElementType(LLVMTypeOf(field_ptr)),
+            field_ptr, 
+            "field_value"
+        );
+    } else {
+        // No es un campo, intentar buscar como método
+        // Construir el nombre completo del método (Type__methodName)
+        char* method_name = malloc(strlen(instance_type->name) + strlen(name) + 3);
+        sprintf(method_name, "%s__%s", instance_type->name, name);
+        // Buscar la función
+        LLVMValueRef method = LLVMGetNamedFunction(module, method_name);
+        
+        if (!method) {
+            // Si no se encuentra en este tipo, buscar en los padres
+            Type* current_type = instance_type->parent;
+            while (current_type && !is_builtin_type(current_type)) {
+                free(method_name);
+                method_name = malloc(strlen(current_type->name) + strlen(name) + 3);
+                sprintf(method_name, "%s__%s", current_type->name, name);
+                
+                method = LLVMGetNamedFunction(module, method_name);
+                if (method) break;
+                
+                current_type = current_type->parent;
+            }
+        }
+        
+        if (method) {
+            // Es un método, retornar el puntero a la función
+            free(method_name);
+            LLVMTypeRef method_type = LLVMTypeOf(method);
+            return method;
+        }
+        
+        free(method_name);
+        fprintf(stderr, "Neither field nor method %s found in type %s or its parents\n", 
+                name, instance_type->name);
+        exit(1);
+    }
+}
+
+static char* find_method_in_hierarchy(const char* method_name, Type* type) {
+    char* name = strdup(method_name);
+    while (type && !is_builtin_type(type)) {
+        // Build full method name for this type
+        // char* full_name = malloc(strlen(type->name) + strlen(method_name) + 3);
+        // sprintf(full_name, "%s__%s", type->name, method_name);
+        printf("full_name: %s\n", name);
+        // Check if method exists in this type
+        if (LLVMGetNamedFunction(module, name)) {
+            return name;
+        }
+        
+        // free(full_name);
+        name = delete_underscore_from_str(name,type->name);
+        type = type->parent;
+        printf("type: %s\n", type ? type->name : "NULL");
+        name = concat_str_with_underscore(type->name,name);
+    }
+    return NULL;
+}
+
+LLVMValueRef generate_method_call(LLVM_Visitor* v, ASTNode* node) {
+    // Get instance pointer and method info    
+    LLVMValueRef instance = accept_gen(v, node->data.op_node.left);
+    const char* method_name = node->data.op_node.right->data.func_node.name;
+    ASTNode** args = node->data.op_node.right->data.func_node.args;
+    int arg_count = node->data.op_node.right->data.func_node.arg_count;
+    
+    // Get instance type info
+    Type* instance_type = node->data.op_node.left->return_type;
+    
+    // Find method in type hierarchy
+    char* full_method_name = find_method_in_hierarchy(method_name, instance_type);
+    if (!full_method_name) {
+        fprintf(stderr, "Method %s not found in type %s or its parents\n", 
+                method_name, instance_type->name);
+        exit(1);
+    }
+    
+    // Get method function
+    LLVMValueRef method = LLVMGetNamedFunction(module, full_method_name);
+    
+    // Prepare arguments (instance pointer + regular args)
+    LLVMValueRef* call_args = malloc((arg_count + 1) * sizeof(LLVMValueRef));
+    
+    // Cast instance to base type pointer where method was defined
+    LLVMTypeRef base_struct_type = LLVMGetTypeByName(module, instance_type->parent->name);
+    LLVMTypeRef base_ptr_type = LLVMPointerType(base_struct_type, 0);
+    call_args[0] = LLVMBuildBitCast(builder, instance, base_ptr_type, "base_cast"); // Cast to base type
+    
+    // Generate code for method arguments
+    for(int i = 0; i < arg_count; i++) {
+        call_args[i + 1] = accept_gen(v, args[i]);
+    }
+    
+    // Call method
+    char* calltmp = type_equals(node->return_type, &TYPE_VOID) ? "" : "method_call";
+    LLVMValueRef result = LLVMBuildCall2(
+        builder,
+        LLVMGetElementType(LLVMTypeOf(method)),
+        method, 
+        call_args,
+        arg_count + 1,
+        calltmp
+    );
+    
+    free(full_method_name);
+    free(call_args);
+    return type_equals(node->return_type, &TYPE_VOID) ? NULL : result;
+}
+
+static int find_field_index(Type* type, const char* field_name) {
+    int current_index = 0;
+    
+    // First count fields in parent types
+    Type* parent = type->parent;
+    while(parent && !is_builtin_type(parent)) {
+        ASTNode* parent_node = parent->dec;
+        if (parent_node) {
+            for(int i = 0; i < parent_node->data.type_node.def_count; i++) {
+                ASTNode* def = parent_node->data.type_node.definitions[i];
+                if (def->type == NODE_ASSIGNMENT) {
+                    current_index++;
+                }
+            }
+        }
+        parent = parent->parent;
+    }
+    
+    // Then look through this type's fields
+    ASTNode* type_node = type->dec;
+    if (type_node) {
+        for(int i = 0; i < type_node->data.type_node.def_count; i++) {
+            ASTNode* def = type_node->data.type_node.definitions[i];
+            if (def->type == NODE_ASSIGNMENT) {
+                if (!strcmp(def->data.op_node.left->data.variable_name, field_name)) {
+                    return current_index;
+                }
+                current_index++;
+            }
+        }
+    }
+    
+    // Try parent types if not found here
+    parent = type->parent;
+    int parent_fields = current_index;
+    while(parent && !is_builtin_type(parent)) {
+        current_index = find_field_index(parent, field_name);
+        if (current_index >= 0) {
+            return current_index;
+        }
+        parent = parent->parent;
+    }
+    
+    return -1;
 }

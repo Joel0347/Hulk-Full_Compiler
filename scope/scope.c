@@ -19,7 +19,7 @@ Scope* create_scope(Scope* parent) {
 
 void free_symbol(Symbol* current_symbol, int count) {
     int i = 0;
-    while (i < count) {
+    while (i < count && current_symbol) {
         Symbol* next = current_symbol->next;
         free(current_symbol);
         current_symbol = next;
