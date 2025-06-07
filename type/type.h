@@ -53,6 +53,7 @@ extern Type TYPE_VOID;
 extern Type TYPE_OBJECT;
 extern Type TYPE_ERROR;
 extern Type TYPE_ANY;
+extern Type TYPE_NULL;
 
 extern int op_rules_count;
 extern OperatorTypeRule operator_rules[];

@@ -16,6 +16,7 @@ Type TYPE_BOOLEAN = { "Boolean", NULL, &TYPE_OBJECT, NULL, NULL, 0 };
 Type TYPE_VOID = { "Void", NULL, &TYPE_OBJECT, NULL, NULL, 0 };
 Type TYPE_ERROR = { "Error", NULL, NULL, NULL, NULL, 0 };
 Type TYPE_ANY = { "Any", NULL, NULL, NULL, NULL, 0 };
+Type TYPE_NULL = { "Null", NULL, &TYPE_OBJECT, NULL, NULL, 0 };
 
 OperatorTypeRule operator_rules[] = {
 
@@ -104,6 +105,20 @@ int is_ancestor_type(Type* ancestor, Type* type) {
     return is_ancestor_type(ancestor, type->parent);
 }
 
+Type* get_nulleable(Type* type) {
+    if (is_builtin_type(type) && !type_equals(type, &TYPE_OBJECT))
+        return type;
+
+    Type* new_type = (Type*)malloc(sizeof(Type));
+    new_type->name = append_question(type->name);
+    new_type->parent = &TYPE_OBJECT;
+    new_type->param_types = NULL;
+    new_type->arg_count = 0;
+    new_type->dec = NULL;
+    new_type->sub_type = type;
+    return new_type;
+}
+
 Type* get_lca(Type* true_type, Type* false_type) {
     if (type_equals(true_type, &TYPE_ANY) ||
         type_equals(false_type, &TYPE_ANY)
@@ -114,6 +129,10 @@ Type* get_lca(Type* true_type, Type* false_type) {
     ) {
         return &TYPE_ERROR;
     }
+
+    if (type_equals(false_type, &TYPE_NULL)) {
+        return get_nulleable(true_type);
+    } 
     
     if (is_ancestor_type(true_type, false_type))
         return true_type;
@@ -180,6 +199,7 @@ Type* create_new_type(char* name, Type* parent, Type** param_types, int count, s
     new_type->param_types = param_types;
     new_type->arg_count = count;
     new_type->dec = dec;
+    new_type->sub_type = NULL;
     return new_type;
 }
 
@@ -190,6 +210,7 @@ int is_builtin_type(Type* type) {
         type_equals(type, &TYPE_NUMBER)  ||
         type_equals(type, &TYPE_BOOLEAN) ||
         type_equals(type, &TYPE_VOID)    ||
-        type_equals(type, &TYPE_ERROR)
+        type_equals(type, &TYPE_ERROR)   ||
+        type_equals(type, &TYPE_NULL)
     );
 }

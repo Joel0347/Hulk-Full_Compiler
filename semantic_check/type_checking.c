@@ -413,6 +413,15 @@ void visit_type_instance(Visitor* v, ASTNode* node) {
         accept(v, args[i]);
     }
 
+    if (match_as_keyword(node->data.type_node.name)) {
+        node->return_type = &TYPE_ERROR;
+        report_error(
+            v, "Keyword '%s' can not be used in type instance. Line: %d.",
+            node->data.type_node.name, node->line
+        );
+        return;
+    }
+
     ContextItem* item = find_context_item(
         node->context, node->data.type_node.name, 1, 0
     );
@@ -589,10 +598,28 @@ void visit_attr_getter(Visitor* v, ASTNode* node) {
 
         if (!t) {
             ContextItem* t_item = find_context_item(node->context, instance_type->name, 1, 0);
-            accept(v, t_item->declaration);
-            // instance_type->dec->context = t_item->declaration->context;
-            // instance_type->dec->scope = t_item->declaration->scope;
-            instance_type = t_item->return_type;
+            if (t_item) {
+                accept(v, t_item->declaration);
+                instance_type = t_item->return_type;
+            } else {
+                node->return_type = &TYPE_ERROR;
+                if (!type_equals(instance_type, &TYPE_ERROR)) {
+                    report_error(
+                        v, "Type '%s' does not have a method named '%s'. Line: %d", 
+                        instance_type->name, member->data.func_node.name, node->line
+                    );
+                }
+                return;
+            }
+        } else if (is_builtin_type(instance_type)) {
+            node->return_type = &TYPE_ERROR;
+            if (!type_equals(instance_type, &TYPE_ERROR)) {
+                report_error(
+                    v, "Type '%s' does not have a method named '%s'. Line: %d", 
+                    instance_type->name, member->data.func_node.name, node->line
+                );
+            }
+            return;
         } else {
             instance_type = t->type;
         }

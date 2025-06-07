@@ -41,7 +41,7 @@ int unify_member(Visitor* v, ASTNode* node, Type* type) {
             node->return_type = type;
             unified = 1;
         }
-    } else if (node->type == NODE_CONDITIONAL) {
+    } else if (node->type == NODE_CONDITIONAL || node->type == NODE_Q_CONDITIONAL) {
         unified = unify_conditional(v, node, type);
     } else if (node->derivations) {
         for (int i = 0; i < node->derivations->count; i++)

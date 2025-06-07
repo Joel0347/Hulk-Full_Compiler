@@ -24,6 +24,7 @@ typedef void (*VisitBlock)(Visitor*, ASTNode*);
 typedef void (*VisitFuncDec)(Visitor*, ASTNode*);
 typedef void (*VisitLetIn)(Visitor*, ASTNode*);
 typedef void (*VisitConditional)(Visitor*, ASTNode*);
+typedef void (*VisitQConditional)(Visitor*, ASTNode*);
 typedef void (*VisitLoop)(Visitor*, ASTNode*);
 typedef void (*VisitForLoop)(Visitor*, ASTNode*);
 typedef void (*VisitTypeDec)(Visitor*, ASTNode*);
@@ -50,6 +51,7 @@ struct Visitor {
     VisitFuncDec visit_function_dec;
     VisitLetIn visit_let_in;
     VisitConditional visit_conditional;
+    VisitQConditional visit_q_conditional;
     VisitLoop visit_loop;
     VisitForLoop visit_for_loop;
     VisitTypeDec visit_type_dec;

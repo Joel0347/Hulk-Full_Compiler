@@ -118,6 +118,17 @@ char* delete_underscore_from_str(char* name, char* type) {
     return strdup(s1_ptr);
 }
 
+char* append_question(const char *input) {
+    int len = strlen(input);
+    char *result = malloc((len + 2) * sizeof(char));
+    
+    strcpy(result, input);
+    result[len] = '?';
+    result[len + 1] = '\0';
+    
+    return result;
+}
+
 MRO* add_type_to_mro(char* type_name, MRO* list) {
     if (!strcmp(type_name, ""))
         return list;

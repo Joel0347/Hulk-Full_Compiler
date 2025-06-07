@@ -20,6 +20,7 @@ typedef enum {
     NODE_FUNC_DEC,
     NODE_LET_IN,
     NODE_CONDITIONAL,
+    NODE_Q_CONDITIONAL,
     NODE_LOOP,
     NODE_FOR_LOOP,
     NODE_TEST_TYPE,
@@ -91,6 +92,7 @@ ASTNode* create_func_call_node(char* name, ASTNode** args, int arg_count);
 ASTNode* create_func_dec_node(char* name, ASTNode** args, int arg_count, ASTNode* body, char* ret_type); 
 ASTNode* create_let_in_node(ASTNode** declarations, int dec_count, ASTNode* body);
 ASTNode* create_conditional_node(ASTNode* condition, ASTNode* body_true, ASTNode* body_false);
+ASTNode* create_q_conditional_node(ASTNode* exp, ASTNode* body_true, ASTNode* body_false);
 ASTNode* create_loop_node(ASTNode* condition, ASTNode* body);
 ASTNode* create_for_loop_node(char* var_name, ASTNode** params, ASTNode* body, int count);
 ASTNode* create_test_casting_type_node(ASTNode* exp, char* type_name, int test);
