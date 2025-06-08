@@ -530,34 +530,67 @@ int type_contains_attr(Type* type, char* name, int see_parent) {
     return 0;
 }
 
-Type* get_type_by_attr(Scope* scope, char* name) {
-   Type* current = NULL;
+int type_dec_contains_attr(ASTNode* node, char* name) {
+    for (int i = 0; i < node->data.type_node.def_count; i++) {
+        ASTNode* def = node->data.type_node.definitions[i];
+        if (def->type == NODE_FUNC_DEC &&
+            (!strcmp(def->data.func_node.name, name) ||
+            !strcmp(def->data.func_node.name, concat_str_with_underscore(
+                node->data.type_node.name, name
+            )))
+        ) {
+            return 1;
+        } 
+    }
     
-    while (scope) {
-        int i = 0;
-        Symbol* s = scope->defined_types;
-        while (i < scope->t_count) {
-            Type* t = s->type;
+    return 0;
+}
 
-            if (type_contains_attr(t, name, 0)) {
-                if (!current)
-                    current = t;
-                else {
-                    Type* tmp = get_lca(current, t);
+ValueList* get_types_by_attr(Context* context, char* name) {
+   ValueList* current = NULL;
+    
+    // while (scope) {
+    //     int i = 0;
+    //     Symbol* s = scope->defined_types;
+    //     while (i < scope->t_count) {
+    //         Type* t = s->type;
+
+    //         if (type_contains_attr(t, name, 0)) {
+    //             if (!current)
+    //                 current = t;
+    //             else {
+    //                 Type* tmp = get_lca(current, t);
                     
-                    if (type_contains_attr(tmp, name, 1))
-                        current = tmp;
-                    else
-                        return NULL;
+    //                 if (type_contains_attr(tmp, name, 1))
+    //                     current = tmp;
+    //                 else
+    //                     return NULL;
+    //             }
+    //         }
+
+    //         s = s->next;
+    //         i++;
+    //     }
+
+    //     scope = scope->parent;
+    // }
+    while (context) {
+        int i = 0;
+        ContextItem* item = context->first;
+        while (i < context->count) {
+            if (item->declaration->type == NODE_TYPE_DEC) {
+                if (type_dec_contains_attr(item->declaration, name)) {
+                    current = add_value_list(item->declaration, current);
                 }
             }
 
-            s = s->next;
             i++;
+            item = item->next;
         }
-
-        scope = scope->parent;
+        
+        context = context->parent;
     }
+    
 
     return current;
 }

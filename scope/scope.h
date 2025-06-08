@@ -78,7 +78,8 @@ Symbol* find_parameter(Scope* scope, const char* name);
 FuncData* get_type_func(Type* type, Function* f, Function* dec);
 Symbol* get_type_attr(Type* type, char* attr_name);
 char* find_base_func_dec(Type* type, char* name);
-Type* get_type_by_attr(Scope* scope, char* name);
+ValueList* get_types_by_attr(Context* context, char* name);
+int type_contains_attr(Type* type, char* name, int see_parent);
 void free_ast(struct ASTNode* node);
 
 #endif

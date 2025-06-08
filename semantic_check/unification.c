@@ -289,7 +289,29 @@ int unify_type_by_attr(Visitor* v, ASTNode* node) {
     if (member->type == NODE_VARIABLE)
         return 1;
     
-    Type* type = get_type_by_attr(node->scope, member->data.func_node.name);
+    ValueList* types = get_types_by_attr(node->context, member->data.func_node.name);
+    Type* type = NULL;
+    Symbol* defined_type = NULL;
+
+    for (int i = 0; i < types->count; i++) {
+        ASTNode* dec = at(i, types);
+        accept(v, dec);
+        defined_type = find_defined_type(node->scope, dec->data.type_node.name);
+
+        if (defined_type) {
+            if (!type)
+                type = defined_type->type;
+            else {
+                Type* tmp = get_lca(type, defined_type->type);
+                
+                if (type_contains_attr(tmp, member->data.func_node.name, 1))
+                    type = tmp;
+                else
+                    return 0;
+            }
+        } 
+    }
+    
 
     if (type) {
         unified = unify_member(v, instance, type);

@@ -1,6 +1,7 @@
 #include <string.h>
 
 struct ASTNode;
+struct Type;
 
 typedef struct Tuple {
     int matched;
@@ -25,7 +26,7 @@ typedef struct StrList {
 
 typedef struct ListElement {
     struct ASTNode* value;
-    struct ASTNode* next;
+    struct ListElement* next;
 } ListElement;
 
 typedef struct ValueList {
