@@ -1,53 +1,51 @@
 // // KENDRY TODO ESTO TIENE QUE PINCHAR
-// let w = 2 == 3 & !(3<4), x = 1+2, z = exp(x) in {
-//     print(x-2);
-//     print(w);
-//     print(x);
-//     print(z);
-//     print(1);
-//     print(log(E));
-//     print(log(2, x));
-//     print(cos(PI/2));
-//     print(sin(PI));
-//     print(exp(2) + z);
-//     print(sqrt(z));
-//     print(rand());
-// };
+let w = 2 == 3 & !(3<4), x = 1+2, z = exp(x) in {
+    print(x-2);
+    print(w);
+    print(x);
+    print(z);
+    print(1);
+    print(log(E));
+    print(log(2, x));
+    print(cos(PI/2));
+    print(sin(PI));
+    print(exp(2) + z);
+    print(sqrt(z));
+    print(rand());
+};
 
-// let p="JOEL"@@ {
-//     "PONTE\t\\\\"@ {
-//             2;
-//             "A PINCHAR QUE SINO EL BARCA\nNO GANA LA SEXTA \n";
-//         };
-//     },x = 2 in {
-//     print(p);
-//     // p:Number := 3;
-//     // let a = 2+x in a + p;
-// };
-// let
-//     x: Boolean = true,
-//     y: Boolean = false
-// in {
-//     print(x&y);
-// };
+let p="JOEL"@@ {
+    "PONTE\t\\\\"@ {
+            2;
+            "A PINCHAR QUE SINO EL BARCA\nNO GANA LA SEXTA \n";
+        };
+    },x = 2 in {
+    print(p);
+    // p:Number := 3;
+    // let a = 2+x in a + p;
+};
+let
+    x: Boolean = true,
+    y: Boolean = false
+in {
+    print(x&y);
+};
 
-// f(1, "Ads");
+f(1, "Ads");
 
-// function f(x:Number, y) {
-//     let t = 1 in
-//         x @ y  @ t;
-// }
-// {
-//     function h(x, y) {
-//         g(x, y);
-//     }
-//     h(2, 2@"");
-// }
-// function g(x, y:String) {
-//     f(x, y);
-// }
-// false == true;
-// 2@"asd";
+function f(x:Number, y) {
+    let t = 1 in
+        x @ y  @ t;
+}
+{
+    function h(x, y) {
+        g(x, y);
+    }
+    h(2, 2@"");
+}
+function g(x, y:String) {
+    f(x, y);
+}
 
 // function test1(x, y:Object): Number => k(x, y);
 // function test2(x: Number, y:String) => {
@@ -62,56 +60,56 @@
 // test1(2,3) @ 1;
 // test2(2, "sad") + 1;
 
-// function cot(x) => 1 / tan(x);
-// function tan(x) => sin(x) / cos(x);
+function cot(x) => 1 / tan(x);
+function tan(x) => sin(x) / cos(x);
 
-// print(tan(PI)^2 + cot(PI)^2);
+print(tan(PI)^2 + cot(PI)^2);
 
-// function operate(x, y) {
-//     print(x + y);
-//     print(x - y);
-//     print(x * y);
-//     print(x / y);
-// }
+function operate(x, y) {
+    print(x + y);
+    print(x - y);
+    print(x * y);
+    print(x / y);
+}
 
-// let msg = "Hello World" in print(msg);
-// let number = 42, text = "The meaning of life is" in print(text@@number);
-// let number = 42, text = "The meaning of life is " in print(text@number);
-// let number = 42 in (
-//     let text = "The meaning of life is " in (
-//         print(text@number)
-//     )
-// );
+let msg = "Hello World" in print(msg);
+let number = 42, text = "The meaning of life is" in print(text@@number);
+let number = 42, text = "The meaning of life is " in print(text@number);
+let number = 42 in (
+    let text = "The meaning of life is " in (
+        print(text@number)
+    )
+);
 
-// let a = 6, b = a * 7 in print(b);
-// let a = 6 in
-//     let b = a * 7 in
-//         print(b);
-// let a = 5, b = 10, c = 20 in {
-//     print(a+b);
-//     print(b*c);
-//     print(c/a);
-// };
-// let a = (let b = 6 in b * 7) in print(a);
-// print(let b = 6 in b * 7);
-// let a = 20 in {
-//     let a = 42 in print(a); //imprime 42
-//     print(a); //imprime 20
-// };
-// let a = true, a = 7 * 6 in print(a + 1); //imprime 43
-// let a = 7 in
-//     let a = 7 * 6 in
-//         print(a); //imprime 42
-// let a = 0 in {
-//     print(a); //imprime 0
-//     a := 1;
-//     print(a); // imprime 1
-// };
-// let a = 0 in
-//     let b = a := 1 in {
-//         print(a); //imprime 1
-//         print(b); //imprime 1
-//     };
+let a = 6, b = a * 7 in print(b);
+let a = 6 in
+    let b = a * 7 in
+        print(b);
+let a = 5, b = 10, c = 20 in {
+    print(a+b);
+    print(b*c);
+    print(c/a);
+};
+let a = (let b = 6 in b * 7) in print(a);
+print(let b = 6 in b * 7);
+let a = 20 in {
+    let a = 42 in print(a); //imprime 42
+    print(a); //imprime 20
+};
+let a = true, a = 7 * 6 in print(a + 1); //imprime 43
+let a = 7 in
+    let a = 7 * 6 in
+        print(a); //imprime 42
+let a = 0 in {
+    print(a); //imprime 0
+    a := 1;
+    print(a); // imprime 1
+};
+let a = 0 in
+    let b = a := 1 in {
+        print(a); //imprime 1
+        print(b); //imprime 1
+    };
 // function hola(x, y) { //revisar parametros con igual nombre
 //     let x = 1, x = true in {
 //         x := {y;}; //revisar este caso extremo (unificar tambien a quien depende de mi conmigo)
@@ -140,20 +138,20 @@
 // } else {
 // 	3;
 // }
-// // function test1(x) {
-// //     function test2(y) {
-// //         x + y;
-// //     }
-// //     x + test2(x);
-// // }
-// let x:Void = {} in x;
-// function fib(n) {
-//     if (n == 0 | n == 1)
-//         1
-//     else
-//         fib(n-1) + fib(n-2)
+// function test1(x) {
+//     function test2(y) {
+//         x + y;
+//     }
+//     x + test2(x);
 // }
-// let a = fib(5) in print(fib(a));
+let x:Void = {} in x;
+function fib(n) {
+    if (n == 0 | n == 1)
+        1
+    else
+        fib(n-1) + fib(n-2)
+}
+let a = fib(5) in print("fibonacci"@@fib(a));
 // let x:Number = if (false) 3 in x;
 // fib("As")@1;
 
@@ -167,27 +165,27 @@
 
 // test3("AS")@1;
 
-// function fact(n) {
-//     if (n == 1 | n == 0)
-//         1
-//     else 
-//         fact(n-1) * n;
-//     // function l(m) => let i = 1, total = 1 in while (i <= m) {
-//     //     total *= i;
-//     //     i += 1;
-//     //     total;
-//     // };
-//     // l(n);
-// }
+function fact(n) {
+    if (n == 1 | n == 0)
+        1
+    else 
+        fact(n-1) * n;
+    // function l(m) => let i = 1, total = 1 in while (i <= m) {
+    //     total *= i;
+    //     i += 1;
+    //     total;
+    // };
+    // l(n);
+}
 
-// print("factorial de 4:"@@fact(4));
+print("factorial de 4:"@@fact(4));
 
-// // fact(4);
+// fact(4);
 
-// let i = 0 in while (i<4) {
-//     print("hola");
-//     i += 1;
-// };
+let i = 0 in while (i<4) {
+    print("hola");
+    i += 1;
+};
 // let i =1, p = i+=2<1 in print(p+i);
 // function j(x) {
 //     let i = 1 in while (true) {
@@ -198,8 +196,8 @@
 
 // j("as");
 // j(2);
-// function d(x) => x+1;
-// d(2);
+function d(x) => x+1;
+d(2);
 
 // let x=5, y=7 in {
 //     function test(l){
@@ -370,18 +368,18 @@
 
 // function l(x) => for (i in range(x)) i+1;
 // l("asd");
-function f(x) {
-	x := if (false) new A();
-	if?(x) {
-		2;
-	} else {
-		x.g() + 1;
-	};
-	// let total = 0 in for (i in range(12, x)) {
-	// 	total += i;
-	// };
-}
+// function f(x) {
+// 	x := if (false) new A();
+// 	if?(x) {
+// 		2;
+// 	} else {
+// 		x.g() + 1;
+// 	};
+// 	// let total = 0 in for (i in range(12, x)) {
+// 	// 	total += i;
+// 	// };
+// }
 
-type A { x = if (false) 1; g() {if?(self.x) self.x else self.x} }
+// type A { x = if (false) 1; g() {if?(self.x) self.x else self.x} }
 
-print(f(if (false) new A()));
+// print(f(if (false) new A()));
