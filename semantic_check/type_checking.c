@@ -635,8 +635,8 @@ void visit_attr_getter(Visitor* v, ASTNode* node) {
 }
 
 void visit_test_type(Visitor* v, ASTNode* node) {
-    ASTNode* exp = node->data.op_node.left;
-    char* type_name = node->static_type;
+    ASTNode* exp = node->data.cast_test.exp;
+    char* type_name = node->data.cast_test.type_name;
 
     exp->scope->parent = node->scope;
     exp->context->parent = node->context;
@@ -646,16 +646,31 @@ void visit_test_type(Visitor* v, ASTNode* node) {
     Symbol* defined_type = find_defined_type(node->scope, type_name);
 
     if (!defined_type) {
-        report_error(
-            v, "Type '%s' is not a valid type. Line: %d.",
-            type_name, node->line
+        ContextItem* item = find_context_item(
+            node->context, type_name, 1, 0
         );
+
+        if (item) {
+            accept(v, item->declaration);
+            defined_type = find_defined_type(node->scope, type_name);
+        }
+
+        if (!defined_type) {
+            node->data.cast_test.type = &TYPE_ERROR;
+            report_error(
+                v, "Type '%s' is not a valid type. Line: %d.",
+                type_name, node->line
+            );
+            return;
+        }
     }
+
+    node->data.cast_test.type = defined_type->type;
 }
 
 void visit_casting_type(Visitor* v, ASTNode* node) {
-    ASTNode* exp = node->data.op_node.left;
-    char* type_name = node->static_type;
+    ASTNode* exp = node->data.cast_test.exp;
+    char* type_name = node->data.cast_test.type_name;
 
     exp->scope->parent = node->scope;
     exp->context->parent = node->context;
@@ -665,11 +680,27 @@ void visit_casting_type(Visitor* v, ASTNode* node) {
     Symbol* defined_type = find_defined_type(node->scope, type_name);
 
     if (!defined_type) {
-        report_error(
-            v, "Type '%s' is not a valid type. Line: %d.",
-            type_name, node->line
+        ContextItem* item = find_context_item(
+            node->context, type_name, 1, 0
         );
-    } else if (
+
+        if (item) {
+            accept(v, item->declaration);
+            defined_type = find_defined_type(node->scope, type_name);
+        }
+
+        if (!defined_type) {
+            node->data.cast_test.type = &TYPE_ERROR;
+            node->return_type = &TYPE_ERROR;
+            report_error(
+                v, "Type '%s' is not a valid type. Line: %d.",
+                type_name, node->line
+            );
+            return;
+        }
+    }
+    
+    if (
         !type_equals(dynamic_type, &TYPE_ERROR) &&
         !type_equals(dynamic_type, &TYPE_ANY) &&
         !same_branch_in_type_hierarchy(
@@ -682,5 +713,6 @@ void visit_casting_type(Visitor* v, ASTNode* node) {
         );
     }
 
-    node->return_type = defined_type? defined_type->type : &TYPE_ERROR;
+    node->data.cast_test.type = defined_type->type;
+    node->return_type = defined_type->type;
 }
