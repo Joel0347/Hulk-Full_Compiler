@@ -161,6 +161,10 @@ LLVMValueRef generate_binary_operation(LLVM_Visitor* v, ASTNode* node) {
                 return LLVMBuildAnd(builder, L, R, "and_tmp");
             case OP_OR:
                 return LLVMBuildOr(builder, L, R, "or_tmp");
+            case OP_EQ:
+                return LLVMBuildICmp(builder, LLVMIntEQ, L, R, "bool_eq_tmp");
+            case OP_NEQ:
+                return LLVMBuildICmp(builder, LLVMIntNE, L, R, "bool_neq_tmp");
             default:
                 break;
         }
