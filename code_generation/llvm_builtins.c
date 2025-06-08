@@ -3,6 +3,7 @@
 #include "../type/type.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include "../ast/ast.h"
 
 LLVMValueRef generate_builtin_function(LLVM_Visitor* v, ASTNode* node) {
     if (!strcmp(node->data.func_node.name, "print")) {
@@ -10,6 +11,11 @@ LLVMValueRef generate_builtin_function(LLVM_Visitor* v, ASTNode* node) {
     }
     else if (!strcmp(node->data.func_node.name, "sqrt")) {
         return basic_functions(v, node, "sqrt", "sqrt_tmp");
+    }
+    else if (node->type == NODE_TEST_TYPE) {
+        return generate_test_type(v, node); 
+    } else if (node->type == NODE_CAST_TYPE) {
+        return generate_cast_type(v, node);
     }
     else if (!strcmp(node->data.func_node.name, "sin")) {
         return basic_functions(v, node, "sin", "sin_tmp");

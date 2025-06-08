@@ -126,18 +126,27 @@
 // // function f(x:Number):Number => f(x);
 
 // // print(f(3));
+// type Point(x:Number, y:Number) {
+//     x = x;
+//     y = y;
+//     // getX(): Number => self.x;
+//     // getY(): Number => self.y;
+//     // setX(x) => self.x := x;
+//     // setY(y) => self.y := y;
+// }
 
-// // if (3<1) {
-// // 	5;
-// // } elif (3 < 5) {
-// // 	4;
-// // } elif (false) {
-
-// // } elif (3 < 8) {
-
-// // } else {
-// // 	3;
-// // }
+// if (3>1) {
+// 	print("hola");
+// } elif (3 > 5) {
+// 	4;
+// } elif (true) {
+//     let pt:Point = new Point(3, 4) in {pt;};
+// } elif (3 < 8) {
+//     3;
+// } else {
+// 	3;
+// }
+// let x:String ="2" in {x is Number;};
 // // // function test1(x) {
 // // //     function test2(y) {
 // // //         x + y;
@@ -287,31 +296,31 @@
 
 // new PolarPoint("12", "4");
 
-function even(x:Number): Boolean {
-    if (x == 0) true
-    elif (x == 1) false
-    else odd(x - 1);
-}
+// function even(x:Number): Boolean {
+//     if (x == 0) true
+//     elif (x == 1) false
+//     else odd(x - 1);
+// }
 
-function odd(x:Number): Boolean {
-    if (x == 0) false
-    elif (x == 1) true
-    else even(x - 1);
-}
+// function odd(x:Number): Boolean {
+//     if (x == 0) false
+//     elif (x == 1) true
+//     else even(x - 1);
+// }
 
-print(odd(7));
+// print(odd(7));
 
-// type Point(x, y) {
+// type Point(x:Number, y:Number) {
 //     x = x;
 //     y = y;
-//     getX(): Number => self.x;
-//     getY(): Number => self.y;
-//     setX(x) => self.x := x;
-//     setY(y) => self.y := y;
+//     getX() => print("LOL");
+//     // getY(): Number => self.y;
+//     // setX(x) => self.x := x;
+//     // setY(y) => self.y := y;
 // }
 
 // let pt:Point = new Point(3, 4) in // imprime: x: 3; y: 4
-//     print("x: " @ pt.getX() @ "; y: " @ pt.getY());
+//     pt.getX();
 
 // type PolarPoint inherits Point {
 //     rho() => sqrt(self.getX()^2 + self.getY()^2);
@@ -348,16 +357,16 @@ print(odd(7));
 // function l(x) => for (i in range(x)) i+1;
 // l("asd");
 
-type A { x = if (false) 1; g() {if?(self.x) self.x else self.x} }
-function f(x) {
-	x := if (false) new A();
-	if?(x) {
-		2;
-	} else {
-		x.g() + 1;
-	};
-	// let total = 0 in for (i in range(12, x)) {
-	// 	total += i;
-	// };
-}
-print(f(if (false) new A()));
+// type A { x = if (false) 1; g() {if?(self.x) self.x else self.x} }
+// function f(x) {
+// 	x := if (false) new A();
+// 	if?(x) {
+// 		2;
+// 	} else {
+// 		x.g() + 1;
+// 	};
+// 	// let total = 0 in for (i in range(12, x)) {
+// 	// 	total += i;
+// 	// };
+// }
+// print(f(if (false) new A()));
