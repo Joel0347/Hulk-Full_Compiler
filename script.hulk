@@ -359,9 +359,11 @@ d(2);
 // 	getY() => 2;
 // }
 
-// type c {
-// 	// getX() => 1;
-// }
+type b inherits c {}
+type c {
+	// getX() => 1;
+}
+let x = new b() in if (x is c) x as c else {};
 
 
 // l("2", 2);

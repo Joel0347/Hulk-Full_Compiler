@@ -229,10 +229,10 @@ ASTNode* create_test_casting_type_node(ASTNode* exp, char* type_name, int test) 
     node->line = line_num;
     node->type = test? NODE_TEST_TYPE : NODE_CAST_TYPE;
     node->return_type = test? &TYPE_BOOLEAN : &TYPE_OBJECT;
-    node->static_type = type_name;
+    node->data.cast_test.type_name = type_name;
     node->scope = create_scope(NULL);
     node->context = create_context(NULL);
-    node->data.op_node.left = exp;
+    node->data.cast_test.exp = exp;
     return node;
 }
 
@@ -368,7 +368,9 @@ void free_ast(ASTNode* node) {
             break;
         case NODE_TEST_TYPE:
         case NODE_CAST_TYPE:
-            free_ast(node->data.op_node.left);
+            free_ast(node->data.cast_test.exp);
+            free(node->data.cast_test.type);
+            break;
         case NODE_TYPE_DEC:
             for (int i = 0; i < node->data.type_node.arg_count; i++) {
                 free_ast(node->data.type_node.args[i]);
@@ -496,12 +498,12 @@ void print_ast(ASTNode* node, int indent) {
             print_ast(node->data.op_node.right, indent + 2);
             break;
         case NODE_TEST_TYPE:
-            printf("IS %s\n", node->static_type);
-            print_ast(node->data.op_node.left, indent + 1);
+            printf("IS %s\n", node->data.cast_test.type_name);
+            print_ast(node->data.cast_test.exp, indent + 1);
             break;
         case NODE_CAST_TYPE:
-            printf("AS %s\n", node->static_type);
-            print_ast(node->data.op_node.left, indent + 1);
+            printf("AS %s\n", node->data.cast_test.type_name);
+            print_ast(node->data.cast_test.exp, indent + 1);
             break;
         case NODE_TYPE_DEC:
             printf("Type_Declaration: %s, inherits %s\n",

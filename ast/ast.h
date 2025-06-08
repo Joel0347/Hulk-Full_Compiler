@@ -77,6 +77,11 @@ typedef struct ASTNode {
             struct ASTNode** definitions;
             int def_count;
         } type_node;
+        struct {
+            char* type_name;
+            Type* type;
+            struct ASTNode* exp;
+        } cast_test;
     } data;
 } ASTNode;
 
