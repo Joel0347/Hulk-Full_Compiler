@@ -46,19 +46,21 @@
 // function g(x, y:String) {
 //     f(x, y);
 // }
+// false == true;
+// 2@"asd";
 
-// // function test1(x, y:Object): Number => k(x, y);
-// // function test2(x: Number, y:String) => {
-// //     test1(x, y); //test2 debe saber que retorna Void o lo que sea que retorne test1
-// // };
+// function test1(x, y:Object): Number => k(x, y);
+// function test2(x: Number, y:String) => {
+//     test1(x, y); //test2 debe saber que retorna Void o lo que sea que retorne test1
+// };
 
-// // function k(x, y:Object) {
-// //     test2(test1(x, y), x); // no infiere que y es string
-// // }
-// // k(2);
+// function k(x, y:Object) {
+//     test2(test1(x, y), x); // no infiere que y es string
+// }
+// k(2);
 
-// // test1(2,3) @ 1;
-// // test2(2, "sad") + 1;
+// test1(2,3) @ 1;
+// test2(2, "sad") + 1;
 
 // function cot(x) => 1 / tan(x);
 // function tan(x) => sin(x) / cos(x);
@@ -110,41 +112,41 @@
 //         print(a); //imprime 1
 //         print(b); //imprime 1
 //     };
-// // function hola(x, y) { //revisar parametros con igual nombre
-// //     let x = 1, x = true in {
-// //         x := {y;}; //revisar este caso extremo (unificar tambien a quien depende de mi conmigo)
-// //         // y := x;
-// //         1 - y;;
-// //     };
+// function hola(x, y) { //revisar parametros con igual nombre
+//     let x = 1, x = true in {
+//         x := {y;}; //revisar este caso extremo (unificar tambien a quien depende de mi conmigo)
+//         // y := x;
+//         1 - y;;
+//     };
+// }
+
+// function suc() => {};
+// suc()+1;
+// print(hola(12, 2));
+
+// function g(x:Number):Number => f(x);
+// function f(x:Number):Number => f(x);
+
+// print(f(3));
+
+// if (3<1) {
+// 	5;
+// } elif (3 < 5) {
+// 	4;
+// } elif (false) {
+
+// } elif (3 < 8) {
+
+// } else {
+// 	3;
+// }
+// // function test1(x) {
+// //     function test2(y) {
+// //         x + y;
+// //     }
+// //     x + test2(x);
 // // }
-
-// // function suc() => {};
-// // suc()+1;
-// // print(hola(12, 2));
-
-// // function g(x:Number):Number => f(x);
-// // function f(x:Number):Number => f(x);
-
-// // print(f(3));
-
-// // if (3<1) {
-// // 	5;
-// // } elif (3 < 5) {
-// // 	4;
-// // } elif (false) {
-
-// // } elif (3 < 8) {
-
-// // } else {
-// // 	3;
-// // }
-// // // function test1(x) {
-// // //     function test2(y) {
-// // //         x + y;
-// // //     }
-// // //     x + test2(x);
-// // // }
-// // let x:Void = {} in x;
+// let x:Void = {} in x;
 // function fib(n) {
 //     if (n == 0 | n == 1)
 //         1
@@ -153,17 +155,17 @@
 // }
 // let a = fib(5) in print(fib(a));
 // let x:Number = if (false) 3 in x;
-// // fib("As")@1;
+// fib("As")@1;
 
-// // function test3(n) {
-// //     if (test3(n))
-// //         n
-// //     elif (false)
-// //         test3(n+1)+1
-// //     else test3(n)+1;
-// // }
+// function test3(n) {
+//     if (test3(n))
+//         n
+//     elif (false)
+//         test3(n+1)+1
+//     else test3(n)+1;
+// }
 
-// // test3("AS")@1;
+// test3("AS")@1;
 
 // function fact(n) {
 //     if (n == 1 | n == 0)
@@ -186,16 +188,16 @@
 //     print("hola");
 //     i += 1;
 // };
-// // let i =1, p = i+=2<1 in print(p+i);
-// // function j(x) {
-// //     let i = 1 in while (true) {
-// //         print(i);
-// //         i += x;
-// //     };
-// // }
+// let i =1, p = i+=2<1 in print(p+i);
+// function j(x) {
+//     let i = 1 in while (true) {
+//         print(i);
+//         i += x;
+//     };
+// }
 
-// // j("as");
-// // j(2);
+// j("as");
+// j(2);
 // function d(x) => x+1;
 // d(2);
 
@@ -206,10 +208,10 @@
 //     }
 //     print (test(2));
 // };
-// // let i = 1 in while (true) {
-// //     print(i);
-// //     i += x;
-// // };
+// let i = 1 in while (true) {
+//     print(i);
+//     i += x;
+// };
 // let t=1 in {
 //     function key() => t + 1;
 //     function ch() => t := 1;
@@ -287,19 +289,19 @@
 
 // new PolarPoint("12", "4");
 
-function even(x:Number): Boolean {
-    if (x == 0) true
-    elif (x == 1) false
-    else odd(x - 1);
-}
+// function even(x:Number): Boolean {
+//     if (x == 0) true
+//     elif (x == 1) false
+//     else odd(x - 1);
+// }
 
-function odd(x:Number): Boolean {
-    if (x == 0) false
-    elif (x == 1) true
-    else even(x - 1);
-}
+// function odd(x:Number): Boolean {
+//     if (x == 0) false
+//     elif (x == 1) true
+//     else even(x - 1);
+// }
 
-print(odd(7));
+// print(odd(7));
 
 // type Point(x, y) {
 //     x = x;
@@ -340,15 +342,34 @@ print(odd(7));
 // let p: Person = new Knight("Phil", "Collins") in
 //     print(p.name()); // imprime: Sir Phil Collins
 
-// function l(x) {
-//     x.getX();
+
+// function l(y, x:p) {
+//     x.getX(y);
+// 	y.getY();
 // }
-// l("2");
+
+// type p inherits b {
+// 	getX(x) => x.getY();
+// }
+
+// type d inherits c {
+// 	getX() => 2;
+// }
+
+// type b inherits c {
+// 	getX() => 1;
+// 	getY() => 2;
+// }
+
+// type c {
+// 	// getX() => 1;
+// }
+
+
+// l("2", 2);
 
 // function l(x) => for (i in range(x)) i+1;
 // l("asd");
-
-type A { x = if (false) 1; g() {if?(self.x) self.x else self.x} }
 function f(x) {
 	x := if (false) new A();
 	if?(x) {
@@ -360,4 +381,7 @@ function f(x) {
 	// 	total += i;
 	// };
 }
+
+type A { x = if (false) 1; g() {if?(self.x) self.x else self.x} }
+
 print(f(if (false) new A()));
