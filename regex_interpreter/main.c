@@ -132,15 +132,13 @@ int main() {
 
     DFA* dfa = nfa_to_dfa(&nfa_un);
 
-    String_Match* matched = match(dfa, "gscfcx");
+    String_Match* matched = match(dfa, "gscfcx99jii3  jeje");
 
-    printf("hubo match: %d\n", matched->matched);
-
-    for (int j = 0; j < matched->matches; j++) {
-        printf("%s", matched->tokens[j]);
+    if (matched) {
+        for (int i = 0; i < 5; i++) {
+            printf("lexeme: %s, token: %s\n", matched->tokens[i].lexeme, matched->tokens[i].token);
+        }
     }
-
-    printf("\n");
 
     return 0;
 }
