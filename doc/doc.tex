@@ -200,10 +200,10 @@ Sobre un \textit{context} se puede:
 
 Ahora se explicará cada una de las revisiones dichas anteriormente:
 \begin{enumerate}
-    \item \textbf{Llamado a función}: Lo primero que se se hace es visitar cada uno de los argumentos. Luego se busca la función en el \textit{context} y se revisa su declaración para que queden guardados sus 
+    \item \textbf{Llamado a funciones}: Lo primero que se se hace es visitar cada uno de los argumentos. Luego se busca la función en el \textit{context} y se revisa su declaración para que queden guardados sus 
     datos en el \textit{scope} (en caso de haber sido o estar en proceso de ser revisada, no sucede nada). Finalmente se chequea que la cantidad de argumentos y los tipos de los argumentos coincidan con la declaración 
     de dicha función y se actualiza el tipo de retorno del nodo del llamado con el guardado en el \textit{scope}.
-    \item \textbf{Declaración de función}: Al igual que con la asignación de variables, se comienza revisando que el nombre de la función no sea una \textit{keyword}. Después se hace un pequeño chequeo para descartar que existan 
+    \item \textbf{Declaración de funciones}: Al igual que con la asignación de variables, se comienza revisando que el nombre de la función no sea una \textit{keyword}. Después se hace un pequeño chequeo para descartar que existan 
     nombres de parámetros repetidos. Luego se pasa a declarar en el \textit{scope} de la declaración cada uno de los parámetros para que sean accesibles en el cuerpo de la función, revisando primero que si son tipados, tengan un tipo válido. Al terminar 
     con los parámetros, se chequea el cuerpo, comenzando por ver si la función tiene un tipo de retorno definido, y en ese caso igualmente revisar que sea un tipo válido y más adelante que sea compatible con el tipo inferido del cuerpo; y luego se llama a su
     función de visita.
@@ -216,6 +216,59 @@ mismo símbolo en los argumentos de una declaración, función no definida, cant
 \includegraphics[width=1\textwidth]{images/func_errors.png}
 \caption{Errores comunes en funciones}
 \label{fig:errores_3}
+\end{figure}
+
+\subsection{Análisis de condicionales y ciclos}
+
+La revisión de condicionales y ciclos se centra precisamente en revisar cada una de esas expresiones, además de un tipo 
+especial de condicional: \textit{q-conditional}. A continuacón se explican cada una de ellas detalladamente: 
+\begin{enumerate}
+    \item \textbf{Condicionales}: Las condicionales tienen tres partes: condición, bloque para el \textit{if}, bloque para el \textit{else} 
+    (el \textit{elif} es convertido automáticamente por el compilador a un \textit{else if}). La revisión ocurre secuencialmente por esas tres partes: 
+    se visita el nodo de la condición y se verifica que su tipo de retorno sea booleano, sino se reporta error; luego se visita el bloque del \textit{if} 
+    y más adelante el del \textit{else}. Entonces la expresión condicional toma como tipo de retorno el ancestro común más cercano entre los tipos de retorno 
+    de ambos bloques. En caso de no tener bloque \textit{else}, se asume para ese caso un tipo por defecto para esta rama, que puede ser el mismo tipo que el del 
+    primer bloque para los tipos \textit{builtin} (excepto \texttt{Object}) y \texttt{Null} para el resto. Este último genera que el valor de retorno de la condicional 
+    sea el tipo del primer bloque pero \textit{nulleable}, por tanto, no se podrá utilizar luego en ningún caso donde se requiera ese tipo sin utilizar la sintaxis de \textit{q-conditional}, 
+    que lo que hará será separar los casos en dos ramas: cuando el tipo sea \texttt{Null} y cuando sea exactamente el tipo deseado (se explicará luego).
+    \item \textbf{Ciclos \textit{while}}: El ciclo \textit{while} es mucho más sencillo de verificar que las condicionales, pues solo admite un cuerpo. Por tanto, su chequeo se basa en 
+    visitar la condición y reportar error si su tipo de retorno no es booleano, y más tarde visitar el cuerpo y actualizar el tipo de retorno del ciclo con el tipo de retorno del cuerpo.
+    \item \textbf{Ciclos \textit{for}}: Este ciclo es más complejo que el anterior y comprende varias transformaciones importantes. Se chequea primero que los parámetros de la funcion \texttt{range} 
+    cumplan los requisitos esperados (ser 1 o 2 parámetros numéricos). Luego el nodo \textit{for} se transforma en un \textit{let-in} para optimizar la generación de código y se revisa como tal: 
+    \begin{lstlisting}[language=C]
+    // ---> for original <---
+    for (x in range(start, end)) {
+        // cuerpo del for
+    }
+
+    // ---> Transformacion <---
+    let _iter = start - 1 in 
+    // _ al inicio evita que el usuario pueda usarla
+        while (_iter += 1 < end)
+            let x = _iter in {
+                // cuerpo del for
+            }
+    // Esta transformacion simula un iterable
+    \end{lstlisting}
+    \item \textbf{Condicionales \textit{q-conditional}}: Este tipo de condicional es una extensión al lenguaje que permite separar los casos de un tipo nulleable en dos ramas: una para el caso donde el es \texttt{Null} y otra donde es el tipo original no \textit{nulleable}. Posee 
+    la siguiente sintaxis: 
+    \begin{lstlisting}[language=C]
+    if?(<expression>) // variable
+        <expression> // asumiendo Null
+    else 
+        <expression> // asumiendo tipo original
+    \end{lstlisting}
+    Por detalles de tiempo, esta nueva sintaxis se mantiene en una versión inicial donde solo es capaz de recibir como argumento una variable. No obstante, como en una variable se puede guardar cualquier expresión, pues es completamente funcional. Al igual que las condicionales, su tipo de 
+    retorno es el ancestro común más cercano entre ambos bloques (son obligatorios ambos bloques). Fuera de la expresión \textit{q-conditional} la variable mantiene su estado original, así que si se desea que se comporte como el tipo no \textit{nulleable} debe usarse dentro del bloque \textit{q-conditional} 
+    necesariamente.
+\end{enumerate}
+
+\textbf{Errores}: Los errores en estas revisiones son pocos, principalmente cuando las condiciones no son booleanas y cuando hay incompatibilidad con los parámetros de la función range. (ver ejemplo Figura~\ref{fig:errores_4}).
+\begin{figure}[h]
+\centering
+% \includegraphics[width=1\textwidth]{images/func_errors.png}
+\caption{Errores comunes en condicionales y ciclos}
+\label{fig:errores_4}
 \end{figure}
 
 \vspace{10pt}

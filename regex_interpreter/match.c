@@ -17,16 +17,44 @@ int equals(int* x, int* y, int count) {
 String_Match* match(DFA* dfa, char* str) {
     String_Match* match = (String_Match*)malloc(sizeof(String_Match));
     match->matched = 0;
-    match->matches = 0;
     
     int length = strlen(str);
     State actual_state = dfa->start;
     int change = 1;
 
+    Lexer_Token tokens[1000];
+    int count = 0;
+
+    Lexer_Token token = *(Lexer_Token*)malloc(sizeof(Lexer_Token));
+    Lexer_Token* actual_token = (Lexer_Token*)malloc(sizeof(Lexer_Token));
+
     for (int i = 0; i < length; i++) {
-        if (!change) break; 
+        if (!change) {
+            if (strcmp(actual_token->lexeme, "")) {
+                strcpy(token.lexeme, actual_token->lexeme);
+                strcpy(token.token, actual_token->token);
+                tokens[count++] = token;
+                actual_token = NULL;
+                actual_token = (Lexer_Token*)malloc(sizeof(Lexer_Token));
+                actual_state = dfa->start;
+                i--;
+            } else {
+                printf("!!LEXICAL ERROR: Unexpected caracter %c\n", str[i-1]);
+                return NULL;
+            }
+        }
 
         if (str[i] == ' ') {
+            if (strcmp(actual_token->lexeme, "")) {
+                strcpy(token.lexeme, actual_token->lexeme);
+                strcpy(token.token, actual_token->token);
+                tokens[count++] = token;
+                actual_token = NULL;
+                actual_token = (Lexer_Token*)malloc(sizeof(Lexer_Token));
+                actual_state = dfa->start;
+                change = 1;
+            }
+
             continue;
         }
 
@@ -38,6 +66,9 @@ String_Match* match(DFA* dfa, char* str) {
             if (set_equals(&actual_state, &(transition.from)) && str[i] == transition.symbol) {
                 copy_state_set(&actual_state, &(transition.to));
                 change = 1;
+                int len_lexeme = strlen(actual_token->lexeme);
+                actual_token->lexeme[len_lexeme] = str[i];
+                strcpy(actual_token->token, actual_state.tokens[0]);
                 break;
             }
         }
@@ -47,16 +78,17 @@ String_Match* match(DFA* dfa, char* str) {
         for (int i = 0; i < dfa->finals_count; i++) {
             if (set_equals(&actual_state, &(dfa->finals[i]))) {
                 match->matched = 1;
-                match->matches = dfa->finals[i].matches;
-                match->tokens = (char**)malloc(sizeof(char) * 256 * sizeof(char) * 50);
 
-                for (int j = 0; j < dfa->finals[i].matches; j++) {
-                    match->tokens[j] = dfa->finals[i].tokens[j];
-                }
+                strcpy(actual_token->token, dfa->finals[i].tokens[0]);
+                tokens[count++] = *actual_token;
                 break;
             }
         }
     }
+
+    match->matched = count > 0;
+    match->tokens = tokens;
+    match->count = count;
 
     return match;
 }

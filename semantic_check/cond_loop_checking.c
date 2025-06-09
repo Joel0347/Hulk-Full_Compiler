@@ -169,6 +169,7 @@ void visit_for_loop(Visitor* v, ASTNode* node) {
         // }
 
         if (!type_equals(t, &TYPE_ANY) && !type_equals(t, &TYPE_NUMBER)) {
+            args[i]->return_type = &TYPE_ERROR;
             report_error(
                 v, "Function 'range' receives 'Number', not '%s' as argument %d. Line: %d", 
                 t->name, i + 1, node->line
