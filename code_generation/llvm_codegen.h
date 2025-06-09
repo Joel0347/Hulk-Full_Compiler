@@ -6,6 +6,7 @@
 #include "../visitor/llvm_visitor.h"
 
 LLVMTypeRef get_llvm_type(Type* type);
+LLVMValueRef get_default(LLVM_Visitor* v, Type* type);
 
 // Función para generar la función main y el código del programa
 void generate_main_function(ASTNode* ast, const char* filename);
@@ -22,6 +23,7 @@ LLVMValueRef generate_variable(LLVM_Visitor* v, ASTNode* node);
 LLVMValueRef generate_let_in(LLVM_Visitor* v, ASTNode* node);
 LLVMValueRef make_function_dec(LLVM_Visitor* v, ASTNode* node);
 LLVMValueRef generate_conditional(LLVM_Visitor* v, ASTNode* node);
+LLVMValueRef generate_q_conditional(LLVM_Visitor* v, ASTNode* node);
 LLVMValueRef generate_loop(LLVM_Visitor* v, ASTNode* node);
 LLVMValueRef cast_value_to_type(LLVMValueRef value, Type* from_type, Type* to_type);
 

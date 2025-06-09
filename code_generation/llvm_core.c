@@ -6,6 +6,7 @@ LLVMModuleRef module;
 LLVMBuilderRef builder;
 LLVMContextRef context;
 LLVMValueRef current_stack_depth_var;
+LLVMTypeRef object_type;
 const int MAX_STACK_DEPTH = 10000;
 
 void init_llvm(void) {
@@ -15,6 +16,12 @@ void init_llvm(void) {
     context = LLVMGetGlobalContext();
     module = LLVMModuleCreateWithNameInContext("program", context);
     builder = LLVMCreateBuilderInContext(context);
+
+    // Crear el tipo Object como un struct vacío
+    // Esto crea un tipo nombrado "Object" en el contexto
+    object_type = LLVMStructCreateNamed(context, "Object");
+    // Al no pasarle ningún miembro, se define como un struct sin campos
+    LLVMStructSetBody(object_type, NULL, 0, 0);
 
     // Inicializar la variable global de profundidad de stack
     current_stack_depth_var = LLVMAddGlobal(module, LLVMInt32Type(), "current_stack_depth");

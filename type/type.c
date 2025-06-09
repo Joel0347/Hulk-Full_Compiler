@@ -120,6 +120,19 @@ Type* get_nulleable(Type* type) {
 }
 
 Type* get_lca(Type* true_type, Type* false_type) {
+    int true_nulleable = 0;
+    int false_nulleable = 0;
+
+    if (true_type->sub_type) {
+        true_nulleable = 1;
+        true_type = true_type->sub_type;
+    }
+
+    if (false_type->sub_type) {
+        false_nulleable = 1;
+        false_type = false_type->sub_type;
+    }
+
     if (type_equals(true_type, &TYPE_ANY) ||
         type_equals(false_type, &TYPE_ANY)
     ) {
@@ -132,14 +145,21 @@ Type* get_lca(Type* true_type, Type* false_type) {
 
     if (type_equals(false_type, &TYPE_NULL)) {
         return get_nulleable(true_type);
-    } 
+    }
     
-    if (is_ancestor_type(true_type, false_type))
+    if (is_ancestor_type(true_type, false_type)) {
+        if (true_nulleable)
+            true_type = get_nulleable(true_type);
         return true_type;
-    if (is_ancestor_type(false_type, true_type))
+    } else if (is_ancestor_type(false_type, true_type)) {
+        if (false_nulleable)
+            false_type = get_nulleable(false_type);
         return false_type;
+    }
 
-    return get_lca(true_type->parent, false_type->parent);
+    Type* result = get_lca(true_type->parent, false_type->parent);
+
+    return (true_nulleable || false_nulleable)? get_nulleable(result) : result;
 }
 
 int same_branch_in_type_hierarchy(Type* type1, Type* type2) {

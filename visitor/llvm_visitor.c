@@ -36,6 +36,8 @@ LLVMValueRef accept_gen(LLVM_Visitor* visitor, ASTNode* node) {
             return visitor->visit_let_in(visitor, node);
         case NODE_CONDITIONAL:
             return visitor->visit_conditional(visitor, node);
+        case NODE_Q_CONDITIONAL:
+            return visitor->visit_q_conditional(visitor, node);
         case NODE_LOOP:
             return visitor->visit_loop(visitor, node);
         case NODE_TYPE_DEC:
