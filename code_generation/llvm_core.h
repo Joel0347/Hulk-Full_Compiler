@@ -15,6 +15,7 @@ extern LLVMModuleRef module;
 extern LLVMBuilderRef builder;
 extern LLVMContextRef context;
 extern LLVMValueRef current_stack_depth_var;
+extern LLVMTypeRef object_type;
 extern const int MAX_STACK_DEPTH;
 
 void init_llvm(void);

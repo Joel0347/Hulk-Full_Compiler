@@ -127,24 +127,27 @@ let a = 0 in
 
 // print(f(3));
 
-if (3<1) {
-	5;
-} elif (3 < 5) {
-	4;
-} elif (false) {
+// if (3<1) {
+// 	5;
+// } elif (3 < 5) {
+// 	4;
+// } elif (false) {
 
-} elif (3 < 8) {
+// } elif (3 < 8) {
 
-} else {
-	3;
-}
+// } else {
+// 	3;
+// }
+// function m(x:Void) => x;
+// let x = if (true) print(3) else print(2) in m(x);
+let x = print(2) in x;
 // function test1(x) {
 //     function test2(y) {
 //         x + y;
 //     }
 //     x + test2(x);
 // }
-let x:Void = {} in x;
+// let x:Void = {} in x;
 function fib(n) {
     if (n == 0 | n == 1)
         1
@@ -194,194 +197,199 @@ let i = 0 in while (i<4) {
 //     };
 // }
 
-// j("as");
-// j(2);
-function d(x) => x+1;
-d(2);
+// // j("as");
+// // j(2);
+// function d(x) => x+1;
+// d(2);
 
-// let x=5, y=7 in {
-//     function test(l){
+// // let x=5, y=7 in {
+// //     function test(l){
         
-//         l+x;
-//     }
-//     print (test(2));
-// };
-// let i = 1 in while (true) {
-//     print(i);
-//     i += x;
-// };
-// let t=1 in {
-//     function key() => t + 1;
-//     function ch() => t := 1;
+// //         l+x;
+// //     }
+// //     print (test(2));
+// // };
+// // let i = 1 in while (true) {
+// //     print(i);
+// //     i += x;
+// // };
+// // let t=1 in {
+// //     function key() => t + 1;
+// //     function ch() => t := 1;
 
-//     ch();
-//     key();
-// };
-// function r(x) {
-//     function o(y) {
-//         x + y;
-//     }
-//     o(x);
-// }
+// //     ch();
+// //     key();
+// // };
+// // function r(x) {
+// //     function o(y) {
+// //         x + y;
+// //     }
+// //     o(x);
+// // }
 
-// type A inherits C {
-//     // x=y+1;
-//     // y=x;
-//     // x:B = new B();
-//     g() => 1;
-// }
+// // type A inherits C {
+// //     // x=y+1;
+// //     // y=x;
+// //     // x:B = new B();
+// //     g() => 1;
+// // }
 
-// type B inherits A {
-//     // x: A = new A();
-//     // setX() => self.x+1;
-// }
+// // type B inherits A {
+// //     // x: A = new A();
+// //     // setX() => self.x+1;
+// // }
 
-// type C inherits B {
+// // type C inherits B {
 
-// }
+// // }
 
-// type Point inherits p {
-//     x = x;
-//     y = y;
+// // type Point inherits p {
+// //     x = x;
+// //     y = y;
     
-//     // // getY(x:p): p => (new p(2, 3)); //revisar tipado ahora
-//     // // l=new PolarPoint(2,3);
-//     // z = 1;
+// //     // // getY(x:p): p => (new p(2, 3)); //revisar tipado ahora
+// //     // // l=new PolarPoint(2,3);
+// //     // z = 1;
 
-//     // setX(x) => self.x := x;
-//     getX(x) {
-//         base(x)@"AS";
-//     }
-//     setY(y) => self.y := y;
-// }
+// //     // setX(x) => self.x := x;
+// //     getX(x) {
+// //         base(x)@"AS";
+// //     }
+// //     setY(y) => self.y := y;
+// // }
 
-// let pt:Point = new Point(1, 4) in pt.getX(2);
+// // let pt:Point = new Point(1, 4) in pt.getX(2);
 
-// type PolarPoint(phi, rho) inherits Point(rho * sin(phi), rho * cos(phi)) {
-//     g() => phi+1;
-//     // k() => self.z;
-//     // get() => self.getX();
-// }
+// // type PolarPoint(phi, rho) inherits Point(rho * sin(phi), rho * cos(phi)) {
+// //     g() => phi+1;
+// //     // k() => self.z;
+// //     // get() => self.getX();
+// // }
 
-// type p(x, y:Number) {
-//     j = x;
-//     k: p = new p(2,3);
-//     getX(k) => self.j:=k+1;
-//     gc() => self.getX(2);
-//     k() => self.gc()+1;
-// }
+// // type p(x, y:Number) {
+// //     j = x;
+// //     k: p = new p(2,3);
+// //     getX(k) => self.j:=k+1;
+// //     gc() => self.getX(2);
+// //     k() => self.gc()+1;
+// // }
 
-// type p(x, y:Number) {
-//     j = x;
-//     k: Point = new PolarPoint(2,3);
-//     getX(k) => self.j:=k+1;
-//     gc() => self.getX(2);
-//     k() => self.gc()+1;
-// }
+// // type p(x, y:Number) {
+// //     j = x;
+// //     k: Point = new PolarPoint(2,3);
+// //     getX(k) => self.j:=k+1;
+// //     gc() => self.getX(2);
+// //     k() => self.gc()+1;
+// // }
 
-// function l(x): Number => x;
-// type p {
-//     h() => self.g()@1;
-//     g() => 2;
-// }
+// // function l(x): Number => x;
+// // type p {
+// //     h() => self.g()@1;
+// //     g() => 2;
+// // }
 
-// new PolarPoint("12", "4");
+// // new PolarPoint("12", "4");
 
-// function even(x:Number): Boolean {
-//     if (x == 0) true
-//     elif (x == 1) false
-//     else odd(x - 1);
-// }
+// // function even(x:Number): Boolean {
+// //     if (x == 0) true
+// //     elif (x == 1) false
+// //     else odd(x - 1);
+// // }
 
-// function odd(x:Number): Boolean {
-//     if (x == 0) false
-//     elif (x == 1) true
-//     else even(x - 1);
-// }
+// // function odd(x:Number): Boolean {
+// //     if (x == 0) false
+// //     elif (x == 1) true
+// //     else even(x - 1);
+// // }
 
-// print(odd(7));
+// // print(odd(7));
 
-// type Point(x, y) {
-//     x = x;
-//     y = y;
-//     getX(): Number => self.x;
-//     getY(): Number => self.y;
-//     setX(x) => self.x := x;
-//     setY(y) => self.y := y;
-// }
+// // type Point(x, y) {
+// //     x = x;
+// //     y = y;
+// //     getX(): Number => self.x;
+// //     getY(): Number => self.y;
+// //     setX(x) => self.x := x;
+// //     setY(y) => self.y := y;
+// // }
 
-// let pt:Point = new Point(3, 4) in // imprime: x: 3; y: 4
-//     print("x: " @ pt.getX() @ "; y: " @ pt.getY());
+// // let pt:Point = new Point(3, 4) in // imprime: x: 3; y: 4
+// //     print("x: " @ pt.getX() @ "; y: " @ pt.getY());
 
-// type PolarPoint inherits Point {
-//     rho() => sqrt(self.getX()^2 + self.getY()^2);
-// }
+// // type PolarPoint inherits Point {
+// //     rho() => sqrt(self.getX()^2 + self.getY()^2);
+// // }
 
-// let pt = new PolarPoint(3, 4) in // imprime: rho: 5
-//     print("rho: " @ pt.rho());
+// // let pt = new PolarPoint(3, 4) in // imprime: rho: 5
+// //     print("rho: " @ pt.rho());
 
-// type PolarPoint2(phi, rho) inherits Point(rho * sin(phi), rho * cos(phi)) { }
+// // type PolarPoint2(phi, rho) inherits Point(rho * sin(phi), rho * cos(phi)) { }
 
-// let pt = new PolarPoint2(3, 4) in {
-//     print("x: " @ pt.getX());
-//     print("y: " @ pt.getY());
-// };
+// // let pt = new PolarPoint2(3, 4) in {
+// //     print("x: " @ pt.getX());
+// //     print("y: " @ pt.getY());
+// // };
 
-// type Person(firstName: String, lastName: String) {
-//     firstName = firstName;
-//     lastName = lastName;
-//     name() => self.firstName @@ self.lastName;
-// }
+// // type Person(firstName: String, lastName: String) {
+// //     firstName = firstName;
+// //     lastName = lastName;
+// //     name() => self.firstName @@ self.lastName;
+// // }
 
-// type Knight inherits Person {
-//     name() => "Sir" @@ base();
-// }
+// // type Knight inherits Person {
+// //     name() => "Sir" @@ base();
+// // }
 
-// let p: Person = new Knight("Phil", "Collins") in
-//     print(p.name()); // imprime: Sir Phil Collins
+// // let p: Person = new Knight("Phil", "Collins") in
+// //     print(p.name()); // imprime: Sir Phil Collins
 
 
-// function l(y, x:p) {
-//     x.getX(y);
-// 	y.getY();
-// }
+// // function l(y, x:p) {
+// //     x.getX(y);
+// // 	y.getY();
+// // }
 
-// type p inherits b {
-// 	getX(x) => x.getY();
-// }
+// // type p inherits b {
+// // 	getX(x) => x.getY();
+// // }
 
-// type d inherits c {
-// 	getX() => 2;
-// }
+// // type d inherits c {
+// // 	getX() => 2;
+// // }
 
-// type b inherits c {
-// 	getX() => 1;
-// 	getY() => 2;
-// }
+// // type b inherits c {
+// // 	getX() => 1;
+// // 	getY() => 2;
+// // }
 
 type b inherits c {}
+type a inherits c {}
 type c {
-	// getX() => 1;
+	getX() => 2;
+    getY() => 4;
 }
-let x = new b() in if (x is c) x as c else {};
-
+// let x = new b() in if (x is c) x as c else {};
+// let x:Object = 1 in print(x as Number);
 
 // l("2", 2);
 
 // function l(x) => for (i in range(x)) i+1;
 // l("asd");
-// function f(x) {
-// 	x := if (false) new A();
-// 	if?(x) {
-// 		2;
-// 	} else {
-// 		x.g() + 1;
-// 	};
-// 	// let total = 0 in for (i in range(12, x)) {
-// 	// 	total += i;
-// 	// };
-// }
+type A { g() => 2; }
 
-// type A { x = if (false) 1; g() {if?(self.x) self.x else self.x} }
+// function foo(x) {
+	let x = if (false) new b() elif (false) new a() in {
+	if?(x) {
+		print(2);
+	} else {
+		print(x.getX() + x.getY());
+	};
+    };
+    // let x = if (false) 5 elif (false) 2 in print("Number"@@x);
+	// let total = 0 in for (i in range(12, x)) {
+	// 	total += i;
+	// };
+// }
+// foo(new A());
 
 // print(f(if (false) new A()));

@@ -10,6 +10,10 @@
 #include <stdlib.h>
 
 LLVMTypeRef get_llvm_type(Type* type) {
+    if (type->sub_type) {
+        return get_llvm_type(type->sub_type);
+    }
+
     if (type_equals(type, &TYPE_NUMBER)) {
         return LLVMDoubleType();
     } else if (type_equals(type, &TYPE_STRING)) {
@@ -18,9 +22,8 @@ LLVMTypeRef get_llvm_type(Type* type) {
         return LLVMInt1Type();
     } else if (type_equals(type, &TYPE_VOID)) {
         return LLVMVoidType();
-    } else if (type_equals(type, &TYPE_OBJECT)) {
-        // usamos un puntero void* que puede apuntar a cualquier tipo
-        return LLVMPointerType(LLVMInt8Type(), 0);
+    } else if (type_equals(type, &TYPE_OBJECT) || type_equals(type, &TYPE_NULL)) {
+        return LLVMPointerType(object_type, 0);
     } else if (type->dec != NULL) {
         // Es un tipo personalizado
         LLVMTypeRef struct_type = LLVMGetTypeByName(module, type->name);
@@ -30,6 +33,37 @@ LLVMTypeRef get_llvm_type(Type* type) {
         }
         // Retornamos un puntero al tipo estructurado
         return LLVMPointerType(struct_type, 0);
+    }
+    
+    fprintf(stderr, "Error: Tipo desconocido %s\n", type->name);
+    exit(1);
+}
+
+LLVMValueRef get_default(LLVM_Visitor* v, Type* type) {
+    if (type->sub_type) {
+        return get_llvm_type(type->sub_type);
+    }
+
+    if (type_equals(type, &TYPE_NUMBER)) {
+        return generate_number(v, create_number_node(0));
+    } else if (type_equals(type, &TYPE_STRING)) {
+        return generate_string(v, create_string_node(""));
+    } else if (type_equals(type, &TYPE_BOOLEAN)) {
+        return generate_boolean(v, create_boolean_node("false"));
+    } else if (type_equals(type, &TYPE_VOID)) {
+        return generate_block(v, create_program_node(NULL, 0, NODE_BLOCK));
+    } else if (type_equals(type, &TYPE_OBJECT) || type_equals(type, &TYPE_NULL)) {
+        // Usamos LLVMConstNull para retornar un puntero nulo del tipo object
+        return LLVMConstNull(LLVMPointerType(object_type, 0));
+    } else if (type->dec != NULL) {
+        // Es un tipo personalizado
+        LLVMTypeRef struct_type = LLVMGetTypeByName(module, type->name);
+        if (!struct_type) {
+            fprintf(stderr, "Error: Tipo %s no encontrado\n", type->name);
+            exit(1);
+        }
+        // Retornamos un puntero nulo al tipo estructurado para tipos definidos por el usuario
+        return LLVMConstNull(LLVMPointerType(struct_type, 0));
     }
     
     fprintf(stderr, "Error: Tipo desconocido %s\n", type->name);
@@ -51,6 +85,7 @@ void generate_main_function(ASTNode* ast, const char* filename) {
         .visit_function_dec = generate_function_body,
         .visit_let_in = generate_let_in,
         .visit_conditional = generate_conditional,
+        .visit_q_conditional = generate_q_conditional,
         .visit_loop = generate_loop,
         .visit_type_dec = generate_type_declaration,
         .visit_type_inst = generate_type_instance,
@@ -422,7 +457,7 @@ LLVMValueRef generate_conditional(LLVM_Visitor* v, ASTNode* node) {
 
     // Create basic blocks
     LLVMBasicBlockRef then_block = LLVMAppendBasicBlock(current_function, "then");
-    LLVMBasicBlockRef else_block = false_body ? LLVMAppendBasicBlock(current_function, "else") : NULL;
+    LLVMBasicBlockRef else_block = LLVMAppendBasicBlock(current_function, "else");
     LLVMBasicBlockRef merge_block = LLVMAppendBasicBlock(current_function, "merge");
 
     // Generate condition code
@@ -448,24 +483,33 @@ LLVMValueRef generate_conditional(LLVM_Visitor* v, ASTNode* node) {
     // Generate 'else' block if it exists
     LLVMValueRef else_val = NULL;
     LLVMBasicBlockRef last_else_block = NULL;
-    if (false_body) {
-        LLVMPositionBuilderAtEnd(builder, else_block);
-        else_val = accept_gen(v, false_body);
-        
-        // Cast else_val to the return type if necessary
-        if (else_val && !type_equals(false_body->return_type, node->return_type)) {
-            else_val = cast_value_to_type(else_val, false_body->return_type, node->return_type);
+    LLVMPositionBuilderAtEnd(builder, else_block);
+    else_val = false_body? accept_gen(v, false_body) : get_default(v, true_body->return_type);
+    Type* false_type = false_body? false_body->return_type : NULL;
+
+    if (!false_type) {
+        if (is_builtin_type(true_body->return_type) &&
+            !type_equals(true_body->return_type, &TYPE_OBJECT)
+        ) {
+            false_type = true_body->return_type;
+        } else {
+            false_type = &TYPE_NULL;
         }
-        
-        LLVMBuildBr(builder, merge_block);
-        last_else_block = LLVMGetInsertBlock(builder);
     }
+    
+    // Cast else_val to the return type if necessary
+    if (else_val && !type_equals(false_type, node->return_type)) {
+        else_val = cast_value_to_type(else_val, false_type, node->return_type);
+    }
+    
+    LLVMBuildBr(builder, merge_block);
+    last_else_block = LLVMGetInsertBlock(builder);
 
     // Generate merge block with PHI node if needed
     LLVMPositionBuilderAtEnd(builder, merge_block);
     
     if (type_equals(node->return_type, &TYPE_VOID)) {
-        return NULL;
+        return LLVMConstNull(get_llvm_type(&TYPE_OBJECT));
     }
     
     // Create PHI node with the correct type
@@ -473,14 +517,16 @@ LLVMValueRef generate_conditional(LLVM_Visitor* v, ASTNode* node) {
     LLVMValueRef phi = LLVMBuildPhi(builder, phi_type, "if_result");
     
     // Add incoming values to PHI with proper null values for missing branches
-    if (else_val) {
-        LLVMValueRef incoming_values[] = {then_val ? then_val : LLVMConstNull(phi_type),
-                                        else_val ? else_val : LLVMConstNull(phi_type)};
+    if (then_val && else_val) {
+        LLVMValueRef incoming_values[] = {then_val, else_val};
         LLVMBasicBlockRef incoming_blocks[] = {then_block, last_else_block};
         LLVMAddIncoming(phi, incoming_values, incoming_blocks, 2);
-    } else {
-        LLVMValueRef incoming_values[] = {then_val ? then_val : LLVMConstNull(phi_type),
-                                        LLVMConstNull(phi_type)};
+    } 
+    else {
+        LLVMValueRef incoming_values[] = {
+            then_val? then_val : LLVMBuildRetVoid(builder),
+            else_val? else_val : LLVMBuildRetVoid(builder)
+        };
         LLVMBasicBlockRef incoming_blocks[] = {then_block, merge_block};
         LLVMAddIncoming(phi, incoming_values, incoming_blocks, 2);
     }
@@ -488,12 +534,95 @@ LLVMValueRef generate_conditional(LLVM_Visitor* v, ASTNode* node) {
     return phi;
 }
 
+LLVMValueRef generate_q_conditional(LLVM_Visitor* v, ASTNode* node) {
+    // Extraemos los nodos correspondientes
+    ASTNode* condition = node->data.cond_node.cond;
+    ASTNode* true_body = node->data.cond_node.body_true;
+    ASTNode* false_body = node->data.cond_node.body_false;
+
+    // Obtenemos la función actual a partir del bloque insertado
+    LLVMValueRef current_function = LLVMGetBasicBlockParent(LLVMGetInsertBlock(builder));
+
+    // Creamos tres bloques: then, else y merge
+    LLVMBasicBlockRef then_block = LLVMAppendBasicBlock(current_function, "q_then");
+    LLVMBasicBlockRef else_block = LLVMAppendBasicBlock(current_function, "q_else");
+    LLVMBasicBlockRef merge_block = LLVMAppendBasicBlock(current_function, "q_merge");
+
+    // Generamos el código para la condición
+    LLVMValueRef cond_expr = accept_gen(v, condition);
+
+    // Para verificar "if (x is null)" de forma coherente:
+    // - Si "cond_expr" es un puntero, usamos LLVMBuildIsNull.
+    // - Si no es un puntero (por ejemplo, un número), asumimos que nunca es null.
+    LLVMValueRef cond_bool = NULL;
+    LLVMTypeRef cond_type = LLVMTypeOf(cond_expr);
+    if (LLVMGetTypeKind(cond_type) == LLVMPointerTypeKind) {
+        cond_bool = LLVMBuildIsNull(builder, cond_expr, "is_null");
+    } else {
+        // Para tipos que no son punteros, definimos la condición como siempre falsa.
+        cond_bool = LLVMConstInt(LLVMInt1Type(), 0, 0);
+    }
+
+    // Construimos la bifurcación condicional basada en cond_bool.
+    LLVMBuildCondBr(builder, cond_bool, then_block, else_block);
+
+    // --- Bloque 'then' (cuerpo true) ---
+    LLVMPositionBuilderAtEnd(builder, then_block);
+    LLVMValueRef then_val = accept_gen(v, true_body);
+    // Realizamos conversiones/casts si es necesario para que el tipo encaje.
+    if (then_val && !type_equals(true_body->return_type, node->return_type)) {
+        then_val = cast_value_to_type(then_val, true_body->return_type, node->return_type);
+    }
+    LLVMBuildBr(builder, merge_block);
+    then_block = LLVMGetInsertBlock(builder);
+
+    // --- Bloque 'else' (cuerpo false) ---
+    LLVMPositionBuilderAtEnd(builder, else_block);
+    LLVMValueRef else_val = accept_gen(v, false_body);
+    // Realizamos el cast si es necesario.
+    if (else_val && !type_equals(false_body->return_type, node->return_type)) {
+        else_val = cast_value_to_type(else_val, false_body->return_type, node->return_type);
+    }
+    LLVMBuildBr(builder, merge_block);
+    LLVMBasicBlockRef last_else_block = LLVMGetInsertBlock(builder);
+
+    // --- Bloque de merge ---
+    LLVMPositionBuilderAtEnd(builder, merge_block);
+    
+    // Si el tipo de retorno es void, no es necesario crear un PHI
+    if (type_equals(node->return_type, &TYPE_VOID)) {
+        return NULL;
+    }
+    
+    // Creamos el nodo PHI para unificar los valores de ambos bloques,
+    // asegurándonos de que se retorne el tipo esperado.
+    LLVMTypeRef phi_type = get_llvm_type(node->return_type);
+    LLVMValueRef phi = LLVMBuildPhi(builder, phi_type, "q_if_result");
+    
+    // Agregamos las entradas del PHI: una de entonces y otra de else.
+    LLVMValueRef incoming_values[2] = { 
+        then_val ? then_val : LLVMConstNull(phi_type),
+        else_val ? else_val : LLVMConstNull(phi_type)
+    };
+    LLVMBasicBlockRef incoming_blocks[2] = { then_block, last_else_block };
+    LLVMAddIncoming(phi, incoming_values, incoming_blocks, 2);
+
+    return phi;
+}
+
 // Helper function to cast values between types
 LLVMValueRef cast_value_to_type(LLVMValueRef value, Type* from_type, Type* to_type) {
     // If types are equal or value is NULL, no casting needed
+    if (from_type->sub_type)
+        from_type = from_type->sub_type;
+    if (to_type->sub_type)
+        to_type = to_type->sub_type;
+
     if (!value || type_equals(from_type, to_type)) {
         return value;
     }
+
+    printf("typt from: %s, type to: %s\n", from_type->name, to_type->name);
     
     // Handle primitive type conversions first
     if (is_builtin_type(to_type)) {
@@ -524,12 +653,25 @@ LLVMValueRef cast_value_to_type(LLVMValueRef value, Type* from_type, Type* to_ty
             return LLVMConstInt(LLVMInt1Type(), 0, 0);
         }
     }
+
+    // Manejo de conversión de tipos de usuario a un supertipo built-in, por ejemplo, a OBJECT.
+    // Esto es útil si TYPE_OBJECT es considerado built-in pero queremos admitir que
+    // un tipo definido por el usuario (como A) se pueda convertir a Object.
+    if (!is_builtin_type(from_type) && (type_equals(to_type, &TYPE_OBJECT))) {
+        LLVMTypeRef from_struct = LLVMGetTypeByName(module, from_type->name);
+        LLVMTypeRef object_struct = LLVMGetTypeByName(module, to_type->name);
+        if (from_struct && object_struct) {
+            LLVMTypeRef object_ptr = LLVMPointerType(object_struct, 0);
+            return LLVMBuildBitCast(builder, value, object_ptr, "to_object");
+        }
+    }
     
     // Handle user-defined types
     if (!is_builtin_type(from_type) && !is_builtin_type(to_type)) {
         // Find closest common ancestor
         Type* common_ancestor = get_lca(from_type, to_type);
         if (common_ancestor) {
+            common_ancestor = common_ancestor->sub_type? common_ancestor->sub_type : common_ancestor;
             // Get the struct types
             LLVMTypeRef from_struct = LLVMGetTypeByName(module, from_type->name);
             LLVMTypeRef to_struct = LLVMGetTypeByName(module, to_type->name);
