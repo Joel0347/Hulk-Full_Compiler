@@ -366,11 +366,11 @@ void free_ast(ASTNode* node) {
             free_ast(node->data.cond_node.body_false);
             free_ast(node->data.cond_node.cond);
             break;
-        case NODE_TEST_TYPE:
-        case NODE_CAST_TYPE:
-            free_ast(node->data.cast_test.exp);
-            free(node->data.cast_test.type);
-            break;
+        // case NODE_TEST_TYPE:
+        // case NODE_CAST_TYPE:
+        //     free_ast(node->data.cast_test.exp);
+        //     free(node->data.cast_test.type);
+        //     break;
         case NODE_TYPE_DEC:
             for (int i = 0; i < node->data.type_node.arg_count; i++) {
                 free_ast(node->data.type_node.args[i]);

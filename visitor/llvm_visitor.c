@@ -43,12 +43,14 @@ LLVMValueRef accept_gen(LLVM_Visitor* visitor, ASTNode* node) {
         case NODE_TYPE_INST:
             return visitor->visit_type_inst(visitor, node);
         case NODE_TYPE_GET_ATTR:
-        if (node->data.op_node.right->type == NODE_FUNC_CALL) {
-            // This is likely a method call (contains _ in name)
-            printf("''%s\n",node->data.func_node.name);
-            return visitor->visit_type_method(visitor, node);
-        }
+            if (node->data.op_node.right->type == NODE_FUNC_CALL) {
+                return visitor->visit_type_method(visitor, node);
+            }
             return visitor->visit_type_get_attr(visitor, node);
+        case NODE_TEST_TYPE:  // Handle 'is' operator
+            return visitor->visit_type_test(visitor, node);
+        case NODE_CAST_TYPE:  // Handle 'as' operator 
+            return visitor->visit_type_cast(visitor, node);
         default:
             fprintf(stderr, "Unknown node type in code generation\n");
             exit(1);
