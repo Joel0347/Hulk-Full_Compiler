@@ -50,6 +50,11 @@ void visit_assignment(Visitor* v, ASTNode* node) {
                 var_node->static_type, node->line
             );
         }
+    } else if (strcmp(var_node->static_type, "") && type_equals(defined_type->type, &TYPE_VOID)) {
+        report_error(
+            v, "Variable '%s' was defined as 'Void', which is not a valid type. Line: %d.", 
+            var_node->data.variable_name, node->line
+        );
     }
 
     accept(v, val_node);
@@ -67,6 +72,11 @@ void visit_assignment(Visitor* v, ASTNode* node) {
             v, "Variable '%s' was defined as '%s', but inferred as '%s'. Line: %d.", 
             var_node->data.variable_name, var_node->static_type, 
             inferried_type->name, node->line
+        );
+    } else if (type_equals(inferried_type, &TYPE_VOID) && !defined_type) {
+        report_error(
+            v, "Variable '%s' was inferred as 'Void', which is not a valid target. Line: %d.", 
+            var_node->data.variable_name, node->line
         );
     }
 

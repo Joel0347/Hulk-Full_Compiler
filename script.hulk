@@ -127,27 +127,22 @@ let a = 0 in
 
 // print(f(3));
 
-// if (3<1) {
-// 	5;
-// } elif (3 < 5) {
-// 	4;
-// } elif (false) {
+if (3<1) {
+	5;
+} elif (3 < 5) {
+	4;
+} elif (false) {
 
-// } elif (3 < 8) {
+} elif (3 < 8) {
 
-// } else {
-// 	3;
-// }
-// function m(x:Void) => x;
-// let x = if (true) print(3) else print(2) in m(x);
-let x = print(2) in x;
+}
 // function test1(x) {
 //     function test2(y) {
 //         x + y;
 //     }
 //     x + test2(x);
 // }
-// let x:Void = {} in x;
+// let x = {} in x;
 function fib(n) {
     if (n == 0 | n == 1)
         1
@@ -378,12 +373,12 @@ type c {
 type A { g() => 2; }
 
 // function foo(x) {
-	let x = if (false) new b() elif (false) new a() in {
-	if?(x) {
-		print(2);
-	} else {
-		print(x.getX() + x.getY());
-	};
+	let x = if (true) new b() elif (false) new a() in {
+        if?(x) {
+            print(2);
+        } else {
+            print(x.getX() + x.getY());
+        };
     };
     // let x = if (false) 5 elif (false) 2 in print("Number"@@x);
 	// let total = 0 in for (i in range(12, x)) {

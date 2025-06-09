@@ -470,8 +470,12 @@ LLVMValueRef generate_conditional(LLVM_Visitor* v, ASTNode* node) {
     LLVMPositionBuilderAtEnd(builder, then_block);
     LLVMValueRef then_val = accept_gen(v, true_body);
     
+    if (!then_val) {
+        then_val = get_default(v, &TYPE_OBJECT);
+    }
+
     // Cast then_val to the return type if necessary
-    if (then_val && !type_equals(true_body->return_type, node->return_type)) {
+    if (!type_equals(true_body->return_type, node->return_type)) {
         then_val = cast_value_to_type(then_val, true_body->return_type, node->return_type);
     }
     
@@ -496,9 +500,13 @@ LLVMValueRef generate_conditional(LLVM_Visitor* v, ASTNode* node) {
             false_type = &TYPE_NULL;
         }
     }
+
+    if (!else_val) {
+        else_val = get_default(v, &TYPE_OBJECT);
+    }
     
     // Cast else_val to the return type if necessary
-    if (else_val && !type_equals(false_type, node->return_type)) {
+    if (!type_equals(false_type, node->return_type)) {
         else_val = cast_value_to_type(else_val, false_type, node->return_type);
     }
     
@@ -509,7 +517,7 @@ LLVMValueRef generate_conditional(LLVM_Visitor* v, ASTNode* node) {
     LLVMPositionBuilderAtEnd(builder, merge_block);
     
     if (type_equals(node->return_type, &TYPE_VOID)) {
-        return LLVMConstNull(get_llvm_type(&TYPE_OBJECT));
+        return NULL;
     }
     
     // Create PHI node with the correct type
@@ -517,19 +525,9 @@ LLVMValueRef generate_conditional(LLVM_Visitor* v, ASTNode* node) {
     LLVMValueRef phi = LLVMBuildPhi(builder, phi_type, "if_result");
     
     // Add incoming values to PHI with proper null values for missing branches
-    if (then_val && else_val) {
-        LLVMValueRef incoming_values[] = {then_val, else_val};
-        LLVMBasicBlockRef incoming_blocks[] = {then_block, last_else_block};
-        LLVMAddIncoming(phi, incoming_values, incoming_blocks, 2);
-    } 
-    else {
-        LLVMValueRef incoming_values[] = {
-            then_val? then_val : LLVMBuildRetVoid(builder),
-            else_val? else_val : LLVMBuildRetVoid(builder)
-        };
-        LLVMBasicBlockRef incoming_blocks[] = {then_block, merge_block};
-        LLVMAddIncoming(phi, incoming_values, incoming_blocks, 2);
-    }
+    LLVMValueRef incoming_values[] = {then_val, else_val};
+    LLVMBasicBlockRef incoming_blocks[] = {then_block, last_else_block};
+    LLVMAddIncoming(phi, incoming_values, incoming_blocks, 2);
     
     return phi;
 }
@@ -622,8 +620,6 @@ LLVMValueRef cast_value_to_type(LLVMValueRef value, Type* from_type, Type* to_ty
         return value;
     }
 
-    printf("typt from: %s, type to: %s\n", from_type->name, to_type->name);
-    
     // Handle primitive type conversions first
     if (is_builtin_type(to_type)) {
         if (type_equals(to_type, &TYPE_NUMBER)) {
