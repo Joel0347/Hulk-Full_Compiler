@@ -94,9 +94,9 @@ void visit_assignment(Visitor* v, ASTNode* node) {
             var_node->data.variable_name, inferried_type,
             0, val_node
         );
-        Symbol* s = find_symbol(node->scope->parent, var_node->data.variable_name);
-        s->derivations = add_value_list(val_node, s->derivations);
-        val_node->return_type = inferried_type;
+        // Symbol* s = find_symbol(node->scope->parent, var_node->data.variable_name);
+        // s->derivations = add_value_list(val_node, s->derivations);
+        // val_node->return_type = inferried_type;
     } else if (
         is_ancestor_type(sym->type, inferried_type) ||
         type_equals(inferried_type, &TYPE_ANY) ||
