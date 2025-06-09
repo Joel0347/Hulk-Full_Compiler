@@ -470,10 +470,6 @@ LLVMValueRef generate_conditional(LLVM_Visitor* v, ASTNode* node) {
     LLVMPositionBuilderAtEnd(builder, then_block);
     LLVMValueRef then_val = accept_gen(v, true_body);
     
-    if (!then_val) {
-        then_val = get_default(v, &TYPE_OBJECT);
-    }
-
     // Cast then_val to the return type if necessary
     if (!type_equals(true_body->return_type, node->return_type)) {
         then_val = cast_value_to_type(then_val, true_body->return_type, node->return_type);
@@ -501,10 +497,6 @@ LLVMValueRef generate_conditional(LLVM_Visitor* v, ASTNode* node) {
         }
     }
 
-    if (!else_val) {
-        else_val = get_default(v, &TYPE_OBJECT);
-    }
-    
     // Cast else_val to the return type if necessary
     if (!type_equals(false_type, node->return_type)) {
         else_val = cast_value_to_type(else_val, false_type, node->return_type);
@@ -525,8 +517,11 @@ LLVMValueRef generate_conditional(LLVM_Visitor* v, ASTNode* node) {
     LLVMValueRef phi = LLVMBuildPhi(builder, phi_type, "if_result");
     
     // Add incoming values to PHI with proper null values for missing branches
-    LLVMValueRef incoming_values[] = {then_val, else_val};
-    LLVMBasicBlockRef incoming_blocks[] = {then_block, last_else_block};
+    LLVMValueRef incoming_values[2] = { 
+        then_val ? then_val : LLVMConstNull(phi_type),
+        else_val ? else_val : LLVMConstNull(phi_type)
+    };
+    LLVMBasicBlockRef incoming_blocks[2] = { then_block, last_else_block };
     LLVMAddIncoming(phi, incoming_values, incoming_blocks, 2);
     
     return phi;

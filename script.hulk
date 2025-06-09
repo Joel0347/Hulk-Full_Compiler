@@ -135,6 +135,8 @@ if (3<1) {
 
 } elif (3 < 8) {
 
+} else  {
+    2;
 }
 // function test1(x) {
 //     function test2(y) {
