@@ -5,9 +5,9 @@
 
 typedef struct 
 {
-    char* regex;
-    char* token;
-    NFA* nfa;
+    char regex[50];
+    char token[50];
+    NFA nfa;
 } Regex;
 
 

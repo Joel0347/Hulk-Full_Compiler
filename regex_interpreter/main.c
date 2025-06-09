@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 #include "match.h"
 #include "lexer.h"
 
@@ -64,79 +65,61 @@ NFA nfa_union_BIG(NFA a, NFA b) {
     return nfa;
 }
 
-int main() {
-    Regex* regex = (Regex*)malloc(sizeof(Regex));
-    regex->token = "number";
-    regex->regex = "[0-9]+";
+Regex* converTo_regex(char* regex, char* token) {
+    Regex* _regex = (Regex*)malloc(sizeof(Regex));
+    strcpy(_regex->token, token);
+    strcpy(_regex->regex, regex);
 
-    Token tokens[256];
+    Token tokens[1000];
     int token_count = 0;
-    tokenize(regex->regex, tokens, &token_count);
+    tokenize(_regex->regex, tokens, &token_count);
 
     ParserState ps = {tokens, 0};
     Node *ast = parse_E(&ps);
     NFA nfa = eval(ast);
 
-    regex->nfa = &nfa;
-    regex->nfa->start.token = regex->token;
+    _regex->nfa = nfa;
+    _regex->nfa.start.token = _regex->token;
 
     for (int i = 0; i < nfa.transitions_count; i++) {
-        regex->nfa->transitions[i].from.token = regex->token;
-        regex->nfa->transitions[i].to.token = regex->token;
+        _regex->nfa.transitions[i].from.token = _regex->token;
+        _regex->nfa.transitions[i].to.token = _regex->token;
     }
 
     for (int i = 0; i < nfa.finals_count; i++) {
-        regex->nfa->finals[i].token = regex->token;
+        _regex->nfa.finals[i].token = _regex->token;
     }
 
-    Regex* regex2 = (Regex*)malloc(sizeof(Regex));
-    regex2->token = "ID";
-    regex2->regex = "[a-z]+";
+    return _regex;
+}
 
-    Token tokens2[256];
-    int token_count2 = 0;
-    tokenize(regex2->regex, tokens2, &token_count2);
+int main() {
+    Regex* regex_number = converTo_regex("[0-9]+\\.[0-9]+", "number");
+    Regex* regex_id = converTo_regex("[a-z]+", "ID");
 
-    ParserState ps2 = {tokens2, 0};
-    Node *ast2 = parse_E(&ps2);
-    NFA nfa2 = eval(ast2);
+    NFA nfa_un = nfa_union_BIG(regex_number->nfa, regex_id->nfa);
 
-    regex2->nfa = &nfa2;
-    regex2->nfa->start.token = regex2->token;
-
-    for (int i = 0; i < nfa2.transitions_count; i++) {
-        regex2->nfa->transitions[i].from.token = regex2->token;
-        regex2->nfa->transitions[i].to.token = regex2->token;
-    }
-
-    for (int i = 0; i < nfa2.finals_count; i++) {
-        regex2->nfa->finals[i].token = regex2->token;
-    }
-
-    NFA a = *(regex->nfa);
-    NFA b = *(regex2->nfa);
-    NFA nfa_un = nfa_union_BIG(a, b);
-
-    // printf("\nNFA:\nStates: %d\nStart: %d\nFinals:", nfa_un.states, nfa_un.start);
-    // for (int i = 0; i < nfa_un.finals_count; ++i) printf(" %d", nfa_un.finals[i]);
+    // printf("\nNFA:\nStates: %d\nStart: %d\nFinals:", regex_number->nfa.states, regex_number->nfa.start);
+    // for (int i = 0; i < regex_number->nfa.finals_count; ++i) printf(" %d", regex_number->nfa.finals[i]);
     // printf("\nTransitions:\n");
-    // for (int i = 0; i < nfa_un.transitions_count; ++i) {
-    //     printf("  %d --%c--> %d\n", nfa_un.transitions[i].from.state, nfa_un.transitions[i].symbol, nfa_un.transitions[i].to.state);
+    // for (int i = 0; i < regex_number->nfa.transitions_count; ++i) {
+    //     printf("  %d --%c--> %d\n", regex_number->nfa.transitions[i].from.state, regex_number->nfa.transitions[i].symbol, regex_number->nfa.transitions[i].to.state);
     // }
 
-    // for (int i = 0; i < nfa_un.transitions_count; ++i) {
-    //     printf("  %s --%c--> %s\n", nfa_un.transitions[i].from.token, nfa_un.transitions[i].symbol, nfa_un.transitions[i].to.token);
+    // for (int i = 0; i < regex_number->nfa.transitions_count; ++i) {
+    //     printf("  %s --%c--> %s\n", regex_number->nfa.transitions[i].from.token, regex_number->nfa.transitions[i].symbol, regex_number->nfa.transitions[i].to.token);
     // }
 
     // printf("\n");
 
     DFA* dfa = nfa_to_dfa(&nfa_un);
 
-    String_Match* matched = match(dfa, "gscfcx99jii3  jeje");
+    String_Match* matched = match(dfa, "gscfcx 9.2 jii 3.0  jeje");
 
     if (matched) {
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < matched->count; i++) {
             printf("lexeme: %s, token: %s\n", matched->tokens[i].lexeme, matched->tokens[i].token);
+
         }
     }
 
