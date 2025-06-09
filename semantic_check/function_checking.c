@@ -189,6 +189,12 @@ void check_function_dec(Visitor* v, ASTNode* node, Type* type) {
                 );
                 params[i]->return_type = &TYPE_ERROR;
             }
+        } else if (strcmp(params[i]->static_type, "") && type_equals(param_type->type, &TYPE_VOID)) {
+            report_error(
+                v, "Parameter '%s' was defined as 'Void', which is not a valid type. Line: %d.", 
+                params[i]->data.variable_name, node->line
+            );
+            params[i]->return_type = &TYPE_ERROR;
         }
 
         if (!strcmp(params[i]->static_type, "")) {
