@@ -55,7 +55,9 @@ void generate_main_function(ASTNode* ast, const char* filename) {
         .visit_type_dec = generate_type_declaration,
         .visit_type_inst = generate_type_instance,
         .visit_type_get_attr = generate_field_access,
-        .visit_type_method = generate_method_call
+        .visit_type_method = generate_method_call,
+        .visit_type_test = generate_test_type,  // For 'is' operator
+        .visit_type_cast = generate_cast_type
     };
     init_llvm();
     
@@ -399,10 +401,8 @@ LLVMValueRef generate_let_in(LLVM_Visitor* v, ASTNode* node) {
         LLVMBuildStore(builder, value, alloca);
         declare_variable(var_name, alloca);
     }
-    
     // Obtener el bloque actual antes de evaluar el cuerpo
     LLVMBasicBlockRef current_block = LLVMGetInsertBlock(builder);
-
     // Evaluar el cuerpo
     LLVMValueRef result = accept_gen(v, node->data.func_node.body);
     // Asegurar que estamos en el bloque correcto después de la evaluación
@@ -434,6 +434,12 @@ LLVMValueRef generate_conditional(LLVM_Visitor* v, ASTNode* node) {
     // Generate 'then' block
     LLVMPositionBuilderAtEnd(builder, then_block);
     LLVMValueRef then_val = accept_gen(v, true_body);
+    
+    // Cast then_val to the return type if necessary
+    if (then_val && !type_equals(true_body->return_type, node->return_type)) {
+        then_val = cast_value_to_type(then_val, true_body->return_type, node->return_type);
+    }
+    
     LLVMBuildBr(builder, merge_block);
 
     // Get updated then_block for PHI
@@ -441,11 +447,18 @@ LLVMValueRef generate_conditional(LLVM_Visitor* v, ASTNode* node) {
 
     // Generate 'else' block if it exists
     LLVMValueRef else_val = NULL;
+    LLVMBasicBlockRef last_else_block = NULL;
     if (false_body) {
         LLVMPositionBuilderAtEnd(builder, else_block);
         else_val = accept_gen(v, false_body);
+        
+        // Cast else_val to the return type if necessary
+        if (else_val && !type_equals(false_body->return_type, node->return_type)) {
+            else_val = cast_value_to_type(else_val, false_body->return_type, node->return_type);
+        }
+        
         LLVMBuildBr(builder, merge_block);
-        else_block = LLVMGetInsertBlock(builder);
+        last_else_block = LLVMGetInsertBlock(builder);
     }
 
     // Generate merge block with PHI node if needed
@@ -455,16 +468,95 @@ LLVMValueRef generate_conditional(LLVM_Visitor* v, ASTNode* node) {
         return NULL;
     }
     
-    // Create PHI node to merge values
+    // Create PHI node with the correct type
     LLVMTypeRef phi_type = get_llvm_type(node->return_type);
     LLVMValueRef phi = LLVMBuildPhi(builder, phi_type, "if_result");
     
-    // Add incoming values to PHI
-    LLVMValueRef incoming_values[] = {then_val, else_val ? else_val : LLVMConstNull(phi_type)};
-    LLVMBasicBlockRef incoming_blocks[] = {then_block, else_block ? else_block : merge_block};
-    LLVMAddIncoming(phi, incoming_values, incoming_blocks, else_block ? 2 : 1);
+    // Add incoming values to PHI with proper null values for missing branches
+    if (else_val) {
+        LLVMValueRef incoming_values[] = {then_val ? then_val : LLVMConstNull(phi_type),
+                                        else_val ? else_val : LLVMConstNull(phi_type)};
+        LLVMBasicBlockRef incoming_blocks[] = {then_block, last_else_block};
+        LLVMAddIncoming(phi, incoming_values, incoming_blocks, 2);
+    } else {
+        LLVMValueRef incoming_values[] = {then_val ? then_val : LLVMConstNull(phi_type),
+                                        LLVMConstNull(phi_type)};
+        LLVMBasicBlockRef incoming_blocks[] = {then_block, merge_block};
+        LLVMAddIncoming(phi, incoming_values, incoming_blocks, 2);
+    }
     
     return phi;
+}
+
+// Helper function to cast values between types
+LLVMValueRef cast_value_to_type(LLVMValueRef value, Type* from_type, Type* to_type) {
+    // If types are equal or value is NULL, no casting needed
+    if (!value || type_equals(from_type, to_type)) {
+        return value;
+    }
+    
+    // Handle primitive type conversions first
+    if (is_builtin_type(to_type)) {
+        if (type_equals(to_type, &TYPE_NUMBER)) {
+            if (type_equals(from_type, &TYPE_BOOLEAN)) {
+                return LLVMBuildSIToFP(builder, value, LLVMDoubleType(), "bool_to_num");
+            }
+            return LLVMConstReal(LLVMDoubleType(), 0.0);
+        }
+        
+        if (type_equals(to_type, &TYPE_STRING)) {
+            if (type_equals(from_type, &TYPE_NUMBER)) {
+                return LLVMBuildGlobalStringPtr(builder, "0", "num_to_str");
+            }
+            if (type_equals(from_type, &TYPE_BOOLEAN)) {
+                return LLVMBuildICmp(builder, LLVMIntNE, value, LLVMConstInt(LLVMInt1Type(), 0, 0), "bool_val") ?
+                    LLVMBuildGlobalStringPtr(builder, "true", "bool_to_str") :
+                    LLVMBuildGlobalStringPtr(builder, "false", "bool_to_str");
+            }
+            return LLVMBuildGlobalStringPtr(builder, "", "to_str");
+        }
+        
+        if (type_equals(to_type, &TYPE_BOOLEAN)) {
+            if (type_equals(from_type, &TYPE_NUMBER)) {
+                return LLVMBuildFCmp(builder, LLVMRealONE, value, 
+                    LLVMConstReal(LLVMDoubleType(), 0.0), "num_to_bool");
+            }
+            return LLVMConstInt(LLVMInt1Type(), 0, 0);
+        }
+    }
+    
+    // Handle user-defined types
+    if (!is_builtin_type(from_type) && !is_builtin_type(to_type)) {
+        // Find closest common ancestor
+        Type* common_ancestor = get_lca(from_type, to_type);
+        if (common_ancestor) {
+            // Get the struct types
+            LLVMTypeRef from_struct = LLVMGetTypeByName(module, from_type->name);
+            LLVMTypeRef to_struct = LLVMGetTypeByName(module, to_type->name);
+            LLVMTypeRef ancestor_struct = LLVMGetTypeByName(module, common_ancestor->name);
+            
+            if (from_struct && to_struct && ancestor_struct) {
+                // Create pointers to the struct types
+                LLVMTypeRef from_ptr = LLVMPointerType(from_struct, 0);
+                LLVMTypeRef to_ptr = LLVMPointerType(to_struct, 0);
+                LLVMTypeRef ancestor_ptr = LLVMPointerType(ancestor_struct, 0);
+                
+                // Cast through the common ancestor
+                LLVMValueRef as_ancestor = LLVMBuildBitCast(builder, value, ancestor_ptr, "as_ancestor");
+                
+                // If target type is the ancestor, we're done
+                if (type_equals(to_type, common_ancestor)) {
+                    return as_ancestor;
+                }
+                
+                // Otherwise cast to target type
+                return LLVMBuildBitCast(builder, as_ancestor, to_ptr, "as_target");
+            }
+        }
+    }
+    
+    // If no valid cast found, return null value of target type
+    return LLVMConstNull(get_llvm_type(to_type));
 }
 
 LLVMValueRef generate_loop(LLVM_Visitor* v, ASTNode* node) {
@@ -701,6 +793,7 @@ LLVMValueRef generate_type_declaration(LLVM_Visitor* v, ASTNode* node) {
 
 LLVMValueRef generate_type_instance(LLVM_Visitor* v, ASTNode* node) {
     const char* type_name = node->data.type_node.name;
+    printf("Generating type declaration for %s\n", type_name);
     // Get struct type
     LLVMTypeRef struct_type = LLVMGetTypeByName(module, type_name);
     if (!struct_type) {
@@ -790,6 +883,23 @@ LLVMValueRef generate_type_instance(LLVM_Visitor* v, ASTNode* node) {
         free(initialized_fields[i]);
     }
     free(initialized_fields);
+
+    // // Si el tipo de retorno esperado es un tipo base, hacer el casting apropiado
+    // Type* target_type = node->return_type ;
+    // printf("Target type: %s\n", target_type ? target_type->name : "NULL");
+    // printf("Instance type: %s\n", node->data.type_node.name);
+    // Type* instance_type = (Type*)&node->data.type_node;
+    // if (target_type && target_type !=instance_type) {
+    //     // Obtener el tipo LLVM del tipo base
+    //     LLVMTypeRef target_struct_type = LLVMGetTypeByName(module, target_type->name);
+    //     if (target_struct_type) {
+    //         // Crear un puntero al tipo base
+    //         LLVMTypeRef target_ptr_type = LLVMPointerType(target_struct_type, 0);
+    //         // Realizar el bitcast de la instancia al tipo base
+    //         instance = LLVMBuildBitCast(builder, instance, target_ptr_type, "base_cast");
+    //     }
+    // }
+
     return instance;
 }
 
@@ -899,9 +1009,15 @@ LLVMValueRef generate_method_call(LLVM_Visitor* v, ASTNode* node) {
     LLVMValueRef* call_args = malloc((arg_count + 1) * sizeof(LLVMValueRef));
     
     // Cast instance to base type pointer where method was defined
-    LLVMTypeRef base_struct_type = LLVMGetTypeByName(module, instance_type->parent->name);
-    LLVMTypeRef base_ptr_type = LLVMPointerType(base_struct_type, 0);
-    call_args[0] = LLVMBuildBitCast(builder, instance, base_ptr_type, "base_cast"); // Cast to base type
+    if (strcmp(instance_type->parent->name, "Object") == 0)
+    {
+        call_args[0] = instance;
+    }
+    else{
+        LLVMTypeRef base_struct_type = LLVMGetTypeByName(module, instance_type->parent->name);
+        LLVMTypeRef base_ptr_type = LLVMPointerType(base_struct_type, 0);
+        call_args[0] = LLVMBuildBitCast(builder, instance, base_ptr_type, "base_cast"); // Cast to base type
+    }
     
     // Generate code for method arguments
     for(int i = 0; i < arg_count; i++) {
@@ -968,4 +1084,77 @@ static int find_field_index(Type* type, const char* field_name) {
     }
     
     return -1;
+}
+
+LLVMValueRef generate_test_type(LLVM_Visitor* v, ASTNode* node) {
+    // Evaluar la expresión del lado izquierdo
+    LLVMValueRef exp = accept_gen(v, node->data.op_node.left);
+    Type* dynamic_type = node->data.op_node.left->return_type;
+    // Obtener el tipo estático que queremos comprobar
+    const char* type_name = node->static_type;;
+    Type* test_type = node->data.cast_test.type;
+    
+    // Si alguno es null o error, retornar false
+    if (!dynamic_type || !test_type || 
+        type_equals(dynamic_type, &TYPE_ERROR) || 
+        type_equals(test_type, &TYPE_ERROR)) {
+        return LLVMConstInt(LLVMInt1Type(), 0, 0); // false
+    }
+
+    // Verificar si el tipo dinámico es descendiente del tipo a comprobar
+    int is_descendant = same_branch_in_type_hierarchy(dynamic_type, test_type);
+    
+    // Retornar el resultado booleano
+    return LLVMConstInt(LLVMInt1Type(), is_descendant, 0);
+}
+
+LLVMValueRef generate_cast_type(LLVM_Visitor* v, ASTNode* node) {
+    // Evaluar la expresión a castear
+    LLVMValueRef exp = accept_gen(v, node->data.op_node.left);
+    Type* from_type = node->data.op_node.left->return_type;
+
+    // Obtener el tipo al que queremos castear
+    const char* type_name = node->static_type;
+    Type* to_type = node->return_type;
+    // Si los tipos no están en la misma rama de herencia, retornar null
+    if(!is_ancestor_type(from_type, to_type)|| !is_ancestor_type(to_type,from_type)) {
+        printf("Casting from type '%s' to type '%s'\n", 
+            from_type->name, to_type->name);
+        char error_msg[256];
+        snprintf(error_msg, sizeof(error_msg),
+            RED"!!RUNTIME ERROR: Type '%s' cannot be cast to type '%s'. Line: %d."RESET,
+            from_type->name, to_type->name, node->line);
+        // Imprimir mensaje de error
+        LLVMValueRef error_msg_global = LLVMBuildGlobalStringPtr(builder, error_msg, "error_msg");
+        LLVMValueRef puts_func = LLVMGetNamedFunction(module, "puts");
+        LLVMBuildCall2(builder, LLVMGetElementType(LLVMTypeOf(puts_func)), puts_func, &error_msg_global, 1, "");
+        return LLVMConstNull(get_llvm_type(to_type));
+    }
+    else if (!same_branch_in_type_hierarchy(from_type, to_type)) {
+        // Crear mensaje de error
+        printf("Error: Cannot cast type '%s' to '%s' at line %d\n", 
+            from_type->name, type_name, node->line);
+        char error_msg[256];
+        snprintf(error_msg, sizeof(error_msg),
+            RED"!!RUNTIME ERROR: Type '%s' cannot be cast to type '%s'. Line: %d."RESET,
+            from_type->name, type_name, node->line);
+
+        // Imprimir mensaje de error
+        LLVMValueRef error_msg_global = LLVMBuildGlobalStringPtr(builder, error_msg, "error_msg");
+        LLVMValueRef puts_func = LLVMGetNamedFunction(module, "puts");
+        LLVMBuildCall(builder, puts_func, &error_msg_global, 1, "");
+
+        // Salir del programa
+        LLVMValueRef exit_func = LLVMGetNamedFunction(module, "exit");
+        LLVMValueRef exit_code = LLVMConstInt(LLVMInt32Type(), 1, 0);
+        LLVMBuildCall(builder, exit_func, &exit_code, 1, "");
+
+        // Marcar como inalcanzable
+        LLVMBuildUnreachable(builder);
+
+        return LLVMConstNull(get_llvm_type(to_type));
+    }
+
+    // Realizar el cast si es válido
+    return cast_value_to_type(exp, from_type, to_type);
 }
