@@ -189,7 +189,9 @@ void visit_for_loop(Visitor* v, ASTNode* node) {
         "", NODE_D_ASSIGNMENT
     );
     ASTNode* condition = create_binary_op_node(OP_LS, "<", iter_next, end, &TYPE_BOOLEAN);
-    ASTNode* _while = create_loop_node(condition, internal_let);
+    ASTNode* _while =  create_conditional_node(
+        condition, create_loop_node(condition, internal_let), NULL
+    );
 
     node->type = NODE_LET_IN;
     node->return_type = &TYPE_OBJECT;
