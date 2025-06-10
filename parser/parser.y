@@ -328,7 +328,11 @@ q_conditional:
 ;
 
 while_loop:
-    WHILE LPAREN expression RPAREN expression { $$ = create_loop_node($3, $5); }
+    WHILE LPAREN expression RPAREN expression {
+        $$ = create_conditional_node(
+            $3, create_loop_node($3, $5), NULL
+        );
+    }
 ;
 
 for_loop:
