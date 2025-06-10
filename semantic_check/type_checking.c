@@ -237,14 +237,16 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
                 node->data.type_node.name, node->data.type_node.parent_name, node->line
             );
         } else {
+            int found = 0;
             if (!item->declaration->checked) {
                 accept(v, item->declaration);
                 parent_info = find_defined_type(node->scope, node->data.type_node.parent_name);
             } else if (item->return_type) {
                 parent_type = item->return_type;
+                found = 1;
             }
             
-            if (!parent_info) {
+            if (!parent_info && !found) {
                 report_error(
                     v, "Type '%s' inherits from '%s', but that type produces a "
                     "cirular reference that can not be solved. Line: %d.", node->data.type_node.name, 
@@ -253,7 +255,7 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
                 node->checked = 0;
                 mro_list = empty_mro_list(mro_list);
                 return;
-            } else {
+            } else if (!found) {
                 parent_type = parent_info->type;
             }
 
@@ -311,7 +313,6 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
         parent->context->parent = node->context;
         parent->line = node->line;
         accept(v, parent);
-        free_ast(parent);
     }
 
     // if (parent_type)
@@ -469,6 +470,13 @@ void visit_type_instance(Visitor* v, ASTNode* node) {
         dec->arg_count = item->declaration->data.type_node.arg_count;
         dec->args_types = dec_args_types;
         dec->result_type = item->return_type;
+    } else if (item) {
+        node->return_type = &TYPE_ERROR;
+        report_error(
+            v, "Type '%s' is inaccesible. Line: %d.",
+            node->data.type_node.name, node->line
+        );
+        return;
     }
 
     FuncData* funcData = find_type_data(node->scope, f, dec);
