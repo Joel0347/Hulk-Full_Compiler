@@ -462,7 +462,7 @@ FuncData* get_type_func(Type* type, Function* f, Function* dec) {
         data->state->same_name = 0;
         return data;
     }
-
+    
     FuncData* data = find_function(type->dec->scope, f, dec);
 
     if (data && (data->state->matched) || data->state->same_name) {
@@ -593,4 +593,21 @@ ValueList* get_types_by_attr(Context* context, char* name) {
     
 
     return current;
+}
+
+FuncData* match_signature(Type* type, char* name, Type** param_types, int count, Type* ret) {
+    if (!type->dec)
+        return NULL;
+    
+    // char* tmp_name = delete_underscore_from_str(
+    //     name, type->name
+    // );
+
+    Function f = { count, param_types, ret, name, NULL };
+    return get_type_func(type, &f, NULL);
+    // if (data && data->state->same_name) {
+    //     return data;
+    // }
+
+    // return match_signature(type->parent, name, param_types, count, ret);
 }

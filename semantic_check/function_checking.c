@@ -325,12 +325,59 @@ void check_function_dec(Visitor* v, ASTNode* node, Type* type) {
             node->data.func_node.args[i]->return_type = param_types[i];
         }
 
+        if (type && type->parent && !is_builtin_type(type->parent)) {
+            char* name = delete_underscore_from_str(
+                node->data.func_node.name, type->name
+            );
+            FuncData* data = match_signature(
+                type, node->data.func_node.name,
+                param_types, node->data.func_node.arg_count,
+                inferried_type
+            );
+
+            if (data && !data->state->matched) {
+                if (!data->state->same_name) {
+                    report_error(
+                        v, "Method '%s' definition uses the "
+                        "overridden by type '%s'. Line: %d.", 
+                        name, type->name ,node->line
+                    );
+                } else if (!data->state->same_count) {
+                    report_error(
+                        v, "Method '%s' originally received %d argument(s), but %d was(were)"
+                        " given when overridden by type '%s'. Line: %d.",
+                        name, data->state->arg1_count, 
+                        data->state->arg2_count, type->name, node->line
+                    );
+                } else {
+                    if (!strcmp(data->state->type2_name, "Error"))
+                        return;
+        
+                    report_error(
+                        v, "Method '%s' originally received '%s', not '%s' as argument %d when"
+                        " overridden by type '%s'. Line: %d.",
+                        name, data->state->type1_name, 
+                        data->state->type2_name, data->state->pos, type->name, node->line
+                    );
+                }
+            } else if (data && data->func && !is_ancestor_type(data->func->result_type, inferried_type)) {
+                if (!type_equals(inferried_type, &TYPE_ERROR) && 
+                    !type_equals(data->func->result_type, &TYPE_ERROR)
+                ) {
+                    report_error(
+                        v, "Method '%s' originally returned '%s', not '%s' when"
+                        " overridden by type '%s'. Line: %d.",
+                        name, data->func->result_type->name, 
+                        inferried_type->name, type->name, node->line
+                    );
+                }
+            }
+        }
+
         declare_function(
             node->scope->parent, node->data.func_node.arg_count,
             param_types, inferried_type, node->data.func_node.name
         );
-
-        // if (type && !strcmp(type->name, "p")) printf("%d\n", type->scope->parent->functions->count);
 
         body->return_type = inferried_type;
 
