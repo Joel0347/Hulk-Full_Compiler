@@ -49,6 +49,8 @@ LLVMValueRef accept_gen(LLVM_Visitor* visitor, ASTNode* node) {
                 return visitor->visit_type_method(visitor, node);
             }
             return visitor->visit_type_get_attr(visitor, node);
+        case NODE_TYPE_SET_ATTR:
+            return visitor->visit_type_set_attr(visitor, node);
         case NODE_TEST_TYPE:  // Handle 'is' operator
             return visitor->visit_type_test(visitor, node);
         case NODE_CAST_TYPE:  // Handle 'as' operator 

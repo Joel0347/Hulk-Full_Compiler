@@ -31,6 +31,7 @@ LLVMValueRef cast_value_to_type(LLVMValueRef value, Type* from_type, Type* to_ty
 LLVMValueRef generate_type_declaration(LLVM_Visitor* v, ASTNode* node);
 LLVMValueRef generate_type_instance(LLVM_Visitor* v, ASTNode* node);
 LLVMValueRef generate_field_access(LLVM_Visitor* v, ASTNode* node);
+LLVMValueRef generate_set_attr(LLVM_Visitor* v, ASTNode* node);
 LLVMValueRef generate_method_call(LLVM_Visitor* v, ASTNode* node);
 LLVMValueRef generate_test_type(LLVM_Visitor* v, ASTNode* node); // is operator
 LLVMValueRef generate_cast_type(LLVM_Visitor* v, ASTNode* node); // as operator

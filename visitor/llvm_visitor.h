@@ -25,6 +25,7 @@ typedef LLVMValueRef (*GenerateLoop)(LLVM_Visitor*, ASTNode*);
 typedef LLVMValueRef (*GenerateTypeDec)(LLVM_Visitor*, ASTNode*);
 typedef LLVMValueRef (*GenerateTypeInst)(LLVM_Visitor*, ASTNode*);
 typedef LLVMValueRef (*GenerateTypeGetAttr)(LLVM_Visitor*, ASTNode*);
+typedef LLVMValueRef (*GenerateTypeSetAttr)(LLVM_Visitor*, ASTNode*);
 typedef LLVMValueRef (*GenerateTypeMethod)(LLVM_Visitor*, ASTNode*);
 typedef LLVMValueRef (*GenerateTypeTest)(LLVM_Visitor*, ASTNode*);  // For 'is' operator
 typedef LLVMValueRef (*GenerateTypeCast)(LLVM_Visitor*, ASTNode*);  // For 'as' operator
@@ -48,6 +49,7 @@ struct LLVM_Visitor {
     GenerateTypeDec visit_type_dec;
     GenerateTypeInst visit_type_inst; 
     GenerateTypeGetAttr visit_type_get_attr;  
+    GenerateTypeSetAttr visit_type_set_attr;  
     GenerateTypeMethod visit_type_method;
     GenerateTypeTest visit_type_test;    // Add handler for 'is'
     GenerateTypeCast visit_type_cast;    // Add handler for 'as' 
