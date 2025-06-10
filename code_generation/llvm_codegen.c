@@ -105,7 +105,6 @@ void generate_main_function(ASTNode* ast, const char* filename) {
     find_function_dec(&visitor, ast);
     make_body_function_dec(&visitor, ast);
     
-    
     // Create scope
     push_scope();
     // Create main function
@@ -147,7 +146,7 @@ LLVMValueRef generate_program(LLVM_Visitor* v, ASTNode* node) {
     for (int i = 0; i < node->data.program_node.count; i++) {
         ASTNode* stmt = node->data.program_node.statements[i];
         if (stmt->type != NODE_FUNC_DEC) {
-            last= accept_gen(v, stmt);
+            last = accept_gen(v, stmt);
         }
     }
 
@@ -902,7 +901,7 @@ LLVMValueRef generate_type_instance(LLVM_Visitor* v, ASTNode* node) {
     Type* type = node->return_type;
     ASTNode* type_def = type->dec;
     
-    for(int i = 0; i < node->data.type_node.arg_count; i++) {
+    for (int i = 0; i < node->data.type_node.arg_count; i++) {
         LLVMValueRef arg_value = accept_gen(v, node->data.type_node.args[i]);
         
         const char* param_name = type_def->data.type_node.args[i]->data.variable_name;
@@ -923,6 +922,23 @@ LLVMValueRef generate_type_instance(LLVM_Visitor* v, ASTNode* node) {
             LLVMValueRef field_ptr = LLVMBuildStructGEP2(
                 builder, struct_type, instance, field_index, "field_ptr");
             LLVMBuildStore(builder, arg_value, field_ptr);
+        }
+    }
+    
+    if (node->data.type_node.arg_count == 0) {
+        for (int j = 0; j < type_def->data.type_node.def_count; j++) {
+            ASTNode* def = type_def->data.type_node.definitions[j];
+            if (def->type == NODE_ASSIGNMENT) {
+                if (def->data.op_node.right->type != NODE_VARIABLE) {
+                    LLVMValueRef def_val = accept_gen(v, def->data.op_node.right);
+                    const char* field_name = def->data.op_node.left->data.variable_name;
+                    int field_index = find_field_index(type, field_name);
+                    if (field_index >= 0) {
+                        LLVMValueRef field_ptr = LLVMBuildStructGEP2(builder, struct_type, instance, field_index, "field_ptr_default");
+                        LLVMBuildStore(builder, def_val, field_ptr);
+                    }
+                }
+            }
         }
     }
     
