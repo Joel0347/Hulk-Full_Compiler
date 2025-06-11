@@ -322,6 +322,38 @@ entre otros (ver ejemplo Figura~\ref{fig:errores_5}).
 
 \subsection{Inferencia de tipos. Unificación}
 
+La implementación propuesta del compilador de HULK, posee una inferencia de tipos fuerte, es decir, el tipado explícito solo es necesario cuando el programa detecte que es incapaz de inferir el tipo. Existe una primera inferencia simple y sencilla, basada en un conjunto de reglas básicas: 
+\begin{itemize}
+    \item Los literales son los más fáciles de inferir, ya que su tipo proviene directamente del analizador. Las expresiones aritméticas también son fáciles, ya que su tipo siempre es \texttt{Number}. Asimismo, los operadores de cadena y booleanos son sencillos.
+    \item El tipo de expresiones complejas que tienen un cuerpo de expresión se determina por el tipo de dicho cuerpo. Este es el caso de \textit{let-in}, \textit{while} y \textit{for}.
+    \item El tipo de un bloque de expresión es el tipo de la última expresión del bloque.
+    \item El tipo de una invocación de función o método es el tipo de su cuerpo.
+    \item El tipo de expresiones que tienen más de una rama (\textit{if}) es el ancestro común más cercano de los tipos de cada rama, o, en última instancia, \texttt{Object}.
+\end{itemize}
+
+Más allá de esa inferencia simple, también existe una mucho más compleja, referente a los parámetros de funciones y tipos. Esos parámetros no tienen asociado una expresión en las declaraciones, por tanto, si no están tipados, es imposible inferir su tipo basado solo en las reglas anteriores. Hay que deducirlo entonces 
+a partir de su uso. Para eso, se ha diseñado una especie de motor de unificación, el cual intenta asignar un tipo específico a un parámetro. 
+
+Para su correcto funcionamiento, cada nodo del AST tiene un campo \textit{derivations}, que puede ser visto como una lista de nodos. Cada nodo en esa lista repesenta una expresión de la cual el nodo principal podría haber obtenido un tipo \texttt{Any}, que es el que se le asigna inicialmente a los parámetros no tipados. 
+
+Dado que el programa solo asigna directamente \texttt{Any} a los parámetros, cualquier expresión cuyo tipo de retorno sea \texttt{Any} necesariamente depende de un parámetro. Dicho esto, el unificador se encargará de buscar la raíz del tipado \texttt{Any}, es decir, el parámetro específico que derivó en la expresión más grande.
+Para hacerlo simplemente toma un nodo y si su tipo de retorno es \texttt{Any}. En caso que sí, existen dos opciones, es un parámetro o es una expresión que contiene alguno. Si lo es, directamente se actualiza su tipo con el que se quiere unificar, y en otro caso se intenta unificar cada una de sus \textit{derivations}. Luego de unificar 
+un nodo, debe visitarse nuevamente para expandir los cambios producidos.
+
+Todo este procedimiento de unificación necesita claramente un tipo con el cual unificar. Hay distintas maneras de obtener dicho tipo, en dependencia del nodo actual. Algunos pueden pedir unificación con un tipo directamente, como es el caso de las condicionales, que intentan unificar la expresión de la condición con el tipo \texttt{Boolean}. 
+Sin embargo en otros casos, se necesita un proceso para obtener el tipo, antes de intentar unificarlo. Ese es el caso de las expresiones aritméticas, o los llamados a funciones e instancias de tipos. Otro de los más destacados, es el uso de parámetros en notación punto, donde la inferencia debe buscar entre todos los tipos cuál es 
+el que tiene el miembro requerido e intentar unificar con ese (siempre se queda con el ancestro común más cercano que implemente el método entre todos los que implementan el método, o reportará error).
+
+\  
+
+\textbf{Errores}: Los errores de inferencia se resumen en dos tipos: se infirieron dos tipos de ramas distintas de la jerarquía de tipos, o simplemente no se pudo inferir un tipo (ver ejemplo Figura~\ref{fig:errores_6}).
+\begin{figure}[h]
+\centering
+% \includegraphics[width=1\textwidth]{images/cond-loop_errors.png}
+\caption{Errores comunes en la inferencia de tipos}
+\label{fig:errores_6}
+\end{figure}
+
 \vspace{10pt}
 \section{Generación de Código}
 \vspace{10pt}
