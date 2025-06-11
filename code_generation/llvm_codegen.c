@@ -359,7 +359,10 @@ LLVMValueRef generate_function_body(LLVM_Visitor* v, ASTNode* node) {
     LLVMBuildCondBr(builder, cmp, error_block, continue_block);
     
     LLVMPositionBuilderAtEnd(builder, error_block);
-    handle_stack_overflow(builder, module, current_stack_depth_var, node);
+    handle_stack_overflow(
+        builder, module, current_stack_depth_var,
+        node->line, node->data.func_node.name 
+    );
     
     LLVMPositionBuilderAtEnd(builder, continue_block);
             
@@ -1047,7 +1050,10 @@ LLVMValueRef generate_method_call(LLVM_Visitor* v, ASTNode* node) {
     LLVMBuildCondBr(builder, cmp, error_block, call_block);
 
     LLVMPositionBuilderAtEnd(builder, error_block);
-    handle_stack_overflow(builder, module, current_stack_depth_var, node);
+    handle_stack_overflow(
+        builder, module, current_stack_depth_var, node->line,
+        node->data.op_node.right->data.func_node.name
+    );
     LLVMPositionBuilderAtEnd(builder, call_block);
     
     LLVMValueRef instance = accept_gen(v, node->data.op_node.left);

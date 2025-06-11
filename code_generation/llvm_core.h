@@ -24,14 +24,13 @@ void declare_external_functions(void);
 
 static inline void handle_stack_overflow(
     LLVMBuilderRef builder, LLVMModuleRef module, 
-    LLVMValueRef current_stack_depth_var, ASTNode* node
+    LLVMValueRef current_stack_depth_var, int line, char* name
 ) {
     // Construir mensaje de error con nombre de función y línea
     char error_msg[256];
     snprintf(error_msg, sizeof(error_msg), 
     RED"!!RUNTIME ERROR: Stack overflow detected in function '%s'. Line: %d.\n" RESET,
-    node->data.func_node.name, 
-    node->line);
+    name, line);
 
     LLVMValueRef error_msg_global = LLVMBuildGlobalStringPtr(builder, error_msg, "error_msg");
 
