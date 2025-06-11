@@ -20,8 +20,9 @@ void init_llvm(void) {
     // Crear el tipo Object como un struct vacío
     // Esto crea un tipo nombrado "Object" en el contexto
     object_type = LLVMStructCreateNamed(context, "Object");
-    // Al no pasarle ningún miembro, se define como un struct sin campos
-    LLVMStructSetBody(object_type, NULL, 0, 0);
+    LLVMTypeRef idType = LLVMInt32Type();
+    LLVMTypeRef structFields[] = { idType };
+    LLVMStructSetBody(object_type, structFields, 1, 0);
 
     // Inicializar la variable global de profundidad de stack
     current_stack_depth_var = LLVMAddGlobal(module, LLVMInt32Type(), "current_stack_depth");

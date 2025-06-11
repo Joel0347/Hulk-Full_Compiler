@@ -266,6 +266,7 @@ ASTNode* create_type_dec_node(
         node->data.type_node.definitions[i] = body_block->data.program_node.statements[i];
     }
     node->data.type_node.def_count = count;
+    node->data.type_node.id = 0;
     return node;
 }
 

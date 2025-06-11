@@ -402,6 +402,7 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
         node->data.type_node.args[i]->return_type = param_types[i];
     }
 
+    node->data.type_node.id = ++v->type_id;
     this->dec = node;
     this->arg_count = node->data.type_node.arg_count;
     this->param_types = param_types;

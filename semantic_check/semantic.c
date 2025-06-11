@@ -36,7 +36,8 @@ int analyze_semantics(ASTNode* node) {
         .error_count = 0,
         .errors = NULL,
         .current_function = NULL,
-        .current_type = NULL
+        .current_type = NULL,
+        .type_id = 0
     };
     
     accept(&visitor, node);
