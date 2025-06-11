@@ -335,7 +335,6 @@ FuncData* find_function(Scope* scope, Function* f, Function* dec) {
         if (not_found || data->state->matched)
             return data;
 
-    
         return result;
     }
     
@@ -596,7 +595,7 @@ ValueList* get_types_by_attr(Context* context, char* name) {
 }
 
 FuncData* match_signature(Type* type, char* name, Type** param_types, int count, Type* ret) {
-    if (!type->dec)
+    if (!type->dec || !type->parent || !type->parent->dec)
         return NULL;
     
     // char* tmp_name = delete_underscore_from_str(
@@ -604,7 +603,15 @@ FuncData* match_signature(Type* type, char* name, Type** param_types, int count,
     // );
 
     Function f = { count, param_types, ret, name, NULL };
-    return get_type_func(type, &f, NULL);
+    FuncData* data = get_type_func(type, &f, NULL);
+
+    if (data && !data->state->matched && !data->state->same_name) {
+        if (!find_item_in_type(type->parent->dec->context, name, type, 1)) {
+            data = NULL;
+        }
+    }
+
+    return data;
     // if (data && data->state->same_name) {
     //     return data;
     // }

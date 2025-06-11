@@ -51,6 +51,15 @@ void visit_conditional(Visitor* v, ASTNode* node) {
         false_type = &TYPE_NULL;
     }
 
+    if ((type_equals(true_type, &TYPE_VOID) && !type_equals(false_type, &TYPE_VOID)) ||
+        (type_equals(false_type, &TYPE_VOID) && !type_equals(true_type, &TYPE_VOID))
+    ) {
+        report_error(
+            v, "'if' expression can not return 'Void' only in one branch. Line: %d", 
+            node->line
+        );
+    }
+
     node->return_type = get_lca(true_type, false_type);
 }
 
