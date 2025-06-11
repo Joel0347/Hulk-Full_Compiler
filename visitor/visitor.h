@@ -65,6 +65,7 @@ struct Visitor {
     char** errors;
     char* current_function;
     Type* current_type;
+    int type_id;
 };
 
 void accept(Visitor* visitor, ASTNode* node);
