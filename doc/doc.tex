@@ -244,10 +244,11 @@ especial de condicional: \textit{q-conditional}. A continuacón se explican cada
     // ---> Transformacion <---
     let _iter = start - 1 in 
     // _ al inicio evita que el usuario pueda usarla
-        while (_iter += 1 < end)
-            let x = _iter in {
-                // cuerpo del for
-            }
+        if (_iter += 1 < end) // por si no entra al while
+            while (_iter += 1 < end)
+                let x = _iter in {
+                    // cuerpo del for
+                }
     // Esta transformacion simula un iterable
     \end{lstlisting}
     \item \textbf{Condicionales \textit{q-conditional}}: Este tipo de condicional es una extensión al lenguaje que permite separar los casos de un tipo nulleable en dos ramas: una para el caso donde el es \texttt{Null} y otra donde es el tipo original no \textit{nulleable}. Posee 
@@ -266,10 +267,60 @@ especial de condicional: \textit{q-conditional}. A continuacón se explican cada
 \textbf{Errores}: Los errores en estas revisiones son pocos, principalmente cuando las condiciones no son booleanas y cuando hay incompatibilidad con los parámetros de la función range. (ver ejemplo Figura~\ref{fig:errores_4}).
 \begin{figure}[h]
 \centering
-% \includegraphics[width=1\textwidth]{images/func_errors.png}
+\includegraphics[width=1\textwidth]{images/cond-loop_errors.png}
 \caption{Errores comunes en condicionales y ciclos}
 \label{fig:errores_4}
 \end{figure}
+
+\subsection{Análisis de Tipos}
+
+El análisis de tipos es el chequeo más abarcador de esta sección. Comprende la declaración de tipos, instancias de tipos, obtención y modificación de atributos, y operaciones de chequeo y conversión de tipos.
+
+Para comprender mejor estos análisis, es necesario explicar la estructura \texttt{Type} en el programa. Esta estructura es la que maneja, en todo momento del chequeo semántico, los tipos de retorno de las expresiones. Posee, de manera general, 
+un nombre, un padre, los tipos de los parámetros que recibe su constructor, así como la cantidad, y además tiene un campo para acceder a su declaración y poder tener referencia a sus atributos y métodos. Sobre un \texttt{Type} se pueden hacer distintas 
+operaciones: 
+\begin{itemize}
+    \item Crear un nuevo tipo
+    \item Saber si el tipo es \textit{builtin}
+    \item Saber si dos tipos son iguales
+    \item Saber si un tipo es ancestro de otro
+    \item Saber el ancestro común más cercano entre dos tipos 
+    \item Saber si dos tipos están en la misma rama de la jerarquía de tipos 
+    \item Obtener el tipo \textit{nulleable} asociado
+\end{itemize}
+
+Una vez comprendido el funcionamiento de un \texttt{Type} se explicará cada uno de los chequeos que se pueden realizar:
+\begin{enumerate}
+    \item \textbf{Chequeo de tipos}: Este chequeo se puede realizar mediante el operador \textit{is}. Primero se visita al nodo de la expresión que se quiere chequear y luego se revisa que el tipo por el que se pregunta exista en el \textit{scope}, o en última 
+    instancia en el \textit{context}. De no ser así, se reportará error.
+    \item \textbf{Conversión de tipos}: Al igual que el chequeo de tipos, se visita la expresión y se revisa que el tipo a convertir exista o bien en el \textit{scope} o en el \textit{context}. Además, hay una verificación extra que detecta si el tipo de 
+    la expresión y al que se quiere convertir estén en la misma rama de la jerarquía de tipos, de lo contrario se reporta también error.
+    \item \textbf{Instancia de tipos}: Las instancias de tipos, de cierta manera, son similares a los llamados de funciones, por lo tanto su chequeo es igual, solo que en vez de buscar funciones definidas se busca tipos. Incluso los errores reportados son 
+    los mismos (solo cambia \textit{function} por \textit{type} en la mayoría de los mensajes).
+    \item \textbf{Declaración de tipos}: La declaración de tipos tiene un chequeo robusto, pues puede dar lugar a decenas de errores distintos. Se comienza revisando que no exista herencia circular, para lo cual se mantiene una lista estática a la que se tiene acceso y 
+    que almacena nombres de tipos. Se chequea que el nombre del padre no esté en esa lista (en caso que sí se reporta la circularidad), y luego se añade. Esa lista se vacía nuevamente cuando se inicie el chequeo del cuerpo de la declaración del tipo. Sobre los parámetros del 
+    constructor se realizan las mismas verificaciones que en la declaración de una función. Con respecto a la herencia, se verifica, en caso de tener padre, que dicho tipo sea válido, sino se reporta error, y además, se revisa la compatibilidad de los parámetros, que incluye 
+    añadir a la declaración del tipo los parámetros que recibe el constructor del padre en caso de no especificar los suyos propios, o verificar que se haya dado una inicialización correcta al padre a partir de los parámetros que reciba el tipo en cuestión. Con eso se da por concluida 
+    la revisión de la cabecera del tipo y se comienza la revisión del cuerpo. Lo primero es recoger un contexto interno, que incluye inicializaciones de campos y métodos. Luego se visita primero cada una de las inicializaciones y luego los métodos (antes de visitarlos se declara en el
+    \textit{scope} interno del tipo la variable especial \textit{self} del mismo tipo que el declarado). Para estos últimos, cabe resaltar que además de los chequeos habituales de las declaraciones de funciones, también se verifica que cumpla con la signatura de la declaración previa en
+    un ancestro (de haberla). Finalmente se crea el tipo y se le asocia dicho nodo de la declaración para poder acceder luego a sus miembros.
+    \item \textbf{Obtención de atributos}: Para obtener atributos o métodos de un tipo específico, se emplea la notación punto: \texttt{instance.member}. Por tal motivo, primero se visita el nodo que representa la instancia del tipo. Una vez que se tiene la instancia, se verifica que el miembro 
+    solicitado esté definido en el tipo de la instancia, en caso contrario se reporta error. Finalmente, si existe el miembro, se visita su nodo y se actualiza el tipo de retorno del nodo principal, con el tipo de retorno del miembro asociado.
+    \item \textbf{Modificación de atributos}: Para modificar atributos se usa la misma sintaxis de notación punto: \texttt{instance.member := value}. Igualmente se visita el nodo de la instancia y se verifica que contenga el atributo a modificar, de lo contrario se reporta error. Luego 
+    se visita el nodo de la expresión que constituye la modificación que se quiere realizar. Luego se revisa que el tipo de dicha expresión sea descendiente del tipo con que fue inicializado el atributo, y si no, también se detecta error.
+\end{enumerate}
+
+\textbf{Errores}: Los errores en el manejo de tipos son muy diversos. Existen errores en las declaraciones que son similares a los de las declaraciones de funciones, así como en las instancias que son parecidos a los llamados. Además, tiene errores propios, referentes a la herencia y referencias circulares, 
+heredar de tipos \textit{builtin}, redefinición de atributos y métodos, acceder a los atributos desde fuera de la instancia (son privados), atributo o método inexistente en un tipo específico, conversión de tipos inválida, intentar modificar un atributo asignando un valor de tipo distinto al de su inicialización, 
+entre otros (ver ejemplo Figura~\ref{fig:errores_5}).
+\begin{figure}[h]
+\centering
+% \includegraphics[width=1\textwidth]{images/cond-loop_errors.png}
+\caption{Errores comunes en el manejo de tipos}
+\label{fig:errores_5}
+\end{figure}
+
+\subsection{Inferencia de tipos. Unificación}
 
 \vspace{10pt}
 \section{Generación de Código}
