@@ -332,7 +332,7 @@ especial de condicional: \textit{q-conditional}. A continuacón se explican cada
 
 \subsection{Análisis de Tipos}
 
-El análisis de tipos es el chequeo más abarcador de esta sección. Comprende la declaración de tipos, instancias de tipos, obtención y modificación de atributos, y operaciones de chequeo y conversión de tipos.
+El análisis de tipos es el chequeo más abarcador de esta sección. Comprende la declaración de tipos, instancias de tipos, obtención y modificación de atributos, operaciones de chequeo y conversión de tipos, y el caso especial de la función \textit{base}.
 
 Para comprender mejor estos análisis, es necesario explicar la estructura \texttt{Type} en el programa. Esta estructura es la que maneja, en todo momento del chequeo semántico, los tipos de retorno de las expresiones. Posee, de manera general, 
 un nombre, un padre, los tipos de los parámetros que recibe su constructor, así como la cantidad, y además tiene un campo para acceder a su declaración y poder tener referencia a sus atributos y métodos. Sobre un \texttt{Type} se pueden hacer distintas 
@@ -366,6 +366,9 @@ Una vez comprendido el funcionamiento de un \texttt{Type} se explicará cada uno
     solicitado esté definido en el tipo de la instancia, en caso contrario se reporta error. Finalmente, si existe el miembro, se visita su nodo y se actualiza el tipo de retorno del nodo principal, con el tipo de retorno del miembro asociado.
     \item \textbf{Modificación de atributos}: Para modificar atributos se usa la misma sintaxis de notación punto: \texttt{instance.member := value}. Igualmente se visita el nodo de la instancia y se verifica que contenga el atributo a modificar, de lo contrario se reporta error. Luego 
     se visita el nodo de la expresión que constituye la modificación que se quiere realizar. Luego se revisa que el tipo de dicha expresión sea descendiente del tipo con que fue inicializado el atributo, y si no, también se detecta error.
+    \item \textbf{Función \textit{base}}: Es una función especial, que necesita conocer el método y el tipo actuales, ambos datos guardados en el \textit{visitor}. El chequeo comienza tomando esos datos y buscando el tipo más próximo que posee una declaración para dicha función. En caso de 
+    no existir, se reporta error. Luego, como es, en esencia, un llamado a función, debe chequearse como tal. Esto se logra creando un nodo auxiliar de tipo \texttt{NODE\_FUNC\_CALL} con el nombre de la función que se encontró y los argumentos que recibía \textit{base}. Luego se visita ese nodo y cualquier 
+    error que pueda existir quedará registrado. Finalmente, el tipo de retorno de \textit{base} es el tipo de retorno de la función que invoca.
 \end{enumerate}
 
 \textbf{Errores}: Los errores en el manejo de tipos son muy diversos. Existen errores en las declaraciones que son similares a los de las declaraciones de funciones, así como en las instancias que son parecidos a los llamados. Además, tiene errores propios, referentes a la herencia y referencias circulares, 
@@ -394,8 +397,8 @@ a partir de su uso. Para eso, se ha diseñado una especie de motor de unificaci�
 
 Para su correcto funcionamiento, cada nodo del AST tiene un campo \textit{derivations}, que puede ser visto como una lista de nodos. Cada nodo en esa lista repesenta una expresión de la cual el nodo principal podría haber obtenido un tipo \texttt{Any}, que es el que se le asigna inicialmente a los parámetros no tipados. 
 
-Dado que el programa solo asigna directamente \texttt{Any} a los parámetros, cualquier expresión cuyo tipo de retorno sea \texttt{Any} necesariamente depende de un parámetro. Dicho esto, el unificador se encargará de buscar la raíz del tipado \texttt{Any}, es decir, el parámetro específico que derivó en la expresión más grande.
-Para hacerlo simplemente toma un nodo y si su tipo de retorno es \texttt{Any}. En caso que sí, existen dos opciones, es un parámetro o es una expresión que contiene alguno. Si lo es, directamente se actualiza su tipo con el que se quiere unificar, y en otro caso se intenta unificar cada una de sus \textit{derivations}. Luego de unificar 
+Dado que el programa solo asigna directamente \texttt{Any} a los parámetros y al retorno de las funciones que aún se están chequeando, cualquier expresión cuyo tipo de retorno sea \texttt{Any} necesariamente depende de un parámetro o un llamado a una de esas funciones. Dicho esto, el unificador se encargará de buscar la raíz del tipado \texttt{Any}, es decir, la función o el parámetro específico que derivó en la expresión más grande.
+Para hacerlo, simplemente toma un nodo y, o bien es un parámetro o una función, o es una expresión que contiene alguno. Si se cumple lo primero, directamente se actualiza su tipo con el que se quiere unificar, y en otro caso se intenta unificar cada una de sus \textit{derivations}. Luego de unificar 
 un nodo, debe visitarse nuevamente para expandir los cambios producidos.
 
 Todo este procedimiento de unificación necesita claramente un tipo con el cual unificar. Hay distintas maneras de obtener dicho tipo, en dependencia del nodo actual. Algunos pueden pedir unificación con un tipo directamente, como es el caso de las condicionales, que intentan unificar la expresión de la condición con el tipo \texttt{Boolean}. 
