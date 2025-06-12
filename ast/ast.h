@@ -66,6 +66,7 @@ typedef struct ASTNode {
             struct ASTNode *cond;
             struct ASTNode *body_true;
             struct ASTNode *body_false;
+            int stm;
         } cond_node;
         struct {
             char* name;

@@ -175,6 +175,7 @@ ASTNode* create_conditional_node(ASTNode* condition, ASTNode* body_true, ASTNode
     node->data.cond_node.cond = condition;
     node->data.cond_node.body_true = body_true;
     node->data.cond_node.body_false = body_false;
+    node->data.cond_node.stm = 1;
     return node;
 }
 
@@ -190,6 +191,7 @@ ASTNode* create_q_conditional_node(ASTNode* exp, ASTNode* body_true, ASTNode* bo
     node->data.cond_node.cond = exp;
     node->data.cond_node.body_true = body_true;
     node->data.cond_node.body_false = body_false;
+    node->data.cond_node.stm = 1;
     return node;
 }
 

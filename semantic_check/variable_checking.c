@@ -57,6 +57,10 @@ void visit_assignment(Visitor* v, ASTNode* node) {
         );
     }
 
+    if (val_node->type == NODE_CONDITIONAL || val_node->type == NODE_Q_CONDITIONAL) {
+        val_node->data.cond_node.stm = 0;
+    }
+
     accept(v, val_node);
     Type* inferried_type = find_type(val_node);
 

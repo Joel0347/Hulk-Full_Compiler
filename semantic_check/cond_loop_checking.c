@@ -33,6 +33,14 @@ void visit_conditional(Visitor* v, ASTNode* node) {
         );
     }
 
+    if (true_body->type == NODE_CONDITIONAL || true_body->type == NODE_Q_CONDITIONAL) {
+        true_body->data.cond_node.stm = node->data.cond_node.stm;
+    }
+
+    if (false_body && (false_body->type == NODE_CONDITIONAL || true_body->type == NODE_Q_CONDITIONAL)) {
+        false_body->data.cond_node.stm = node->data.cond_node.stm;
+    }
+
     accept(v, true_body);
     Type* true_type = find_type(true_body);
     Type* false_type = NULL;
@@ -51,11 +59,11 @@ void visit_conditional(Visitor* v, ASTNode* node) {
         false_type = &TYPE_NULL;
     }
 
-    if ((type_equals(true_type, &TYPE_VOID) && !type_equals(false_type, &TYPE_VOID)) ||
-        (type_equals(false_type, &TYPE_VOID) && !type_equals(true_type, &TYPE_VOID))
+    if (!node->data.cond_node.stm && 
+        (type_equals(true_type, &TYPE_VOID) || type_equals(false_type, &TYPE_VOID))
     ) {
         report_error(
-            v, "'if' expression can not return 'Void' only in one branch. Line: %d", 
+            v, "Possible 'Void' value assigned to a variable. Line: %d", 
             node->line
         );
     }
