@@ -35,7 +35,7 @@
 Este documento describe el diseño e implementación de un compilador para HULK en el lenguaje C. El 
 diseño del compilador agrupa 4 partes: \textit{lexer}, \textit{parser}, \textit{chequeo semántico} y \textit{generación de código}.
 
-El \textit{lexer} y el \textit{parser} se basan en los frameworks proporcionados por Lex y Yacc, respectivamente, aunque el proyecto cuenta con
+El \textit{lexer} y el \textit{parser} se basan en los frameworks proporcionados por \texttt{Lex} y \texttt{Yacc}, respectivamente, aunque el proyecto cuenta con
 una implementación propia de un \textit{lexer} basado en la teoría de autómatas finitos. El \textit{chequeo semántico} es responsable de validar las reglas del lenguaje,
 reduciendo los errores en tiempo de ejecución. Para ello se ha implementado el patrón Visitor, que permite recorrer el árbol de sintaxis abstracta (AST) y aplicar las reglas semánticas correspondientes. Además,
 cuenta con una arquitectura que permite la unificación de expresiones con tipos, lo que facilita la inferencia. Finalmente, la \textit{generación de código} se realiza mediante un generador de código intermedio que
@@ -66,13 +66,71 @@ A continuacón se detallan los disitntos aspectos de la implementación.
 \vspace{10pt}
 \section{Lexer y parser}
 
+Para el \textit{lexer} y el \textit{parser} se ha utilizado el framework proporcionado por \texttt{Lex} y \texttt{Yacc}, aunque se tiene una implementación manual del \textit{lexer} utilizando la teoría de autómatas finitos.
+
+\subsection{Lex. Definición de los tokens}
+
+El \textit{lexer} es el encargado de transformar la entrada del programa (un archivo de texto) en una secuencia de tokens, que son las unidades léxicas del lenguaje. En el programa, los tokens se definen en el archivo \texttt{lexer.l}, 
+donde se especifican las expresiones regulares para cada tipo de token.
+
+\textbf{Errores}: En el \textit{lexer} se detecta únicamente un error a la vez, asociados a caracteres inválidos (ver ejemplo Figura~\ref{fig:errores_lex}).
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.7\textwidth]{images/lexer_errors.png}
+\caption{Error en lexer}
+\label{fig:errores_lex}
+\end{figure}
+
+\subsection{Yacc. Definición de la gramática y el AST}
+El \textit{parser} es el encargado de analizar la secuencia de tokens generada por el \textit{lexer} y construir un árbol de sintaxis abstracta (AST) a partir de ellos. En el programa, la gramática del lenguaje se define en el archivo \texttt{parser.y}. 
+En dicha gramática se definen producciones para cada tipo de \textit{statement} o expresión de HULK, así como una precedencia para los operadores. Cada producción genera un nodo del AST, con lo cual se obtiene finalmente una lista de nodos, que se conectan 
+con un nodo raíz, que se hace llamar \textit{program node}.
+
+Existen diversos tipos de nodos que se pueden crear en el parser, cada uno representando una construcción del lenguaje (Ver Figura~\ref{fig:nodos_ast}). Como C no es orientado a objetos, el tipo \texttt{Node} se representa con una estructura que posee campos generales 
+que necesitan la gran mayoría de los tipos de nodos, y entre ellos un campo \texttt{data} que es un \textit{union} que tiene las propiedades específicas de cada tipo (Ver Figura~\ref{fig:ast}). Además, existe una función para cada tipo de nodo que permite inicializarlo.
 
 \begin{figure}[h]
 \centering
-% \includegraphics[width=0.8\textwidth]{compiler_phases.pdf}
-\caption{Arquitectura modular del compilador}
-\label{fig:arquitectura}
+\begin{minipage}{0.3\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{images/node_type.png}
+    \caption{Tipos de nodos del AST}
+    \label{fig:nodos_ast}
+\end{minipage}\hfill
+\begin{minipage}{0.48\textwidth}
+    \centering
+    \includegraphics[width=\textwidth]{images/ast.png}
+    \caption{AST}
+    \label{fig:ast}
+\end{minipage}
 \end{figure}
+
+Durante la construcción del AST se realizan algunas modificaciones que permiten el uso de \textit{azúcar} sintáctico, además de facilitar las restantes fases de 
+la compilación: 
+
+\begin{lstlisting}[language=C]
+    elif --> else if
+    x += 1 --> x := x + 1
+    x -= 1 --> x := x - 1
+    x *= 1 --> x := x * 1
+    x /= 1 --> x := x / 1
+    x %= 1 --> x := x % 1
+    x ^= 1 --> x := x ^ 1
+    x @= "hi" --> x := x @ "hi"
+    x &= true --> x := x & true
+    x |= false --> x := x | false
+    while(<exp>) <body> --> if(<exp>) while(<exp>) <body>
+    \end{lstlisting}
+
+\textbf{Errores}: En el \textit{parser} se detecta, al igual que en el \textit{lexer}, un único error a la vez, pero en este caso por ser incompatible con todas las producciones, es decir, por no ajustarse a la sintaxis del lenguaje (ver ejemplo Figura~\ref{fig:errores_yacc}).
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.7\textwidth]{images/parser_errors.png}
+\caption{Error en parser}
+\label{fig:errores_yacc}
+\end{figure}
+
+\subsection{Lexer manual. NFA y DFA}
 
 \vspace{10pt}
 \section{Análisis semántico}
@@ -315,7 +373,7 @@ heredar de tipos \textit{builtin}, redefinición de atributos y métodos, accede
 entre otros (ver ejemplo Figura~\ref{fig:errores_5}).
 \begin{figure}[h]
 \centering
-% \includegraphics[width=1\textwidth]{images/cond-loop_errors.png}
+\includegraphics[width=1\textwidth]{images/type_errors.png}
 \caption{Errores comunes en el manejo de tipos}
 \label{fig:errores_5}
 \end{figure}
@@ -349,13 +407,16 @@ el que tiene el miembro requerido e intentar unificar con ese (siempre se queda 
 \textbf{Errores}: Los errores de inferencia se resumen en dos tipos: se infirieron dos tipos de ramas distintas de la jerarquía de tipos, o simplemente no se pudo inferir un tipo (ver ejemplo Figura~\ref{fig:errores_6}).
 \begin{figure}[h]
 \centering
-% \includegraphics[width=1\textwidth]{images/cond-loop_errors.png}
+\includegraphics[width=1\textwidth]{images/inference_errors.png}
 \caption{Errores comunes en la inferencia de tipos}
 \label{fig:errores_6}
 \end{figure}
 
 \vspace{10pt}
 \section{Generación de Código}
+
+La fase final del compilador es la generación de código intermedio (LLVM). En este fase, se utilizó el framework de C para LLVM, a través del cual se genera el archivo \texttt{output.ll}. En esta sección no se abordará específicamente la sintaxis de ese lenguaje, sino que se explicarán las ideas y abstracciones principales que permitieron llevar 
+un lenguaje de alto nivel como HULK a un lenguaje intermedio. 
 \vspace{10pt}
 \begin{thebibliography}{9}
 \bibitem{aho06}
