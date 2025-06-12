@@ -1,6 +1,6 @@
 #include "semantic.h"
 
-
+// method to visit assignment node
 void visit_assignment(Visitor* v, ASTNode* node) {
     ASTNode* var_node = node->data.op_node.left;
     ASTNode* val_node = node->data.op_node.right;
@@ -20,6 +20,7 @@ void visit_assignment(Visitor* v, ASTNode* node) {
     Symbol* defined_type = find_defined_type(node->scope, var_node->static_type);
     int free_type = 0;
 
+    // Checking type annotation
     if (strcmp(var_node->static_type, "") && !defined_type) {
         ContextItem* item = find_context_item(
             node->context, var_node->static_type, 1, 0
@@ -57,18 +58,19 @@ void visit_assignment(Visitor* v, ASTNode* node) {
         );
     }
 
+    // In this point, it is known that conditionals are not statements, but expressions (not Void allowed)
     if (val_node->type == NODE_CONDITIONAL || val_node->type == NODE_Q_CONDITIONAL) {
         val_node->data.cond_node.stm = 0;
     }
 
     accept(v, val_node);
-    Type* inferried_type = find_type(val_node);
+    Type* inferried_type = get_type(val_node);
 
     if (type_equals(inferried_type, &TYPE_ANY) && 
-        defined_type && unify_member(v, val_node, defined_type->type)
+        defined_type && unify(v, val_node, defined_type->type)
     ) {
-        accept(v, val_node);
-        inferried_type = find_type(val_node);
+        accept(v, val_node); // visit again if unified
+        inferried_type = get_type(val_node);
     }
 
     if (defined_type && !is_ancestor_type(defined_type->type, inferried_type)) {
@@ -103,14 +105,12 @@ void visit_assignment(Visitor* v, ASTNode* node) {
             var_node->data.variable_name, node->line
         );
     } else if (node->type == NODE_ASSIGNMENT) {
+        // declare a new variable
         declare_symbol(
             node->scope->parent, 
             var_node->data.variable_name, inferried_type,
             0, val_node
         );
-        // Symbol* s = find_symbol(node->scope->parent, var_node->data.variable_name);
-        // s->derivations = add_value_list(val_node, s->derivations);
-        // val_node->return_type = inferried_type;
     } else if (
         is_ancestor_type(sym->type, inferried_type) ||
         type_equals(inferried_type, &TYPE_ANY) ||
@@ -119,27 +119,28 @@ void visit_assignment(Visitor* v, ASTNode* node) {
         if (type_equals(inferried_type, &TYPE_ANY) &&
             !type_equals(sym->type, &TYPE_ANY)
         ) {
-            if (unify_member(v, val_node, sym->type)) {
+            if (unify(v, val_node, sym->type)) {
                 accept(v, val_node);
-                inferried_type = find_type(val_node);
+                inferried_type = get_type(val_node);
             }
         } else if (
             type_equals(sym->type, &TYPE_ANY) &&
             !type_equals(inferried_type, &TYPE_ANY)
         ) {
+            // updating the exisiting variable
             sym->type = inferried_type;
             for (int i = 0; i < sym->derivations->count; i++)
             {
                 ASTNode* value = at(i, sym->derivations);
                 if (value && type_equals(value->return_type, &TYPE_ANY)) {
-                    unify_member(v, value, inferried_type);
+                    unify(v, value, inferried_type);
                 }
             }
             val_node->return_type = inferried_type;
         }
 
-        sym->derivations = add_value_list(val_node, sym->derivations);
-        node->derivations = add_value_list(var_node, node->derivations);
+        sym->derivations = add_node_list(val_node, sym->derivations);
+        node->derivations = add_node_list(var_node, node->derivations);
     } else {
         report_error(
             v, "Variable '%s' was initializated as "
@@ -151,6 +152,7 @@ void visit_assignment(Visitor* v, ASTNode* node) {
     var_node->return_type = inferried_type;
 
     if (node->type == NODE_D_ASSIGNMENT) {
+        // destructive assignment returns the assigned value
         node->return_type = inferried_type;
     }
 
@@ -159,9 +161,11 @@ void visit_assignment(Visitor* v, ASTNode* node) {
     }
 }
 
+// method to visit variable node
 void visit_variable(Visitor* v, ASTNode* node) {
     Symbol* sym = find_symbol(node->scope, node->data.variable_name);
 
+    // Checking whether a variable exists or not
     if (sym) {
         if (!sym->is_type_param) {
             node->return_type = sym->type;
@@ -195,6 +199,7 @@ void visit_variable(Visitor* v, ASTNode* node) {
     }
 }
 
+// method to visit let-in node
 void visit_let_in(Visitor* v, ASTNode* node) {
     ASTNode** declarations = node->data.func_node.args;
     ASTNode* body = node->data.func_node.body;
@@ -210,5 +215,5 @@ void visit_let_in(Visitor* v, ASTNode* node) {
     }
 
     accept(v, body);
-    node->return_type = find_type(body);
+    node->return_type = get_type(body);
 }

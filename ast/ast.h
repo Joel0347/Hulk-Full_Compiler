@@ -41,7 +41,7 @@ typedef struct ASTNode {
     char* static_type;
     Scope* scope;
     Context* context;
-    ValueList* derivations;
+    NodeList* derivations;
     union {
         double number_value;
         char* string_value;

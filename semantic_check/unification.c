@@ -1,9 +1,10 @@
 #include "semantic.h"
 
-
-int unify_member(Visitor* v, ASTNode* node, Type* type) {
+// main method of the unification engine
+int unify(Visitor* v, ASTNode* node, Type* type) {
     int unified = 0;
     
+    // If it is parameter, tries to unify it directly
     if (node->type == NODE_VARIABLE && node->is_param == 1) {
         Symbol* sym = find_parameter(node->scope, node->data.variable_name);
         
@@ -20,7 +21,7 @@ int unify_member(Visitor* v, ASTNode* node, Type* type) {
             {
                 ASTNode* value = at(i, sym->derivations);
                 if (value && type_equals(value->return_type, &TYPE_ANY)) {
-                    unify_member(v, value, type);
+                    unify(v, value, type);
                 }
             }
         } else if (!is_ancestor_type(type, sym->type)) {
@@ -32,7 +33,7 @@ int unify_member(Visitor* v, ASTNode* node, Type* type) {
         }
 
         unified = 1;
-    } else if (node->type == NODE_FUNC_CALL &&
+    } else if (node->type == NODE_FUNC_CALL && // If it is a function call unify it directly
         type_equals(node->return_type, &TYPE_ANY)
     ) {
         ContextItem* item = find_context_item(node->context, node->data.func_node.name, 0, 0);
@@ -44,11 +45,12 @@ int unify_member(Visitor* v, ASTNode* node, Type* type) {
     } else if (node->type == NODE_CONDITIONAL || node->type == NODE_Q_CONDITIONAL) {
         unified = unify_conditional(v, node, type);
     } else if (node->derivations) {
+        // trying to unify every derivation
         for (int i = 0; i < node->derivations->count; i++)
         {
             ASTNode* value = at(i, node->derivations);
             if (value && type_equals(value->return_type, &TYPE_ANY)) {
-                int u_member = unify_member(v, value, type);
+                int u_member = unify(v, value, type);
 
                 if (u_member) {
                     value->return_type = type;
@@ -73,6 +75,7 @@ int unify_member(Visitor* v, ASTNode* node, Type* type) {
     return unified;
 }
 
+// method to unify binary and unary operation nodes
 int unify_op(Visitor* v, ASTNode* left, ASTNode* right, Operator op, char* op_name) {
     int count = 0;
     int unified = 0; // 0: not unfied, 1: unified right, 2: unified left, 3: unified both
@@ -80,21 +83,20 @@ int unify_op(Visitor* v, ASTNode* left, ASTNode* right, Operator op, char* op_na
 
     if (right && type_equals(left->return_type, &TYPE_ANY) && 
         type_equals(right->return_type, &TYPE_ANY)) {
-        
         for (int i = 0; i < op_rules_count; i++)
         {
             if (operator_rules[i].op == op) {
                 count++;
                 if (count > 1) {
-                    return 0;
+                    return 0; // more than one pair of types is possible
                 }
                 rule = &operator_rules[i];
             }
         }
 
         if (count) {
-            int u_left = unify_member(v, left, rule->left_type);
-            int u_right = unify_member(v, right, rule->right_type);
+            int u_left = unify(v, left, rule->left_type);
+            int u_right = unify(v, right, rule->right_type);
 
             unified = (u_left && u_right) ? 3 : 0;
         }
@@ -107,14 +109,14 @@ int unify_op(Visitor* v, ASTNode* left, ASTNode* right, Operator op, char* op_na
             ) {
                 count++;
                 if (count > 1) {
-                    return 0;
+                    return 0; // more than one type is possible
                 }
                 rule = &operator_rules[i];
             }
         }
 
         if (count) {
-            unified = unify_member(v, left, rule->left_type) ? 2 : 0;
+            unified = unify(v, left, rule->left_type) ? 2 : 0;
         } else if (!type_equals(right->return_type, &TYPE_ERROR)) {
             report_error(
                 v, "Operator '%s' can not be used with '%s' as right side. Line: %d.",
@@ -130,14 +132,14 @@ int unify_op(Visitor* v, ASTNode* left, ASTNode* right, Operator op, char* op_na
             ) {
                 count++;
                 if (count > 1) {
-                    return 0;
+                    return 0; // more than one type is possible
                 }
                 rule = &operator_rules[i];
             }
         }
 
         if (count) {
-            unified = unify_member(v, right, rule->right_type) ? 1 : 0;
+            unified = unify(v, right, rule->right_type) ? 1 : 0;
         } else if (!type_equals(left->return_type, &TYPE_ERROR)) {
             report_error(
                 v, "Operator '%s' can not be used with '%s' as left side. Line: %d.",
@@ -149,14 +151,15 @@ int unify_op(Visitor* v, ASTNode* left, ASTNode* right, Operator op, char* op_na
     return unified;
 }
 
+// method to unify function arguments
 IntList* unify_func(Visitor* v, ASTNode** args, Scope* scope, int arg_count, char* f_name, ContextItem* item) {
     int count = 0;
     IntList* unified = NULL;
     Function* f;
 
+    // trying to find the function
     while (scope)
     {
-        // if (scope->functions) {
             Function* current = scope->functions->first;
             int i = 0;
             while (i < scope->functions->count)
@@ -175,7 +178,6 @@ IntList* unify_func(Visitor* v, ASTNode** args, Scope* scope, int arg_count, cha
                 current = current->next;
                 i++;
             }
-        // }
 
         scope = scope->parent;
     }
@@ -184,7 +186,7 @@ IntList* unify_func(Visitor* v, ASTNode** args, Scope* scope, int arg_count, cha
         for (int i = 0; i < arg_count; i++)
         {
             if (type_equals(&TYPE_ANY, args[i]->return_type)) {
-                if (unify_member(v, args[i], f->args_types[i])) {
+                if (unify(v, args[i], f->args_types[i])) {
                     unified = add_int_list(unified, i);
                 } else {
                     return NULL;
@@ -192,9 +194,10 @@ IntList* unify_func(Visitor* v, ASTNode** args, Scope* scope, int arg_count, cha
             }
         }
     } else if (item && item->declaration->data.func_node.arg_count == arg_count) {
+        // trying with the declaration if it is not available in the scope
         for (int i = 0; i < item->declaration->data.func_node.arg_count; i++)
         {
-            if (unify_member(
+            if (unify(
                 v, item->declaration->data.func_node.args[i],
                 args[i]->return_type
             )) {
@@ -208,11 +211,13 @@ IntList* unify_func(Visitor* v, ASTNode** args, Scope* scope, int arg_count, cha
     return unified;
 }
 
+// method to unify type arguments
 IntList* unify_type(Visitor* v, ASTNode** args, Scope* scope, int arg_count, char* t_name, ContextItem* item) {
     int count = 0;
     IntList* unified = NULL;
     Type* t;
 
+    // trying to find the type
     while (scope)
     {
         if (scope->defined_types) {
@@ -243,7 +248,7 @@ IntList* unify_type(Visitor* v, ASTNode** args, Scope* scope, int arg_count, cha
         for (int i = 0; i < arg_count; i++)
         {
             if (type_equals(&TYPE_ANY, args[i]->return_type)) {
-                if (unify_member(v, args[i], t->param_types[i])) {
+                if (unify(v, args[i], t->param_types[i])) {
                     unified = add_int_list(unified, i);
                 } else {
                     return NULL;
@@ -251,9 +256,10 @@ IntList* unify_type(Visitor* v, ASTNode** args, Scope* scope, int arg_count, cha
             }
         }
     } else if (item && item->declaration->data.type_node.arg_count == arg_count) {
+        // trying with the declaration if it is not available in the scope
         for (int i = 0; i < item->declaration->data.type_node.arg_count; i++)
         {
-            if (unify_member(
+            if (unify(
                 v, item->declaration->data.type_node.args[i],
                 args[i]->return_type
             )) {
@@ -267,6 +273,7 @@ IntList* unify_type(Visitor* v, ASTNode** args, Scope* scope, int arg_count, cha
     return unified;
 }
 
+// method to unify bodys of conditionals
 int unify_conditional(Visitor* v, ASTNode* node, Type* type) {
     if (type_equals(type, &TYPE_ANY)) {
         node->return_type = &TYPE_OBJECT;
@@ -274,13 +281,14 @@ int unify_conditional(Visitor* v, ASTNode* node, Type* type) {
     }
 
     return (
-        unify_member(v, node->data.cond_node.body_true, type) ||
+        unify(v, node->data.cond_node.body_true, type) ||
         (node->data.cond_node.body_false &&
-            unify_member(v, node->data.cond_node.body_false, type)
+            unify(v, node->data.cond_node.body_false, type)
         )
     );
 }
 
+// method to unify a type knowing a method name
 int unify_type_by_attr(Visitor* v, ASTNode* node) {
     ASTNode* instance = node->data.op_node.left;
     ASTNode* member = node->data.op_node.right;
@@ -289,7 +297,7 @@ int unify_type_by_attr(Visitor* v, ASTNode* node) {
     if (member->type == NODE_VARIABLE)
         return 1;
     
-    ValueList* types = get_types_by_attr(node->context, member->data.func_node.name);
+    NodeList* types = find_types_by_method(node->context, member->data.func_node.name);
     Type* type = NULL;
     Symbol* defined_type = NULL;
 
@@ -301,10 +309,10 @@ int unify_type_by_attr(Visitor* v, ASTNode* node) {
         if (defined_type) {
             if (!type)
                 type = defined_type->type;
-            else {
+            else { // trying to get the lowest common ancestor that has that method
                 Type* tmp = get_lca(type, defined_type->type);
                 
-                if (type_contains_attr(tmp, member->data.func_node.name, 1))
+                if (type_contains_method_in_scope(tmp, member->data.func_node.name, 1))
                     type = tmp;
                 else
                     return 0;
@@ -314,7 +322,7 @@ int unify_type_by_attr(Visitor* v, ASTNode* node) {
     
 
     if (type) {
-        unified = unify_member(v, instance, type);
+        unified = unify(v, instance, type);
 
         if (unified) {
             instance->return_type = type;

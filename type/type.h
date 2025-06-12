@@ -43,9 +43,6 @@ typedef struct OperatorTypeRule {
     Operator op;
 } OperatorTypeRule;
 
-extern char* keywords[]; // keywords of the language
-extern char scape_chars[]; //scapes characters defined
-
 extern Type TYPE_NUMBER;
 extern Type TYPE_STRING;
 extern Type TYPE_BOOLEAN;
@@ -59,8 +56,6 @@ extern int op_rules_count;
 extern OperatorTypeRule operator_rules[];
 
 OperatorTypeRule create_op_rule(Type* left_type, Type* right_type, Type* return_type, Operator op);
-int match_as_keyword(char* name);
-int is_scape_char(char c);
 int type_equals(Type* type1, Type* type2);
 int is_ancestor_type(Type* ancestor, Type* type);
 int find_op_match(OperatorTypeRule* possible_match);
@@ -68,4 +63,7 @@ int same_branch_in_type_hierarchy(Type* type1, Type* type2);
 int is_builtin_type(Type* type);
 Type* get_lca(Type* true_type, Type* false_type);
 Type* create_new_type(char* name, Type* parent, Type** param_types, int count, struct ASTNode* dec);
+Type* get_type(struct ASTNode* node);
+Type** map_get_type(struct ASTNode** nodes, int count);
+Tuple* map_type_equals(Type** model, Type** candidate, int count);
 #endif

@@ -8,6 +8,7 @@
 #define RED     "\x1B[31m"
 #define RESET   "\x1B[0m"
 
+// main method in semantic check
 int analyze_semantics(ASTNode* node) {
     Visitor visitor = {
         .visit_program = visit_program,
@@ -39,9 +40,9 @@ int analyze_semantics(ASTNode* node) {
         .current_type = NULL,
         .type_id = 0
     };
-    
+    // starts visiting program node
     accept(&visitor, node);
-
+    // removing duplicates (as a result of re-visiting some nodes)
     StrList* errors = to_set(visitor.errors, visitor.error_count);
     
     while (errors)
@@ -56,28 +57,7 @@ int analyze_semantics(ASTNode* node) {
     return visitor.error_count;
 }
 
-Type* find_type(ASTNode* node) {
-    Type* instance_type = node->return_type;
-    Symbol* t = find_defined_type(node->scope, instance_type->name);
-
-    if (t)
-        return t->type;
-
-    // instance_type->scope = create_scope(NULL);
-
-    return instance_type;
-}
-
-Type** find_types(ASTNode** args, int args_count) {
-    Type** types = (Type**)malloc(args_count * sizeof(Type*));
-    for (int i = 0; i < args_count; i++)
-    {
-        types[i] = find_type(args[i]);
-    }
-    
-    return types;
-}
-
+// method to visit program node
 void visit_program(Visitor* v, ASTNode* node) {
     init_builtins(node->scope);
     get_context(v, node);
@@ -96,4 +76,41 @@ void visit_program(Visitor* v, ASTNode* node) {
             );
         }
     }
+}
+
+// <----------KEYWORDS---------->
+
+// keywords
+char* keywords[] = { 
+    "Number", "String", "Boolean", "Object", "Void",
+    "true", "false", "PI", "E", "function", "let", "in",
+    "is", "as", "type", "inherits", "new", "base"
+};
+int keyword_count = sizeof(keywords) / sizeof(char*);
+
+// method to check whether or not a name is a keyword
+int match_as_keyword(char* name) {
+    for (int i = 0; i < keyword_count; i++)
+    {
+        if (!strcmp(keywords[i], name))
+            return 1;
+    }
+
+    return 0;
+}
+
+//<----------SCAPES---------->
+
+char scape_chars[] = { 'n', 't', '\\', '\"' };
+int scapes_count = sizeof(scape_chars) / sizeof(char);
+
+// method to check whether or not a char is a scape sequence
+int is_scape_char(char c) {
+    for (int i = 0; i < scapes_count; i++)
+    {
+        if (scape_chars[i] == c)
+            return 1;
+    }
+
+    return 0;
 }

@@ -42,12 +42,12 @@ $(BUILD_DIR):
 # El directorio build se pone como dependencia order-only (con el símbolo |)
 $(EXEC): lex.yy.o y.tab.o $(AST_DIR)/ast.o $(SRC_DIR)/main.o \
     $(CODE_GEN_DIR)/llvm_builtins.o $(CODE_GEN_DIR)/llvm_core.o $(VISITOR_DIR)/llvm_visitor.o \
-	$(CODE_GEN_DIR)/llvm_codegen.o $(SCOPE_DIR)/llvm_scope.o $(CODE_GEN_DIR)/llvm_string.o  $(VISITOR_DIR)/llvm_visitor.o\
+	$(CODE_GEN_DIR)/llvm_codegen.o $(SCOPE_DIR)/llvm_scope.o $(CODE_GEN_DIR)/llvm_string.o  $(VISITOR_DIR)/llvm_visitor.o \
 	$(CODE_GEN_DIR)/llvm_operators.o $(UTILS_DIR)/utils.o $(VISITOR_DIR)/llvm_visitor.o \
-    $(SEMANTIC_DIR)/unification.o $(SEMANTIC_DIR)/type_checking.o $(SEMANTIC_DIR)/cond_loop_checking.o \
-	$(SEMANTIC_DIR)/function_checking.o $(SEMANTIC_DIR)/variable_checking.o $(SEMANTIC_DIR)/basic_checking.o \
-	$(SEMANTIC_DIR)/semantic.o $(SCOPE_DIR)/scope.o $(SCOPE_DIR)/context.o $(VISITOR_DIR)/visitor.o \
-	$(TYPE_DIR)/type.o | $(BUILD_DIR)
+    $(SEMANTIC_DIR)/unification.o $(SEMANTIC_DIR)/type_op_checking.o $(SEMANTIC_DIR)/type_checking.o \
+	$(SEMANTIC_DIR)/cond_loop_checking.o $(SEMANTIC_DIR)/function_checking.o $(SEMANTIC_DIR)/variable_checking.o \
+	$(SEMANTIC_DIR)/basic_checking.o $(SEMANTIC_DIR)/semantic.o $(SCOPE_DIR)/scope.o $(SCOPE_DIR)/context.o \
+	$(VISITOR_DIR)/visitor.o $(TYPE_DIR)/type.o | $(BUILD_DIR)
 
 	@printf "$(CYAN)🔗 Getting ready...$(RESET)\n";
 	@$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
@@ -119,6 +119,9 @@ $(SEMANTIC_DIR)/cond_loop_checking.o: $(SEMANTIC_DIR)/cond_loop_checking.c
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 $(SEMANTIC_DIR)/type_checking.o: $(SEMANTIC_DIR)/type_checking.c
+	@$(CC) $(CFLAGS) -c $< -o $@
+
+$(SEMANTIC_DIR)/type_op_checking.o: $(SEMANTIC_DIR)/type_op_checking.c
 	@$(CC) $(CFLAGS) -c $< -o $@
 
 # Regla genérica para compilar cualquier archivo .c en .o

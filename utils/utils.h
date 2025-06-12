@@ -24,15 +24,15 @@ typedef struct StrList {
     struct StrList* next;
 } StrList;
 
-typedef struct ListElement {
+typedef struct NodeElement {
     struct ASTNode* value;
-    struct ListElement* next;
-} ListElement;
+    struct NodeElement* next;
+} NodeElement;
 
-typedef struct ValueList {
-    ListElement* first;
+typedef struct NodeList {
+    NodeElement* first;
     int count;
-} ValueList;
+} NodeList;
 
 typedef struct MRO {
     char* type_name;
@@ -46,12 +46,12 @@ MRO* add_type_to_mro(char* type_name, MRO* list);
 MRO* empty_mro_list(MRO* list);
 int find_type_in_mro(char* type_name, MRO* list);
 StrList* to_set(char**list, int count);
-ValueList* add_value_list(struct ASTNode* value, ValueList* list);
-struct ASTNode* at(int index, ValueList* list);
+NodeList* add_node_list(struct ASTNode* value, NodeList* list);
+struct ASTNode* at(int index, NodeList* list);
 char* concat_str_with_underscore(char* type, char* name);
 char* delete_underscore_from_str(char* name, char* type);
 char* append_question(const char *input);
 void free_int_list(IntList* list);
 void free_str_list(StrList* list);
-void free_value_list(ValueList* list);
+void free_node_list(NodeList* list);
 void free_tuple(Tuple* tuple);

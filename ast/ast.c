@@ -105,7 +105,7 @@ ASTNode* create_assignment_node(char* var, ASTNode* value, char* type_name, Node
     node->data.op_node.left = create_variable_node(var, NULL, 0);
     node->data.op_node.left->static_type = type_name;
     node->data.op_node.right = value;
-    node->derivations = add_value_list(value, NULL);
+    node->derivations = add_node_list(value, NULL);
     return node;
 }
 
@@ -159,7 +159,7 @@ ASTNode* create_let_in_node(ASTNode** declarations, int dec_count, ASTNode* body
     }
     node->data.func_node.arg_count = dec_count;
     node->data.func_node.body = body;
-    node->derivations = add_value_list(body, NULL);
+    node->derivations = add_node_list(body, NULL);
     return node;
 }
 
@@ -170,8 +170,8 @@ ASTNode* create_conditional_node(ASTNode* condition, ASTNode* body_true, ASTNode
     node->return_type = &TYPE_OBJECT;
     node->scope = create_scope(NULL);
     node->context = create_context(NULL);
-    node->derivations = add_value_list(body_true, NULL);
-    node->derivations = add_value_list(body_false, node->derivations);
+    node->derivations = add_node_list(body_true, NULL);
+    node->derivations = add_node_list(body_false, node->derivations);
     node->data.cond_node.cond = condition;
     node->data.cond_node.body_true = body_true;
     node->data.cond_node.body_false = body_false;
@@ -186,8 +186,8 @@ ASTNode* create_q_conditional_node(ASTNode* exp, ASTNode* body_true, ASTNode* bo
     node->return_type = &TYPE_OBJECT;
     node->scope = create_scope(NULL);
     node->context = create_context(NULL);
-    node->derivations = add_value_list(body_true, NULL);
-    node->derivations = add_value_list(body_false, node->derivations);
+    node->derivations = add_node_list(body_true, NULL);
+    node->derivations = add_node_list(body_false, node->derivations);
     node->data.cond_node.cond = exp;
     node->data.cond_node.body_true = body_true;
     node->data.cond_node.body_false = body_false;
@@ -204,7 +204,7 @@ ASTNode* create_loop_node(ASTNode* condition, ASTNode* body) {
     node->context = create_context(NULL);
     node->data.op_node.left = condition;
     node->data.op_node.right = body;
-    node->derivations = add_value_list(body, NULL);
+    node->derivations = add_node_list(body, NULL);
     return node;
 }
 
