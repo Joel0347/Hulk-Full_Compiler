@@ -164,7 +164,7 @@ block_expr:
 ;
 
 block_expr_list:
-    statement {
+    expression {
         $$ = malloc(sizeof(*$$));
 
         if ($1 == NULL) {
@@ -176,7 +176,7 @@ block_expr_list:
             $$->arg_count = 1;
         }
     }
-    | statement block_expr_list {
+    | expression block_expr_list {
         $$ = malloc(sizeof(*$$));
 
         if ($1 == NULL) {
