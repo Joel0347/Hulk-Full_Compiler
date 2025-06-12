@@ -281,7 +281,6 @@ let_definitions:
 ;
 
 destructive_var_decl:
-    /* ID COLON ID DEQUALS expression        { $$ = create_assignment_node($1, $5, $3, NODE_D_ASSIGNMENT); } */
     ID DEQUALS expression {
         $$ = create_assignment_node($1, $3, "", NODE_D_ASSIGNMENT);
     }
