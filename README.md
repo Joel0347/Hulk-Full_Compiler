@@ -1,4 +1,9 @@
-# Hulk-Full_Compiler 🚀  
+# Hulk-Full_Compiler 🚀 
+
+### **📚 Authors**  
+- **Claudia Hernández Pérez** - C-312  
+- **Joel Aparicio Tamayo** - C-312  
+- **Kendry Javier Del Pino Barbosa** - C-312 
 
 A compiler for the **HULK** programming language made with **C**, featuring lexer, parser, AST generation, and LLVM code generation.  
 
@@ -40,11 +45,19 @@ sudo apt install flex bison llvm clang
 ├── parser/ # Parser
 │ └── parser.y
 ├── regex_interpreter/ # Regular Expression Interpreter
+│ ├── dfa.c 
+│ ├── dfa.h
 │ ├── interpreter.c 
 │ ├── interpreter.h 
+│ ├── lexer.c
+│ ├── lexer.h
 │ ├── main.c
-│ └── nfa.c
-│ └── nfa.h
+│ ├── Makefile
+│ ├── match.c
+│ ├── match.h
+│ ├── nfa.c
+│ ├── nfa.h
+│ └── token.h
 ├── scope/ #scope
 │ ├── context.c
 │ ├── scope.c
@@ -56,6 +69,7 @@ sudo apt install flex bison llvm clang
 │ ├── semantic.c
 │ ├── semantic.h
 │ ├── type_checking.c
+│ ├── type_op_checking.c
 │ ├── unification.c
 │ └── variable_checking.c
 ├── type/ #types
