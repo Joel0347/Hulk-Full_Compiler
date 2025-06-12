@@ -14,26 +14,26 @@ YFLAGS = -d -y -v
 LEX = flex
 YACC = bison
 
-BUILD_DIR = build
-EXEC = $(BUILD_DIR)/HULK
-
 SRC_DIR = .
-AST_DIR = ast
-CODE_GEN_DIR = code_generation
-LEXER_DIR = lexer
-PARSER_DIR = parser
-SEMANTIC_DIR = semantic_check
-TYPE_DIR = type
-VISITOR_DIR = visitor
-SCOPE_DIR = scope
-UTILS_DIR = utils
+AST_DIR = $(SRC_DIR)/ast
+CODE_GEN_DIR = $(SRC_DIR)/code_generation
+LEXER_DIR = $(SRC_DIR)/lexer
+PARSER_DIR = $(SRC_DIR)/parser
+SEMANTIC_DIR = $(SRC_DIR)/semantic_check
+TYPE_DIR = $(SRC_DIR)/type
+VISITOR_DIR = $(SRC_DIR)/visitor
+SCOPE_DIR = $(SRC_DIR)/scope
+UTILS_DIR = $(SRC_DIR)/utils
+
+BUILD_DIR = $(SRC_DIR)/build
+EXEC = $(BUILD_DIR)/HULK
 
 .PHONY: all compile execute clean debug
 
 all: compile
 
 compile: $(EXEC)
-	@./$(EXEC)
+	@$(SRC_DIR)/$(EXEC)
 	
 # Creamos el directorio build si no existe
 $(BUILD_DIR):
