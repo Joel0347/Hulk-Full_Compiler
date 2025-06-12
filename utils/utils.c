@@ -1,6 +1,46 @@
 #include "utils.h"
 #include <stdlib.h>
 
+
+//<----------STRING---------->
+
+// method to concatenate the type name with name and starting with '_'
+// Ex: type: A, name: foo -> _A_foo 
+char* concat_str_with_underscore(char* type, char* name) {
+    if (name[0] == '_')
+        return name;
+        
+    int n = strlen(type) + strlen(name) + 3;
+    char* new_s = (char*)malloc(n);
+    snprintf(new_s, n, "_%s_%s", type, name);
+    return new_s;
+}
+
+// method to delete the prefix from name that contains the type name.
+// Ex: name: _A_foo, type: A -> foo
+char* delete_underscore_from_str(char* name, char* type) {
+    int len = strlen(type);
+    const char *s1_ptr = name + len + 2;
+
+    return strdup(s1_ptr);
+}
+
+// method to append question mark to a string
+char* append_question(const char *input) {
+    int len = strlen(input);
+    char *result = malloc((len + 2) * sizeof(char));
+    
+    strcpy(result, input);
+    result[len] = '?';
+    result[len + 1] = '\0';
+    
+    return result;
+}
+
+
+//<----------TUPLE---------->
+
+// method to create a tuple containing different types
 Tuple* init_tuple_for_types(int matched, char* type1_name, char* type2_name, int pos) {
     Tuple* tuple = malloc(sizeof(Tuple));
     tuple->matched = matched;
@@ -13,6 +53,7 @@ Tuple* init_tuple_for_types(int matched, char* type1_name, char* type2_name, int
     return tuple;
 }
 
+// method to create a tuple containing different counts
 Tuple* init_tuple_for_count(int matched, int arg1_count, int arg2_count) {
     Tuple* tuple = malloc(sizeof(Tuple));
     tuple->same_name = 1;
@@ -24,6 +65,15 @@ Tuple* init_tuple_for_count(int matched, int arg1_count, int arg2_count) {
     return tuple;
 }
 
+// method to free a tuple
+void free_tuple(Tuple* tuple) {
+    free(tuple);
+}
+
+
+//<----------INT_LIST---------->
+
+// method to add an element to the list 
 IntList* add_int_list(IntList* list, int number) {
     IntList* element = (IntList*)malloc(sizeof(IntList));
     element->value = number;
@@ -32,6 +82,17 @@ IntList* add_int_list(IntList* list, int number) {
     return element;
 }
 
+// method to free an int list
+void free_int_list(IntList* list) {
+    if (list && list->next)
+        free_int_list(list->next);
+    free(list);
+}
+
+
+//<----------STR_LIST---------->
+
+// method to add a string to the list
 StrList* add_str_list(StrList* list, char* s) {
     StrList* element = (StrList*)malloc(sizeof(StrList));
     element->value = s;
@@ -40,6 +101,7 @@ StrList* add_str_list(StrList* list, char* s) {
     return element;
 }
 
+// method to check whether or not a list contains a string
 int contains_str(StrList* l, char* s) {
     while (l)
     {
@@ -52,6 +114,7 @@ int contains_str(StrList* l, char* s) {
     return 0;
 }
 
+// method to remove duplicates
 StrList* to_set(char**list, int len) {
     StrList* result = NULL;
     for (int i = len - 1; i >= 0; i--)
@@ -63,9 +126,20 @@ StrList* to_set(char**list, int len) {
     return result;
 }
 
-ValueList* add_value_list(struct ASTNode* value, ValueList* list) {
-    ValueList* new_list = (ValueList*)malloc(sizeof(ValueList));
-    ListElement* element = (ListElement*)malloc(sizeof(ListElement));
+// method to free a string list
+void free_str_list(StrList* list) {
+    if (list && list->next)
+        free_str_list(list->next);
+    free(list);
+}
+
+
+//<----------NODE_LIST---------->
+
+// method to add a new node to the list
+NodeList* add_node_list(struct ASTNode* value, NodeList* list) {
+    NodeList* new_list = (NodeList*)malloc(sizeof(NodeList));
+    NodeElement* element = (NodeElement*)malloc(sizeof(NodeElement));
     element->value = value;
     element->next = NULL;
 
@@ -81,12 +155,13 @@ ValueList* add_value_list(struct ASTNode* value, ValueList* list) {
     return new_list;
 }
 
-struct ASTNode* at(int index, ValueList* list) {
+// method to get a node at a specific index
+struct ASTNode* at(int index, NodeList* list) {
     if (!list || index > list->count || index < 0) {
         return NULL;
     }
 
-    ListElement* current = list->first;
+    NodeElement* current = list->first;
     int i = 0;
     while (i < list->count)
     {  
@@ -101,34 +176,26 @@ struct ASTNode* at(int index, ValueList* list) {
     return NULL;
 }
 
-char* concat_str_with_underscore(char* type, char* name) {
-    if (name[0] == '_')
-        return name;
-        
-    int n = strlen(type) + strlen(name) + 3;
-    char* new_s = (char*)malloc(n);
-    snprintf(new_s, n, "_%s_%s", type, name);
-    return new_s;
+// method to free a node list element
+void free_node_list_element(NodeElement* element) {
+    if (element) {
+        free(element->value);
+        free_node_list_element(element->next);
+    }
 }
 
-char* delete_underscore_from_str(char* name, char* type) {
-    int len = strlen(type);
-    const char *s1_ptr = name + len + 2;
-
-    return strdup(s1_ptr);
+// method to free a node list
+void free_node_list(NodeList* list) {
+    if (list) {
+        free_node_list_element(list->first);
+    }
+    free(list);
 }
 
-char* append_question(const char *input) {
-    int len = strlen(input);
-    char *result = malloc((len + 2) * sizeof(char));
-    
-    strcpy(result, input);
-    result[len] = '?';
-    result[len + 1] = '\0';
-    
-    return result;
-}
 
+//<----------MRO---------->
+
+// method to add a new type to the mro list
 MRO* add_type_to_mro(char* type_name, MRO* list) {
     if (!strcmp(type_name, ""))
         return list;
@@ -139,6 +206,7 @@ MRO* add_type_to_mro(char* type_name, MRO* list) {
     return new_list;
 }
 
+// method to empty the mro list
 MRO* empty_mro_list(MRO* list) {
     if (list)
         free(list->next);
@@ -146,6 +214,7 @@ MRO* empty_mro_list(MRO* list) {
     return NULL;
 }
 
+// method to check whether or not a type is in the mro list
 int find_type_in_mro(char* type_name, MRO* list) {
     if (!list) {
         return 0;
@@ -156,34 +225,4 @@ int find_type_in_mro(char* type_name, MRO* list) {
     }
 
     return find_type_in_mro(type_name, list->next);
-}
-
-void free_int_list(IntList* list) {
-    if (list && list->next)
-        free_int_list(list->next);
-    free(list);
-}
-
-void free_str_list(StrList* list) {
-    if (list && list->next)
-        free_str_list(list->next);
-    free(list);
-}
-
-void free_value_list_element(ListElement* element) {
-    if (element) {
-        free(element->value);
-        free_value_list_element(element->next);
-    }
-}
-
-void free_value_list(ValueList* list) {
-    if (list) {
-        free_value_list_element(list->first);
-    }
-    free(list);
-}
-
-void free_tuple(Tuple* tuple) {
-    free(tuple);
 }

@@ -1,22 +1,8 @@
 #include "type.h"
+#include "ast/ast.h"
 
-// keywords
-char* keywords[] = { 
-    "Number", "String", "Boolean", "Object", "Void",
-    "true", "false", "PI", "E", "function", "let", "in",
-    "is", "as", "type", "inherits", "new", "base"
-};
-char scape_chars[] = { 'n', 't', '\\', '\"' };
 
-// Basic types instances
-Type TYPE_OBJECT = { "Object", NULL, NULL, NULL, NULL, 0 };
-Type TYPE_NUMBER = { "Number", NULL, &TYPE_OBJECT, NULL, NULL, 0 };
-Type TYPE_STRING = { "String", NULL, &TYPE_OBJECT, NULL, NULL, 0 };
-Type TYPE_BOOLEAN = { "Boolean", NULL, &TYPE_OBJECT, NULL, NULL, 0 };
-Type TYPE_VOID = { "Void", NULL, &TYPE_OBJECT, NULL, NULL, 0 };
-Type TYPE_ERROR = { "Error", NULL, NULL, NULL, NULL, 0 };
-Type TYPE_ANY = { "Any", NULL, NULL, NULL, NULL, 0 };
-Type TYPE_NULL = { "Null", NULL, &TYPE_OBJECT, NULL, NULL, 0 };
+//<----------RULES---------->
 
 OperatorTypeRule operator_rules[] = {
 
@@ -61,31 +47,9 @@ OperatorTypeRule operator_rules[] = {
     { &TYPE_NUMBER, NULL, &TYPE_NUMBER, OP_NEGATE },// (-)
 };
 
-
 int op_rules_count = sizeof(operator_rules) / sizeof(OperatorTypeRule);
-int keyword_count = sizeof(keywords) / sizeof(char*);
-int scapes_count = sizeof(scape_chars) / sizeof(char);
 
-int match_as_keyword(char* name) {
-    for (int i = 0; i < keyword_count; i++)
-    {
-        if (!strcmp(keywords[i], name))
-            return 1;
-    }
-
-    return 0;
-}
-
-int is_scape_char(char c) {
-    for (int i = 0; i < scapes_count; i++)
-    {
-        if (scape_chars[i] == c)
-            return 1;
-    }
-
-    return 0;
-}
-
+// method to create an operation rule
 OperatorTypeRule create_op_rule(Type* left_type, Type* right_type, Type* return_type, Operator op) {
     OperatorTypeRule rule = { 
         left_type, right_type, 
@@ -95,6 +59,69 @@ OperatorTypeRule create_op_rule(Type* left_type, Type* right_type, Type* return_
     return rule;
 }
 
+// method to check whether or not two operation rules are equal
+int op_rule_equals(OperatorTypeRule* op1, OperatorTypeRule* op2) {
+    return (
+        ((type_equals(op1->left_type, op2->left_type) &&
+        type_equals(op1->right_type, op2->right_type)) ||
+        type_equals(op2->left_type, &TYPE_ERROR)||
+        type_equals(op2->right_type, &TYPE_ANY) ||
+        type_equals(op2->right_type, &TYPE_ERROR)||
+        type_equals(op2->left_type, &TYPE_ANY)
+        ) &&
+        type_equals(op1->result_type, op2->result_type) &&
+        op1->op == op2->op
+    );
+}
+
+// method to check whether or not there is a rule that matches with the given one
+int find_op_match(OperatorTypeRule* possible_match) {
+    for (int i = 0; i < op_rules_count; i++)
+    {
+        if (op_rule_equals(&operator_rules[i], possible_match)) {
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
+
+//<----------TYPES---------->
+
+// Basic types instances
+Type TYPE_OBJECT = { "Object", NULL, NULL, NULL, NULL, 0 };
+Type TYPE_NUMBER = { "Number", NULL, &TYPE_OBJECT, NULL, NULL, 0 };
+Type TYPE_STRING = { "String", NULL, &TYPE_OBJECT, NULL, NULL, 0 };
+Type TYPE_BOOLEAN = { "Boolean", NULL, &TYPE_OBJECT, NULL, NULL, 0 };
+Type TYPE_VOID = { "Void", NULL, &TYPE_OBJECT, NULL, NULL, 0 };
+Type TYPE_ERROR = { "Error", NULL, NULL, NULL, NULL, 0 };
+Type TYPE_ANY = { "Any", NULL, NULL, NULL, NULL, 0 };
+Type TYPE_NULL = { "Null", NULL, &TYPE_OBJECT, NULL, NULL, 0 };
+
+// method to get the return type of a node
+Type* get_type(ASTNode* node) {
+    Type* instance_type = node->return_type;
+    Symbol* t = find_defined_type(node->scope, instance_type->name);
+
+    if (t)
+        return t->type;
+
+    return instance_type;
+}
+
+// method to map node array to type array using the type of each node
+Type** map_get_type(ASTNode** nodes, int count) {
+    Type** types = (Type**)malloc(count * sizeof(Type*));
+    for (int i = 0; i < count; i++)
+    {
+        types[i] = get_type(nodes[i]);
+    }
+    
+    return types;
+}
+
+// method to check whether or not 'ancestor' is ancestor of 'type' in type hierarchy
 int is_ancestor_type(Type* ancestor, Type* type) {
     if (!type)
         return 0;
@@ -105,6 +132,7 @@ int is_ancestor_type(Type* ancestor, Type* type) {
     return is_ancestor_type(ancestor, type->parent);
 }
 
+// method to get the nulleable type associated to the given type
 Type* get_nulleable(Type* type) {
     if (is_builtin_type(type) && !type_equals(type, &TYPE_OBJECT))
         return type;
@@ -119,49 +147,47 @@ Type* get_nulleable(Type* type) {
     return new_type;
 }
 
-Type* get_lca(Type* true_type, Type* false_type) {
-    int true_nulleable = 0;
-    int false_nulleable = 0;
+// method to get the lowest common ancestor of two types
+Type* get_lca(Type* t1, Type* t2) {
+    int t1_nulleable = 0;
+    int f2_nulleable = 0;
 
-    if (true_type->sub_type) {
-        true_nulleable = 1;
-        true_type = true_type->sub_type;
+    if (t1->sub_type) {
+        t1_nulleable = 1;
+        t1 = t1->sub_type;
     }
 
-    if (false_type->sub_type) {
-        false_nulleable = 1;
-        false_type = false_type->sub_type;
+    if (t2->sub_type) {
+        f2_nulleable = 1;
+        t2 = t2->sub_type;
     }
 
-    if (type_equals(true_type, &TYPE_ANY) ||
-        type_equals(false_type, &TYPE_ANY)
-    ) {
+    if (type_equals(t1, &TYPE_ANY) || type_equals(t2, &TYPE_ANY)) {
         return &TYPE_ANY;
-    } else if (type_equals(true_type, &TYPE_ERROR) ||
-        type_equals(false_type, &TYPE_ERROR)
-    ) {
+    } else if (type_equals(t1, &TYPE_ERROR) || type_equals(t2, &TYPE_ERROR)) {
         return &TYPE_ERROR;
     }
 
-    if (type_equals(false_type, &TYPE_NULL)) {
-        return get_nulleable(true_type);
+    if (type_equals(t2, &TYPE_NULL)) {
+        return get_nulleable(t1);
     }
     
-    if (is_ancestor_type(true_type, false_type)) {
-        if (true_nulleable)
-            true_type = get_nulleable(true_type);
-        return true_type;
-    } else if (is_ancestor_type(false_type, true_type)) {
-        if (false_nulleable)
-            false_type = get_nulleable(false_type);
-        return false_type;
+    if (is_ancestor_type(t1, t2)) {
+        if (t1_nulleable)
+            t1 = get_nulleable(t1);
+        return t1;
+    } else if (is_ancestor_type(t2, t1)) {
+        if (f2_nulleable)
+            t2 = get_nulleable(t2);
+        return t2;
     }
 
-    Type* result = get_lca(true_type->parent, false_type->parent);
+    Type* result = get_lca(t1->parent, t2->parent);
 
-    return (true_nulleable || false_nulleable)? get_nulleable(result) : result;
+    return (t1_nulleable || f2_nulleable)? get_nulleable(result) : result;
 }
 
+// method to check whethter or not two types are in the same branch of the type hierarchy
 int same_branch_in_type_hierarchy(Type* type1, Type* type2) {
     
     if (is_ancestor_type(type1, type2) ||
@@ -173,6 +199,7 @@ int same_branch_in_type_hierarchy(Type* type1, Type* type2) {
     return 0;
 }
 
+// method to check whether or not two types are equal
 int type_equals(Type* type1, Type* type2) {
     if (!type1 && !type2)
         return 1;
@@ -187,31 +214,30 @@ int type_equals(Type* type1, Type* type2) {
     return 0;
 }
 
-int op_rule_equals(OperatorTypeRule* op1, OperatorTypeRule* op2) {
-    return (
-            (type_equals(op1->left_type, op2->left_type) &&
-             type_equals(op1->right_type, op2->right_type)
-            ) ||
-            type_equals(op2->left_type, &TYPE_ERROR)||
-            type_equals(op2->right_type, &TYPE_ANY) ||
-            type_equals(op2->right_type, &TYPE_ERROR)||
-            type_equals(op2->left_type, &TYPE_ANY)
-           ) &&
-            type_equals(op1->result_type, op2->result_type) &&
-            op1->op == op2->op;
-}
-
-int find_op_match(OperatorTypeRule* possible_match) {
-    for (int i = 0; i < op_rules_count; i++)
+// method to check whether or not each type of 'model' is ancestor of 
+//the corresponding type in 'candidate'
+Tuple* map_type_equals(Type** model, Type** candidate, int count) {
+    for (int i = 0; i < count; i++)
     {
-        if (op_rule_equals(&operator_rules[i], possible_match)) {
-            return 1;
+        if ((!type_equals(candidate[i], &TYPE_ERROR) &&
+            !type_equals(candidate[i], &TYPE_ANY)
+            ) &&
+            (!type_equals(model[i], &TYPE_ANY) &&
+            !type_equals(model[i], &TYPE_ERROR) &&
+            !is_ancestor_type(model[i], candidate[i])
+            )
+        ) {
+            Tuple* tuple = init_tuple_for_types(
+                0, model[i]->name, candidate[i]->name, i+1
+            );
+            return tuple;
         }
     }
-
-    return 0;
+    
+    return init_tuple_for_types(1, "", "", -1);
 }
 
+// method to create a new type
 Type* create_new_type(char* name, Type* parent, Type** param_types, int count, struct ASTNode* dec) {
     Type* new_type = (Type*)malloc(sizeof(Type));
     new_type->name = name;
@@ -223,6 +249,7 @@ Type* create_new_type(char* name, Type* parent, Type** param_types, int count, s
     return new_type;
 }
 
+// method to check whether or not a type is builtin
 int is_builtin_type(Type* type) {
     return (
         type_equals(type, &TYPE_OBJECT)  ||

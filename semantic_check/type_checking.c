@@ -1,131 +1,10 @@
 #include "semantic.h"
 
-MRO* mro_list;
+MRO* mro_list; // list to save type names for catching circular inheritance
 
-void visit_attr_setter(Visitor* v, ASTNode* node) {
-    ASTNode* instance = node->data.cond_node.cond;
-    ASTNode* member = node->data.cond_node.body_true;
-    ASTNode* value = node->data.cond_node.body_false;
-
-    value->scope->parent = node->scope;
-    value->context->parent = node->context;
-    instance->scope->parent = node->scope;
-    instance->context->parent = node->context;
-    member->context->parent = node->context;
-    member->scope->parent = node->scope;
-
-    accept(v, instance);
-    Type* instance_type = find_type(instance);
-
-    if (type_equals(instance_type, &TYPE_ERROR)) {
-        node->return_type = &TYPE_ERROR;
-        return;
-    }
-
-    // if (instance_type->dec) {
-    //     member->context->parent = instance_type->dec->context;
-    //     member->scope->parent = instance_type->dec->scope; 
-    // }
-
-    if ((instance->type == NODE_VARIABLE &&
-        strcmp(instance->data.variable_name, "self"))
-        ||
-        instance->type != NODE_VARIABLE
-    ) {
-        report_error(
-            v, "Impossible to access to '%s'  in type '%s' because all"
-            " attributes are private. Line: %d.",
-            member->data.variable_name, instance_type->name, node->line
-        );
-        node->return_type = &TYPE_ERROR;
-        return;
-    }
-
-    member->data.variable_name = concat_str_with_underscore(
-        instance_type->name, member->data.variable_name
-    );
-
-    Symbol* sym = get_type_attr(
-        instance_type,
-        member->data.variable_name
-    );
-
-    if (sym) {
-        member->return_type = sym->type;
-        member->is_param = sym->is_param;
-        member->derivations = sym->derivations;
-    } else {
-        ContextItem* item = find_item_in_type(
-            instance_type->dec->context,
-            member->data.variable_name,
-            instance_type, 0
-        );
-
-        if (!item) {
-            member->return_type = &TYPE_ERROR;
-            report_error(
-                v, "Type '%s' does not have an attribute named '%s'. Line: %d", 
-                instance_type->name, member->data.variable_name, node->line
-            );
-        } else {
-            accept(v, item->declaration);
-            sym = get_type_attr(instance_type, member->data.variable_name);
-            member->return_type = sym->type;
-            member->is_param = sym->is_param;
-            member->derivations = sym->derivations;
-        }
-    }
-
-    accept(v, value);
-    Type* inferried_type = find_type(value);
-
-    if (sym) {
-        if (
-            is_ancestor_type(sym->type, inferried_type) ||
-            type_equals(inferried_type, &TYPE_ANY) ||
-            type_equals(sym->type, &TYPE_ANY)
-        ) {
-            if (type_equals(inferried_type, &TYPE_ANY) &&
-                !type_equals(sym->type, &TYPE_ANY)
-            ) {
-                if (unify_member(v, value, sym->type)) {
-                    accept(v, value);
-                    inferried_type = sym->type;
-                }
-            } else if (
-                type_equals(sym->type, &TYPE_ANY) &&
-                !type_equals(inferried_type, &TYPE_ANY)
-            ) {
-                sym->type = inferried_type;
-                for (int i = 0; i < sym->derivations->count; i++)
-                {
-                    ASTNode* value = at(i, sym->derivations);
-                    if (value && type_equals(value->return_type, &TYPE_ANY)) {
-                        unify_member(v, value, inferried_type);
-                    }
-                }
-            }
-
-            sym->derivations = add_value_list(value, sym->derivations);
-        } else {
-            report_error(
-                v, "Variable '%s' was initializated as "
-                "'%s', but reassigned as '%s'. Line: %d.",
-                sym->name, sym->type->name, inferried_type->name, node->line
-            );
-        }
-    }
-
-    node->return_type = find_type(value);
-    node->derivations = add_value_list(value, node->derivations);
-    node->derivations = add_value_list(member, node->derivations);
-}
-
-void check_params(Visitor* v, ASTNode* node) {
-    
-}
-
+// method to visit type declaration node
 void visit_type_dec(Visitor* v, ASTNode* node) {
+    // checking circular inheritance
     if (find_type_in_mro(node->data.type_node.parent_name, mro_list)) {
         report_error(
             v, "Circular inheritance detected. Line: %d.", node->line
@@ -134,6 +13,7 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
         return;
     }
 
+    // to prevent loops
     if (node->checked) {
         return;
     }
@@ -147,6 +27,7 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
     ASTNode** params = node->data.type_node.args;
     ASTNode** definitions = node->data.type_node.definitions;
 
+    // Checking multiple uses of a symbol in parameters
     for (int i = 0; i < node->data.type_node.arg_count - 1; i++) {
         for (int j = i + 1; j < node->data.type_node.arg_count; j++) {
             if (!strcmp(
@@ -163,6 +44,7 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
         }
     }
 
+    // Parameters checking
     for (int i = 0; i < node->data.type_node.arg_count; i++)
     {
         params[i]->scope->parent = node->scope;
@@ -170,6 +52,7 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
         Symbol* param_type = find_defined_type(node->scope, params[i]->static_type);
         int free_type = 0;
 
+        // Checking type annotation
         if (strcmp(params[i]->static_type, "") && !param_type) {
              ContextItem* item = find_context_item(
                 node->context, params[i]->static_type, 1, 0
@@ -208,12 +91,14 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
             params[i]->return_type = &TYPE_ERROR;
         }
 
+        // Annotate parameters as Any if they weren't annotated
         if (!strcmp(params[i]->static_type, "")) {
             params[i]->return_type = &TYPE_ANY;
         } else if (param_type) {
             params[i]->return_type = param_type->type;
         }
 
+        // Declare parameters in the type scope
         declare_symbol(
             node->scope, params[i]->data.variable_name,
             params[i]->return_type, 1, NULL
@@ -226,6 +111,7 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
     Symbol* parent_info = find_defined_type(node->scope, node->data.type_node.parent_name);
     Type* parent_type = &TYPE_OBJECT;
 
+    // Checking type parent
     if (strcmp(node->data.type_node.parent_name, "") && !parent_info) {
         ContextItem* item = find_context_item(
             node->context, 
@@ -258,13 +144,6 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
             } else if (!found) {
                 parent_type = parent_info->type;
             }
-
-            if (!is_builtin_type(parent_type)) {
-                // node->scope->parent = parent_type->dec->scope;
-                // node->context->parent = parent_type->dec->context;
-                // node->scope = copy_scope_symbols(parent_type->dec->scope, node->scope);
-            }
-            // node->scope = copy_scope_symbols(parent_type->dec->scope, node->scope);
         }
     } else if (
         strcmp(node->data.type_node.parent_name, "") && 
@@ -276,11 +155,9 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
         );
     } else if (strcmp(node->data.type_node.parent_name, "")) {
         parent_type = parent_info->type;
-        // node->scope->parent = parent_type->dec->scope;
-        // node->context->parent = parent_type->dec->context;
-        // node->scope = copy_scope_symbols(parent_type->dec->scope, node->scope);
     }
 
+    // Taking parent parameters if it doesn't have any
     if (!is_builtin_type(parent_type) && !node->data.type_node.arg_count) {
         node->data.type_node.arg_count = parent_type->arg_count;
         node->data.type_node.args = malloc(sizeof(ASTNode*) * parent_type->arg_count);
@@ -303,6 +180,7 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
         }
         
     } else if (!is_builtin_type(parent_type)) {
+        // checking parent instantiation if there is a constructor defined
         ASTNode* parent = create_type_instance_node(
             parent_type->name,
             node->data.type_node.p_args,
@@ -315,18 +193,15 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
         accept(v, parent);
     }
 
-    // if (parent_type)
-    //     node->data.type_node.parent = parent_type;
     mro_list = empty_mro_list(mro_list);
 
+    // create actual type
     Type* this = create_new_type(node->data.type_node.name, parent_type, NULL, 0, node);
-    // this->context = node->context;
-    // this->scope = create_scope(node->scope);
-    // this->scope = node->scope;
     ContextItem* item = find_context_item(node->context->parent, this->name, 1, 0);
     item->return_type = this;
-    v->current_type = this;
+    v->current_type = this; // save it as current in the visitor for 'base' node
 
+    // Collecting context of the type
     for (int i = 0; i < node->data.type_node.def_count; i++) {
         ASTNode* child =  definitions[i];
         child->context->parent = node->context;
@@ -343,6 +218,7 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
         }
     }
 
+    // Checking attribute initializations
     for (int i = 0; i < node->data.type_node.def_count; i++)
     {
         ASTNode* current = definitions[i];
@@ -351,6 +227,7 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
         }
     }
     
+    // Hidding parameters for method declarations
     for (int i = 0; i < node->data.type_node.arg_count; i++)
     {
         Symbol* sym = find_parameter(
@@ -359,7 +236,9 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
         sym->is_type_param = 1;
     }
 
+    // Declaring 'self' symbol in order to make it available inside methods
     declare_symbol(node->scope, "self", this, 0, NULL);
+    // Checking type methods
     for (int i = 0; i < node->data.type_node.def_count; i++)
     {
         ASTNode* current = definitions[i];
@@ -368,6 +247,7 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
         }
     }
 
+    // Returning changes made to parameters
     for (int i = 0; i < node->data.type_node.arg_count; i++)
     {
         Symbol* sym = find_parameter(
@@ -376,8 +256,9 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
         sym->is_type_param = 0;
     }
 
-    Type** param_types = find_types(params, node->data.type_node.arg_count);
+    Type** param_types = map_get_type(params, node->data.type_node.arg_count);
 
+    // Checking that no parameter is annotated as Any
     for (int i = 0; i < node->data.type_node.arg_count; i++)
     {
         Symbol* param = find_parameter(node->scope, params[i]->data.variable_name);
@@ -402,6 +283,7 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
         node->data.type_node.args[i]->return_type = param_types[i];
     }
 
+    // declaring the type
     node->data.type_node.id = ++v->type_id;
     this->dec = node;
     this->arg_count = node->data.type_node.arg_count;
@@ -411,6 +293,7 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
     v->current_type = visitor_type;
 }
 
+// method to check type instance node
 void visit_type_instance(Visitor* v, ASTNode* node) {
     ASTNode** args = node->data.type_node.args;
 
@@ -445,13 +328,13 @@ void visit_type_instance(Visitor* v, ASTNode* node) {
 
     for (IntList* current = unified; current != NULL; current = current->next)
     {
-        accept(v, args[current->value]);
+        accept(v, args[current->value]); // visit again if unified
     }
 
     free_int_list(unified);
     
 
-    Type** args_types = find_types(args, node->data.type_node.arg_count);
+    Type** args_types = map_get_type(args, node->data.type_node.arg_count);
 
     Function* f = (Function*)malloc(sizeof(Function));
     f->name = node->data.type_node.name;
@@ -461,7 +344,7 @@ void visit_type_instance(Visitor* v, ASTNode* node) {
     Function* dec = NULL;
 
     if (item && item->return_type) {
-        Type** dec_args_types = find_types(
+        Type** dec_args_types = map_get_type(
             item->declaration->data.type_node.args, 
             item->declaration->data.type_node.arg_count
         );
@@ -480,6 +363,7 @@ void visit_type_instance(Visitor* v, ASTNode* node) {
         return;
     }
 
+    // Trying to find a type signature that matches
     FuncData* funcData = find_type_data(node->scope, f, dec);
 
     if (funcData->func && funcData->func->result_type) {
@@ -491,6 +375,7 @@ void visit_type_instance(Visitor* v, ASTNode* node) {
     }
 
     if (!funcData->state->matched) {
+        // Unpacking errors
         if (!funcData->state->same_name) {
             node->return_type = &TYPE_ERROR;
             report_error(
@@ -520,214 +405,4 @@ void visit_type_instance(Visitor* v, ASTNode* node) {
     free_tuple(funcData->state);
     free(args_types);
     free(f);
-}
-
-void visit_attr_getter(Visitor* v, ASTNode* node) {
-    ASTNode* instance = node->data.op_node.left;
-    ASTNode* member = node->data.op_node.right;
-
-    instance->scope->parent = node->scope;
-    instance->context->parent = node->context;
-    member->context->parent = node->context;
-    member->scope->parent = node->scope;
-
-    accept(v, instance);
-    Type* instance_type = find_type(instance);
-
-    if (type_equals(instance_type, &TYPE_ERROR)) {
-        node->return_type = &TYPE_ERROR;
-        return;
-    } else if (type_equals(instance_type, &TYPE_ANY)) {
-        if (!unify_type_by_attr(v, node)) {
-            node->return_type = &TYPE_ERROR;
-            return;
-        } else {
-            accept(v, instance);
-            instance_type = find_type(instance);
-        }
-    }
-
-    // if (instance_type->dec) {
-    //     member->context->parent = instance_type->dec->context;
-    //     member->scope->parent = instance_type->dec->scope; 
-    // }
-
-    if (member->type == NODE_VARIABLE && ((
-        instance->type == NODE_VARIABLE &&
-        strcmp(instance->data.variable_name, "self"))
-        || 
-        instance->type != NODE_VARIABLE)
-    ) {
-        // instance_type->name = type_equals(instance_type, &TYPE_ANY)? 
-        //     "(not matter)" : instance_type->name;
-        report_error(
-            v, "Impossible to access to '%s' in type '%s' because all"
-            " attributes are private. Line: %d.",
-            member->data.variable_name, instance_type->name, node->line
-        );
-        node->return_type = &TYPE_ERROR;
-        return;
-    } else if (member->type == NODE_VARIABLE) {
-        member->data.variable_name = concat_str_with_underscore(
-            instance_type->name, member->data.variable_name
-        );
-
-        Symbol* sym = get_type_attr(
-            instance_type,
-            member->data.variable_name
-        );
-
-        if (sym) {
-            member->return_type = sym->type;
-            member->is_param = sym->is_param;
-            member->derivations = sym->derivations;
-        } else {
-            ContextItem* item = find_item_in_type(
-                instance_type->dec->context,
-                member->data.variable_name,
-                instance_type, 0
-            );
-
-            if (!item) {
-                member->return_type = &TYPE_ERROR;
-                report_error(
-                    v, "Type '%s' does not have an attribute named '%s'. Line: %d", 
-                    instance_type->name, member->data.variable_name, node->line
-                );
-            } else {
-                accept(v, item->declaration);
-                sym = get_type_attr(instance_type, member->data.variable_name);
-                member->return_type = sym->type;
-                member->is_param = sym->is_param;
-                member->derivations = sym->derivations;
-                // member->derivations = add_value_list(
-                //     item->declaration->data.op_node.left,
-                //     member->derivations
-                // );
-            }
-        }
-    }
-
-    if (member->type == NODE_FUNC_CALL && !type_equals(instance_type, &TYPE_ERROR)) {
-        Symbol* t = find_defined_type(node->scope, instance_type->name);
-
-        if (!t) {
-            ContextItem* t_item = find_context_item(node->context, instance_type->name, 1, 0);
-            if (t_item) {
-                accept(v, t_item->declaration);
-                instance_type = t_item->return_type;
-            } else {
-                node->return_type = &TYPE_ERROR;
-                if (!type_equals(instance_type, &TYPE_ERROR)) {
-                    report_error(
-                        v, "Type '%s' does not have a method named '%s'. Line: %d", 
-                        instance_type->name, member->data.func_node.name, node->line
-                    );
-                }
-                return;
-            }
-        } else if (is_builtin_type(instance_type)) {
-            node->return_type = &TYPE_ERROR;
-            if (!type_equals(instance_type, &TYPE_ERROR)) {
-                report_error(
-                    v, "Type '%s' does not have a method named '%s'. Line: %d", 
-                    instance_type->name, member->data.func_node.name, node->line
-                );
-            }
-            return;
-        } else {
-            instance_type = t->type;
-        }
-
-        member->data.func_node.name = concat_str_with_underscore(
-            instance_type->name, member->data.func_node.name
-        );
-        check_function_call(v, member, instance_type);
-    }
-
-    node->return_type = find_type(member);
-    node->derivations = add_value_list(member, node->derivations);
-}
-
-void visit_test_type(Visitor* v, ASTNode* node) {
-    ASTNode* exp = node->data.cast_test.exp;
-    char* type_name = node->data.cast_test.type_name;
-
-    exp->scope->parent = node->scope;
-    exp->context->parent = node->context;
-
-    accept(v, exp);
-
-    Symbol* defined_type = find_defined_type(node->scope, type_name);
-
-    if (!defined_type) {
-        ContextItem* item = find_context_item(
-            node->context, type_name, 1, 0
-        );
-
-        if (item) {
-            accept(v, item->declaration);
-            defined_type = find_defined_type(node->scope, type_name);
-        }
-
-        if (!defined_type) {
-            node->data.cast_test.type = &TYPE_ERROR;
-            report_error(
-                v, "Type '%s' is not a valid type. Line: %d.",
-                type_name, node->line
-            );
-            return;
-        }
-    }
-
-    node->data.cast_test.type = defined_type->type;
-}
-
-void visit_casting_type(Visitor* v, ASTNode* node) {
-    ASTNode* exp = node->data.cast_test.exp;
-    char* type_name = node->data.cast_test.type_name;
-
-    exp->scope->parent = node->scope;
-    exp->context->parent = node->context;
-
-    accept(v, exp);
-    Type* dynamic_type = find_type(exp);
-    Symbol* defined_type = find_defined_type(node->scope, type_name);
-
-    if (!defined_type) {
-        ContextItem* item = find_context_item(
-            node->context, type_name, 1, 0
-        );
-
-        if (item) {
-            accept(v, item->declaration);
-            defined_type = find_defined_type(node->scope, type_name);
-        }
-
-        if (!defined_type) {
-            node->data.cast_test.type = &TYPE_ERROR;
-            node->return_type = &TYPE_ERROR;
-            report_error(
-                v, "Type '%s' is not a valid type. Line: %d.",
-                type_name, node->line
-            );
-            return;
-        }
-    }
-    
-    if (
-        !type_equals(dynamic_type, &TYPE_ERROR) &&
-        !type_equals(dynamic_type, &TYPE_ANY) &&
-        !same_branch_in_type_hierarchy(
-            dynamic_type, defined_type->type
-        )
-    ) {
-        report_error(
-            v, "Type '%s' can not be downcasted to type '%s'. Line: %d.",
-            dynamic_type->name, type_name, node->line
-        );
-    }
-
-    node->data.cast_test.type = defined_type->type;
-    node->return_type = defined_type->type;
 }

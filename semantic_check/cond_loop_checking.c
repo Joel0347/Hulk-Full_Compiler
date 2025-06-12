@@ -1,5 +1,6 @@
 #include "semantic.h"
 
+// method to visit condicional node
 void visit_conditional(Visitor* v, ASTNode* node) {
     ASTNode* condition = node->data.cond_node.cond;
     ASTNode* true_body = node->data.cond_node.body_true;
@@ -17,11 +18,11 @@ void visit_conditional(Visitor* v, ASTNode* node) {
 
     accept(v, condition);
 
-    if (unify_member(v, condition, &TYPE_BOOLEAN)) {
-        accept(v, condition);
+    if (unify(v, condition, &TYPE_BOOLEAN)) {
+        accept(v, condition); // visit again if unified
     }
 
-    Type* condition_type = find_type(condition);
+    Type* condition_type = get_type(condition);
 
     if (!type_equals(condition_type, &TYPE_ERROR) &&
         !type_equals(condition_type, &TYPE_BOOLEAN)
@@ -33,6 +34,7 @@ void visit_conditional(Visitor* v, ASTNode* node) {
         );
     }
 
+    // Whether or not conditional is being used as statement (in that case Void is allowed)
     if (true_body->type == NODE_CONDITIONAL || true_body->type == NODE_Q_CONDITIONAL) {
         true_body->data.cond_node.stm = node->data.cond_node.stm;
     }
@@ -42,19 +44,19 @@ void visit_conditional(Visitor* v, ASTNode* node) {
     }
 
     accept(v, true_body);
-    Type* true_type = find_type(true_body);
+    Type* true_type = get_type(true_body);
     Type* false_type = NULL;
 
     if (false_body) {
         accept(v, false_body);
         accept(v, true_body);
-        false_type = find_type(false_body);
-        true_type = find_type(true_body);
+        false_type = get_type(false_body);
+        true_type = get_type(true_body);
     } else if (
         is_builtin_type(true_type) &&
         !type_equals(true_type, &TYPE_OBJECT)
     ) {
-        false_type = find_type(true_body);
+        false_type = get_type(true_body);
     } else {
         false_type = &TYPE_NULL;
     }
@@ -68,9 +70,11 @@ void visit_conditional(Visitor* v, ASTNode* node) {
         );
     }
 
+    // find lowest common ancestor
     node->return_type = get_lca(true_type, false_type);
 }
 
+// method to visit q_conditional node (if?)
 void visit_q_conditional(Visitor* v, ASTNode* node) {
     ASTNode* exp = node->data.cond_node.cond;
     ASTNode* null_body = node->data.cond_node.body_true;
@@ -92,11 +96,11 @@ void visit_q_conditional(Visitor* v, ASTNode* node) {
 
     Symbol* s = NULL;
     if (exp->type == NODE_TYPE_GET_ATTR) {
-        Type* t = find_type(exp->data.op_node.left);
+        Type* t = get_type(exp->data.op_node.left);
         int attr = exp->data.op_node.right->type == NODE_VARIABLE;
 
         if (attr) {
-            s = get_type_attr(t, exp->data.op_node.right->data.variable_name);
+            s = find_type_attr(t, exp->data.op_node.right->data.variable_name);
         } else {
             report_error(
                 v, "Clause 'if?' is still in trial period. It only accepts variables as arguments. Line: %d", 
@@ -109,6 +113,7 @@ void visit_q_conditional(Visitor* v, ASTNode* node) {
         s = find_symbol(node->scope, exp->data.variable_name);
     }
 
+    // In true-body variable behaves as Null and in false body it behaves as the original not-nulleable type
     Type* exp_type = s->type;
     s->type = &TYPE_NULL;
     accept(v, null_body);
@@ -120,12 +125,13 @@ void visit_q_conditional(Visitor* v, ASTNode* node) {
     accept(v, null_body);
     s->type = exp_type;
 
-    Type* ok_type = find_type(ok_body);
-    Type* null_type = find_type(null_body);
+    Type* ok_type = get_type(ok_body);
+    Type* null_type = get_type(null_body);
 
     node->return_type = get_lca(ok_type, null_type);
 }
 
+// method to visit loop node (while loop)
 void visit_loop(Visitor* v, ASTNode* node) {
     ASTNode* condition = node->data.op_node.left;
     ASTNode* body = node->data.op_node.right;
@@ -137,11 +143,11 @@ void visit_loop(Visitor* v, ASTNode* node) {
 
     accept(v, condition);
 
-    if (unify_member(v, condition, &TYPE_BOOLEAN)) {
-        accept(v, condition);
+    if (unify(v, condition, &TYPE_BOOLEAN)) {
+        accept(v, condition); // visit again if unified
     }
 
-    Type* condition_type = find_type(condition);
+    Type* condition_type = get_type(condition);
 
     if (!type_equals(condition_type, &TYPE_ERROR) &&
         !type_equals(condition_type, &TYPE_BOOLEAN)
@@ -154,15 +160,17 @@ void visit_loop(Visitor* v, ASTNode* node) {
     }
 
     accept(v, body);
-    node->return_type = find_type(body);
+    node->return_type = get_type(body);
 }
 
+// method to visit for loop node (converts for into while)
 void visit_for_loop(Visitor* v, ASTNode* node) {
     ASTNode** args = node->data.func_node.args;
     ASTNode* body = node->data.func_node.body;
     char* name = node->data.func_node.name;
     int count = node->data.func_node.arg_count;
 
+    // Range function checking
     if (!count || count > 2) {
         report_error(
             v, "Function 'range' receives 1 or 2 arguments, not %d. Line: %d", 
@@ -178,12 +186,7 @@ void visit_for_loop(Visitor* v, ASTNode* node) {
         args[i]->scope->parent = node->scope;
         args[i]->context->parent = node->context;
         accept(v, args[i]);
-        Type* t = find_type(args[i]);
-
-        // if (type_equals(t, &TYPE_ANY) && unify_member(v, args[i], &TYPE_NUMBER)) {
-        //     accept(v, args[i]);
-        //     t = find_type(args[i]);
-        // }
+        Type* t = get_type(args[i]);
 
         if (!type_equals(t, &TYPE_ANY) && !type_equals(t, &TYPE_NUMBER)) {
             args[i]->return_type = &TYPE_ERROR;
@@ -194,22 +197,24 @@ void visit_for_loop(Visitor* v, ASTNode* node) {
         }
     }
 
+    // Converting to while
     ASTNode** internal_decs = (ASTNode**)malloc(sizeof(ASTNode*) * 1);
     internal_decs[0] = create_assignment_node(
         name, create_variable_node("_iter", "", 0), "", NODE_ASSIGNMENT
-    );
-    ASTNode* internal_let = create_let_in_node(internal_decs, 1, body);
+    ); // assigment of the let inside the while
+    ASTNode* internal_let = create_let_in_node(internal_decs, 1, body); // let inside the while
     ASTNode* iter_next = create_assignment_node(
         "_iter", create_binary_op_node(
             OP_ADD, "+", create_variable_node("_iter", "", 0), create_number_node(1), &TYPE_NUMBER
         ),
         "", NODE_D_ASSIGNMENT
-    );
-    ASTNode* condition = create_binary_op_node(OP_LS, "<", iter_next, end, &TYPE_BOOLEAN);
+    ); // assigment inside while condition
+    ASTNode* condition = create_binary_op_node(OP_LS, "<", iter_next, end, &TYPE_BOOLEAN); //while condition
     ASTNode* _while =  create_conditional_node(
         condition, create_loop_node(condition, internal_let), NULL
-    );
+    ); // while expression
 
+    // final let-in expression containg the while as body
     node->type = NODE_LET_IN;
     node->return_type = &TYPE_OBJECT;
     node->data.func_node.name = "";
@@ -221,7 +226,7 @@ void visit_for_loop(Visitor* v, ASTNode* node) {
     );
     node->data.func_node.arg_count = 1;
     node->data.func_node.body = _while;
-    node->derivations = add_value_list(_while, NULL);
+    node->derivations = add_node_list(_while, NULL);
 
     accept(v, node);
 }

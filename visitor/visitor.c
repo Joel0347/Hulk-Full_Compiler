@@ -1,5 +1,6 @@
 #include "visitor.h"
 
+// method to select the visit method of a given node
 void accept(Visitor* visitor, ASTNode* node) {
     if (!node) {
         return;
@@ -79,6 +80,7 @@ void accept(Visitor* visitor, ASTNode* node) {
     }
 }
 
+// method to get the context of a node
 void get_context(Visitor* visitor, ASTNode* node) {
     for(int i = 0; i < node->data.program_node.count; i++) {
         ASTNode* child =  node->data.program_node.statements[i];
@@ -99,12 +101,14 @@ void get_context(Visitor* visitor, ASTNode* node) {
     }
 }
 
+// method to add an error to the error array of the visitor
 void add_error(char*** array, int* count, const char* str) {
     *array = realloc(*array, (*count + 1) * sizeof(char*));
     (*array)[*count] = strdup(str);
     (*count)++;
 }
 
+// method to build an error mssg
 void report_error(Visitor* v, const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);

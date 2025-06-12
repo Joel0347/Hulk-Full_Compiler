@@ -2,15 +2,18 @@
 #include "../ast/ast.h"
 #include "../visitor/visitor.h"
 
+extern char* keywords[]; // keywords of the language
+extern char scape_chars[]; //scapes characters defined
+
+int match_as_keyword(char* name);
+int is_scape_char(char c);
 int analyze_semantics(ASTNode* node);
-Type* find_type(ASTNode* node);
-Type** find_types(ASTNode** args, int args_count);
 int unify_op(Visitor* v, ASTNode* left, ASTNode* right, Operator op, char* op_name);
 int unify_conditional(Visitor* v, ASTNode* node, Type* type);
 int unify_type_by_attr(Visitor* v, ASTNode* node);
 IntList* unify_func(Visitor* v, ASTNode** args, Scope* scope, int arg_count, char* f_name, ContextItem* item);
 IntList* unify_type(Visitor* v, ASTNode** args, Scope* scope, int arg_count, char* t_name, ContextItem* item);
-int unify_member(Visitor* v, ASTNode* node, Type* type);
+int unify(Visitor* v, ASTNode* node, Type* type);
 void check_function_call(Visitor* v, ASTNode* node, Type* type);
 void check_function_dec(Visitor* v, ASTNode* node, Type* type);
 void visit_program(Visitor* v, ASTNode* node);
