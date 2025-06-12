@@ -164,7 +164,7 @@ block_expr:
 ;
 
 block_expr_list:
-    expression {
+    expression SEMICOLON {
         $$ = malloc(sizeof(*$$));
 
         if ($1 == NULL) {
@@ -176,20 +176,20 @@ block_expr_list:
             $$->arg_count = 1;
         }
     }
-    | expression block_expr_list {
+    | expression SEMICOLON block_expr_list {
         $$ = malloc(sizeof(*$$));
 
         if ($1 == NULL) {
-            $$->args = malloc(sizeof(ASTNode *) * ($2->arg_count));
-            memcpy($$->args, $2->args, sizeof(ASTNode *) * $2->arg_count);
-            $$->arg_count = $2->arg_count;
-            free($2->args);
+            $$->args = malloc(sizeof(ASTNode *) * ($3->arg_count));
+            memcpy($$->args, $3->args, sizeof(ASTNode *) * $3->arg_count);
+            $$->arg_count = $3->arg_count;
+            free($3->args);
         } else {
-            $$->args = malloc(sizeof(ASTNode *) * ($2->arg_count + 1));
+            $$->args = malloc(sizeof(ASTNode *) * ($3->arg_count + 1));
             $$->args[0] = $1;
-            memcpy($$->args + 1, $2->args, sizeof(ASTNode *) * $2->arg_count);
-            $$->arg_count = $2->arg_count + 1;
-            free($2->args);
+            memcpy($$->args + 1, $3->args, sizeof(ASTNode *) * $3->arg_count);
+            $$->arg_count = $3->arg_count + 1;
+            free($3->args);
         }
     }
 
