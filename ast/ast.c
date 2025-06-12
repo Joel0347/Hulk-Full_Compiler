@@ -393,7 +393,8 @@ void free_ast(ASTNode* node) {
     }
     destroy_scope(node->scope);
     destroy_context(node->context);
-    free(node);
+    // free(node);
+    node = NULL;
 }
 
 void print_ast(ASTNode* node, int indent) {

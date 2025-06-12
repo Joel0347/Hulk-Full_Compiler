@@ -354,14 +354,16 @@
 // 	getX() => 2;
 // }
 
-// type b inherits c {
-// 	getX() => 1;
-// 	getY() => 2;
-// }
+type c(x:Number) {c = x;}
+type b inherits c {
+	getX() => 1;
+	getY() => 2;
+}
 
-type a inherits c {getX() => 2;}
-type c {}
-// // let x = new b() in if (x is c) x as c else {};
+// type a(x) inherits c(x+1) {getX() => 1;}
+
+
+// let x = new b() in if (x is c) (x as c);
 // // let x:Object = 1 in print(x as Number);
 
 // // l("2", 2);
