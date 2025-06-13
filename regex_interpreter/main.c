@@ -5,121 +5,149 @@
 #include "match.h"
 #include "lexer.h"
 
-NFA nfa_union_BIG(NFA a, NFA b) {
-    NFA nfa = {0};
-    int offset = a.states + 1;
-    nfa.states = a.states + b.states + 2;
-    nfa.start = *create_state(0);
-    nfa.start.token = "error";
-    nfa.finals[0] = *create_state(nfa.states - 1);
-    nfa.finals[0].token = "error";
-    nfa.finals_count = 1;
+FILE *file;
 
-    NFA_State* state_a = create_state(a.start.state + 1);
-    state_a->token = a.start.token;
+char* read_entire_file(const char* filename) {
+    FILE* file = fopen(filename, "r");
+    if (!file) return NULL;
 
-    NFA_State* state_b = create_state(b.start.state + offset);
-    state_b->token = b.start.token;
+    char buffer[4096];
+    char* content = NULL;
+    size_t total_size = 0;
 
-    nfa.transitions[nfa.transitions_count++] = (Transition){nfa.start, EPSILON, *state_a};
-    nfa.transitions[nfa.transitions_count++] = (Transition){nfa.start, EPSILON, *state_b};
-
-    for (int i = 0; i < a.transitions_count; ++i) {
-        Transition t = a.transitions[i];
-
-        NFA_State* state_from = create_state(t.from.state + 1);
-        state_from->token = t.from.token;
-
-        NFA_State* state_to = create_state(t.to.state + 1);
-        state_to->token = t.to.token;
-
-        nfa.transitions[nfa.transitions_count++] = (Transition){*state_from, t.symbol, *state_to};
+    while (fgets(buffer, sizeof(buffer), file)) {
+        size_t chunk_size = strlen(buffer);
+        content = realloc(content, total_size + chunk_size + 1);
+        if (!content) {
+            perror("Error en realloc");
+            fclose(file);
+            return NULL;
+        }
+        strcpy(content + total_size, buffer);
+        total_size += chunk_size;
     }
 
-    for (int i = 0; i < b.transitions_count; ++i) {
-        Transition t = b.transitions[i];
-
-        NFA_State* state_from = create_state(t.from.state + offset);
-        state_from->token = t.from.token;
-
-        NFA_State* state_to = create_state(t.to.state + offset);
-        state_to->token = t.to.token;
-
-        nfa.transitions[nfa.transitions_count++] = (Transition){*state_from, t.symbol, *state_to};
-    }
-
-    for (int i = 0; i < a.finals_count; ++i) {
-        NFA_State* state_final = create_state(a.finals[i].state + 1);
-        state_final->token = a.finals[i].token;
-
-        nfa.transitions[nfa.transitions_count++] = (Transition){*state_final, EPSILON, nfa.finals[0]};
-    }
-
-    for (int i = 0; i < b.finals_count; ++i) {
-        NFA_State* state_final = create_state(b.finals[i].state + offset);
-        state_final->token = b.finals[i].token;
-
-        nfa.transitions[nfa.transitions_count++] = (Transition){*state_final, EPSILON, nfa.finals[0]};
-    }
-    
-    return nfa;
-}
-
-Regex* converTo_regex(char* regex, char* token) {
-    Regex* _regex = (Regex*)malloc(sizeof(Regex));
-    strcpy(_regex->token, token);
-    strcpy(_regex->regex, regex);
-
-    Token tokens[1000];
-    int token_count = 0;
-    tokenize(_regex->regex, tokens, &token_count);
-
-    ParserState ps = {tokens, 0};
-    Node *ast = parse_E(&ps);
-    NFA nfa = eval(ast);
-
-    _regex->nfa = nfa;
-    _regex->nfa.start.token = _regex->token;
-
-    for (int i = 0; i < nfa.transitions_count; i++) {
-        _regex->nfa.transitions[i].from.token = _regex->token;
-        _regex->nfa.transitions[i].to.token = _regex->token;
-    }
-
-    for (int i = 0; i < nfa.finals_count; i++) {
-        _regex->nfa.finals[i].token = _regex->token;
-    }
-
-    return _regex;
+    fclose(file);
+    return content;
 }
 
 int main() {
-    Regex* regex_number = converTo_regex("[0-9]+\\.[0-9]+", "number");
-    Regex* regex_id = converTo_regex("[a-z]+", "ID");
+    Regex* regex_semicolon = converTo_regex(";", "SEMICOLON");
+    Regex* regex_comma = converTo_regex(",", "COMMA");
+    Regex* regex_number_decimal = converTo_regex("[0-9]+\\.[0-9]+", "DECIMAL");
+    Regex* regex_number = converTo_regex("[0-9]+", "NUMBER");
+    Regex* regex_dot = converTo_regex("\\.", "DOT");
+    Regex* regex_plusequal = converTo_regex("\\+=", "PLUSEQUAL");
+    Regex* regex_minusequal = converTo_regex("\\-=", "MINUSEQUAL");
+    Regex* regex_timeequal = converTo_regex("\\*=", "TIMESEQUAL");
+    Regex* regex_divequal = converTo_regex("/=", "DIVEQUAL");
+    Regex* regex_modequal = converTo_regex("%=", "MODEQUAL"); 
+    Regex* regex_powequal = converTo_regex("\\^=", "POWEQUAL"); 
+    Regex* regex_plus = converTo_regex("\\+", "PLUS"); 
+    Regex* regex_minus = converTo_regex("\\-", "MINUS"); 
+    Regex* regex_times = converTo_regex("\\*", "TIMES"); 
+    Regex* regex_divide = converTo_regex("/", "DIVIDE"); 
+    Regex* regex_mod = converTo_regex("%", "MOD"); 
+    Regex* regex_power = converTo_regex("\\^", "POWER"); 
+    Regex* regex_lparen = converTo_regex("\\(", "LPAREN"); 
+    Regex* regex_rparen = converTo_regex("\\)", "RPAREN"); 
+    Regex* regex_lbracket = converTo_regex("{", "LBRACKET"); 
+    Regex* regex_rbracket = converTo_regex("}", "RBRACKET"); 
+    Regex* regex_question = converTo_regex("\\?", "QUESTION"); 
+    Regex* regex_andequal = converTo_regex("&=", "ANDEQUAL"); 
+    Regex* regex_orequal = converTo_regex("\\|=", "OREQUAL"); 
+    Regex* regex_concatequal = converTo_regex("@=", "CONCATEQUAL"); 
+    Regex* regex_dequals = converTo_regex(":=", "DEQUALS"); 
+    Regex* regex_colon = converTo_regex(":", "COLON"); 
+    Regex* regex_equalsequals = converTo_regex("==", "EQUALSEQUALS"); 
+    Regex* regex_arrow = converTo_regex("=>", "ARROW"); 
+    Regex* regex_equals = converTo_regex("=", "EQUALS"); 
+    Regex* regex_dconcat = converTo_regex("@@", "DCONCAT"); 
+    Regex* regex_concat = converTo_regex("@", "CONCAT"); 
+    Regex* regex_nequals = converTo_regex("!=", "NEQUALS");
+    Regex* regex_not = converTo_regex("!", "NOT"); 
+    Regex* regex_and = converTo_regex("&", "AND"); 
+    Regex* regex_or = converTo_regex("\\|", "OR"); 
+    Regex* regex_egreater = converTo_regex(">=", "EGREATER"); 
+    Regex* regex_greater = converTo_regex(">", "GREATER"); 
+    Regex* regex_eless = converTo_regex("<=", "ELESS");
+    Regex* regex_less = converTo_regex("<", "LESS");
+    Regex* regex_pi = converTo_regex("PI", "PI"); 
+    Regex* regex_e = converTo_regex("E", "E"); 
+    Regex* regex_boolean = converTo_regex("true|false", "BOOLEAN"); 
+    Regex* regex_function = converTo_regex("function", "FUNCTION"); 
+    Regex* regex_let = converTo_regex("let", "LET"); 
+    Regex* regex_in = converTo_regex("in", "IN");
+    Regex* regex_if = converTo_regex("if", "IF"); 
+    Regex* regex_elif = converTo_regex("elif", "ELIF");
+    Regex* regex_else = converTo_regex("else", "ELSE");
+    Regex* regex_while = converTo_regex("while", "WHILE");
+    Regex* regex_as = converTo_regex("as", "AS");
+    Regex* regex_is = converTo_regex("is", "IS");
+    Regex* regex_type = converTo_regex("type", "TYPE"); 
+    Regex* regex_inherits = converTo_regex("inherits", "INHERITS");
+    Regex* regex_new = converTo_regex("new", "NEW"); 
+    Regex* regex_base = converTo_regex("base", "BASE");
+    Regex* regex_for = converTo_regex("for", "FOR"); 
+    Regex* regex_range = converTo_regex("range", "RANGE");
+    Regex* regex_id = converTo_regex("[a-zA-ZñÑ][a-zA-ZñÑ0-9_]*", "ID");
 
-    NFA nfa_un = nfa_union_BIG(regex_number->nfa, regex_id->nfa);
+    Regex* regex_list[] = {
+        regex_semicolon, regex_comma, regex_number, regex_number_decimal, regex_dot, regex_plus, regex_minus,
+        regex_times, regex_divide, regex_mod, regex_power, regex_lparen, regex_rparen, regex_lbracket,
+        regex_rbracket, regex_question, regex_plusequal, regex_minusequal, regex_timeequal, regex_divequal,
+        regex_modequal, regex_powequal, regex_andequal, regex_orequal, regex_concatequal, regex_dequals,
+        regex_colon, regex_equalsequals, regex_arrow, regex_equals, regex_dconcat, regex_concat, regex_nequals,
+        regex_not, regex_and, regex_or, regex_egreater, regex_greater, regex_eless, regex_less, regex_pi,
+        regex_e, regex_boolean, regex_function, regex_let, regex_in, regex_if, regex_elif, regex_else, regex_while,
+        regex_as, regex_is, regex_type, regex_inherits, regex_new, regex_base, regex_for, regex_range, regex_id
+    };
 
-    // printf("\nNFA:\nStates: %d\nStart: %d\nFinals:", regex_number->nfa.states, regex_number->nfa.start);
-    // for (int i = 0; i < regex_number->nfa.finals_count; ++i) printf(" %d", regex_number->nfa.finals[i]);
-    // printf("\nTransitions:\n");
-    // for (int i = 0; i < regex_number->nfa.transitions_count; ++i) {
-    //     printf("  %d --%c--> %d\n", regex_number->nfa.transitions[i].from.state, regex_number->nfa.transitions[i].symbol, regex_number->nfa.transitions[i].to.state);
-    // }
+    int token_count = sizeof(regex_list) / sizeof(regex_list[0]);
 
-    // for (int i = 0; i < regex_number->nfa.transitions_count; ++i) {
-    //     printf("  %s --%c--> %s\n", regex_number->nfa.transitions[i].from.token, regex_number->nfa.transitions[i].symbol, regex_number->nfa.transitions[i].to.token);
-    // }
+    NFA nfa = regex_list[0]->nfa;
+    regex_list[0]->priority = 0;
 
-    // printf("\n");
+    for (int i = 1; i < token_count; i++) {
+        regex_list[i]->priority = i;
+        nfa = nfa_union_BIG(regex_list[i]->nfa, nfa);
+    }
 
-    DFA* dfa = nfa_to_dfa(&nfa_un);
+    DFA* dfa = nfa_to_dfa(&nfa);
 
-    String_Match* matched = match(dfa, "gscfcx 9.2 jii 3.0  jeje");
+    char* file_info = read_entire_file("script.txt");
+    char* content = strcat(file_info, " ");
+    String_Match* matched = match(dfa, content);
 
     if (matched) {
-        for (int i = 0; i < matched->count; i++) {
-            printf("lexeme: %s, token: %s\n", matched->tokens[i].lexeme, matched->tokens[i].token);
+        Lexer_Token* tokens = (Lexer_Token*)malloc(sizeof(Lexer_Token) * matched->count);
+        int index = 0;
 
+        for (int i = 0; i < matched->count; i++) {
+            int priority = token_count + 1;
+            Lexer_Token lexer_token = *(Lexer_Token*)malloc(sizeof(Lexer_Token));
+            lexer_token.matches = 1;
+            strcpy(lexer_token.lexeme, matched->tokens[i].lexeme);
+            
+            if (matched->tokens[i].matches > 1) {
+                for (int j = 0; j < matched->tokens[i].matches; j++) {
+                    char* token = strdup(matched->tokens[i].token[j]);
+                    Regex* regex = find_regex_by_token(regex_list, token, token_count);
+
+                    if (match_nfa(&regex->nfa, &regex->nfa.start, lexer_token.lexeme, 0) && regex->priority < priority) {
+                        lexer_token.token[0] = strdup(token);
+                        priority = regex->priority;
+                    }
+                }
+            } else {
+                lexer_token.token[0] = strdup(matched->tokens[i].token[0]);
+            }
+
+            tokens[index++] = lexer_token;
+        }
+
+        for (int i = 0; i < matched->count; i++) {
+            printf("lexeme: %s, token: %s\n", tokens[i].lexeme, tokens[i].token[0]);
         }
     }
 

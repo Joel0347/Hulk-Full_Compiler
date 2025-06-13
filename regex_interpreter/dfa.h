@@ -4,12 +4,12 @@
 #include <stdint.h>
 #include "nfa.h"
 
-#define MAX_DFA_STATES 1024 // Ajustar según necesidad
+#define MAX_DFA_STATES 5000
 
 typedef struct {
-    int set[MAX_STATES];
+    int* set;
     int count;
-    char* tokens[256];
+    char* tokens[100];
     int matches;
 } State;
 

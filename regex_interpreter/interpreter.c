@@ -97,7 +97,7 @@ void tokenize(const char *input, Token *tokens, int *count) {
                 is_negated = 1;
                 i++;
             }
-            tokens[j].type = is_negated ? 8 : 7; // 7: set, 8: negated set
+            tokens[j].type = is_negated ? 8 : 7;
             int k = 0;
             while (input[i] != ']' && input[i] != '\0' && k < MAX_SET_LENGTH - 1) {
                 tokens[j].value.set[k++] = input[i++];
@@ -126,7 +126,7 @@ Node *parse_E(ParserState *ps) {
     return parse_X(ps, t);
 }
 Node *parse_X(ParserState *ps, Node *left) {
-    if (ps->tokens[ps->pos].type == 1) { // '|'
+    if (ps->tokens[ps->pos].type == 1) {
         ps->pos++;
         Node *t = parse_T(ps);
         Node *u = parse_X(ps, t);
@@ -213,7 +213,7 @@ Node *parse_A(ParserState *ps) {
         bool is_negated = (ps->tokens[ps->pos].type == 8);
         char *set = ps->tokens[ps->pos].value.set;
         ps->pos++;
-        char *expanded = expand_set(set, is_negated); // Expandir con complemento si es necesario
+        char *expanded = expand_set(set, is_negated);
         Node *union_node = NULL;
         for (int i = 0; expanded[i] != '\0'; ++i) {
             Node *symbol_node = malloc(sizeof(Node));

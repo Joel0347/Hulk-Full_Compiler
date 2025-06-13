@@ -3,9 +3,6 @@
 
 #include "interpreter.h"
 
-#define MAX_TRANSITIONS 1024
-#define MAX_STATES 256
-
 typedef struct
 {
     int state;
@@ -21,9 +18,9 @@ typedef struct {
 
 typedef struct {
     int states;
-    NFA_State finals[MAX_STATES];
+    NFA_State* finals;
     int finals_count;
-    Transition transitions[MAX_TRANSITIONS];
+    Transition* transitions;
     int transitions_count;
     NFA_State start;
 } NFA;
@@ -37,5 +34,7 @@ NFA nfa_concat(NFA a, NFA b);
 NFA nfa_closure(NFA a);
 NFA nfa_any();
 NFA eval(Node *node);
+NFA nfa_union_BIG(NFA a, NFA b);
+int match_nfa(NFA* nfa, NFA_State* actual_state, char* str, int pos);
 
 #endif
