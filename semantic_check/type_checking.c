@@ -284,6 +284,14 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
     }
 
     // declaring the type
+
+    if (parent_type && !is_builtin_type(parent_type)) {
+        node->data.type_node.parent_instance = create_type_instance_node(
+            parent_type->name, parent_type->dec->data.type_node.args,
+            parent_type->dec->data.type_node.arg_count
+        );
+    }
+
     node->data.type_node.id = ++v->type_id;
     this->dec = node;
     this->arg_count = node->data.type_node.arg_count;
@@ -368,6 +376,8 @@ void visit_type_instance(Visitor* v, ASTNode* node) {
 
     if (funcData->func && funcData->func->result_type) {
         node->return_type = funcData->func->result_type;
+        node->data.type_node.parent_instance = 
+            funcData->func->result_type->dec->data.type_node.parent_instance;
     } else if (funcData->func) {
         node->return_type = create_new_type(
             node->data.type_node.name, NULL, NULL, 0, item->declaration
@@ -402,6 +412,7 @@ void visit_type_instance(Visitor* v, ASTNode* node) {
         }
     }
 
+    if(node->data.type_node.parent_instance) printf("%s\n", node->data.type_node.parent_instance->data.type_node.name);
     free_tuple(funcData->state);
     free(args_types);
     free(f);

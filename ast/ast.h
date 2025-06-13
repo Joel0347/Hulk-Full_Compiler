@@ -77,6 +77,7 @@ typedef struct ASTNode {
             int arg_count;
             struct ASTNode** definitions;
             int def_count;
+            struct ASTNode* parent_instance;
             int id;
         } type_node;
         struct {

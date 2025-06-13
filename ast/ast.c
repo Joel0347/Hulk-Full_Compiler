@@ -284,6 +284,7 @@ ASTNode* create_type_dec_node(
     for (int i = 0; i < count; i++) {
         node->data.type_node.definitions[i] = body_block->data.program_node.statements[i];
     }
+    node->data.type_node.parent_instance = NULL;
     node->data.type_node.def_count = count;
     node->data.type_node.id = 0;
     return node;
@@ -301,6 +302,7 @@ ASTNode* create_type_instance_node(char* name, ASTNode** args, int arg_count) {
     for (int i = 0; i < arg_count; i++) {
         node->data.type_node.args[i] = args[i];
     }
+    node->data.type_node.parent_instance = NULL;
     node->data.type_node.arg_count = arg_count;
 
     return node;
