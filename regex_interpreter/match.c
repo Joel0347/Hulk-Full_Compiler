@@ -1,17 +1,15 @@
 #include "match.h"
+#include "dfa.h"
 #include <string.h>
 
-int equals(int* x, int* y, int count) {
-    int equals = 1;
-
-    for (int i = 0; i < count; i++) {
-        if (x[i] != y[i]) {
-            equals = 0;
-            break;
+is_final_state(DFA* dfa, State* state) {
+    for (int i = 0; i < dfa->finals_count; i++) {
+        if (set_equals(&dfa->finals[i], state)) {
+            return 1;
         }
     }
 
-    return equals;
+    return 0;
 }
 
 String_Match* match(DFA* dfa, char* str) {
@@ -22,32 +20,40 @@ String_Match* match(DFA* dfa, char* str) {
     State actual_state = dfa->start;
     int change = 1;
 
-    Lexer_Token tokens[1000];
+    Lexer_Token tokens[3000];
     int count = 0;
+    int last_index = 0;
 
     Lexer_Token token = *(Lexer_Token*)malloc(sizeof(Lexer_Token));
     Lexer_Token* actual_token = (Lexer_Token*)malloc(sizeof(Lexer_Token));
 
     for (int i = 0; i < length; i++) {
+        // printf("str[i]: %c\n", str[i]);
         if (!change) {
             if (strcmp(actual_token->lexeme, "")) {
                 strcpy(token.lexeme, actual_token->lexeme);
-                strcpy(token.token, actual_token->token);
+                token.matches = actual_state.matches;
+                for (int k = 0; k < actual_token->matches; k++) {
+                    token.token[k] = actual_token->token[k];
+                }
                 tokens[count++] = token;
                 actual_token = NULL;
                 actual_token = (Lexer_Token*)malloc(sizeof(Lexer_Token));
                 actual_state = dfa->start;
-                i--;
+                i = last_index;
             } else {
                 printf("!!LEXICAL ERROR: Unexpected caracter %c\n", str[i-1]);
                 return NULL;
             }
         }
 
-        if (str[i] == ' ') {
+        if (str[i] == ' ' || str[i] == '\n' || str[i] == '\r' || str[i] == '\t') {
             if (strcmp(actual_token->lexeme, "")) {
                 strcpy(token.lexeme, actual_token->lexeme);
-                strcpy(token.token, actual_token->token);
+                token.matches = actual_state.matches;
+                for (int k = 0; k < actual_token->matches; k++) {
+                    token.token[k] = actual_token->token[k];
+                }
                 tokens[count++] = token;
                 actual_token = NULL;
                 actual_token = (Lexer_Token*)malloc(sizeof(Lexer_Token));
@@ -64,22 +70,31 @@ String_Match* match(DFA* dfa, char* str) {
             DFA_Transition transition = dfa->transitions[j];
 
             if (set_equals(&actual_state, &(transition.from)) && str[i] == transition.symbol) {
-                copy_state_set(&actual_state, &(transition.to));
                 change = 1;
-                int len_lexeme = strlen(actual_token->lexeme);
-                actual_token->lexeme[len_lexeme] = str[i];
-                strcpy(actual_token->token, actual_state.tokens[0]);
+
+                if (is_final_state(dfa, &transition.to)) {
+                    int len_lexeme = strlen(actual_token->lexeme);
+                    actual_token->lexeme[len_lexeme] = str[i];
+                    actual_token->matches = transition.to.matches;
+                    for (int k = 0; k < transition.to.matches; k++) {
+                        actual_token->token[k] = transition.to.tokens[k];
+                    }
+                    last_index = i + 1; 
+                }
+
+                copy_state_set(&actual_state, &(transition.to));
                 break;
             }
         }
     }
 
-    if (change) {
+    if (change && strcmp(actual_token->lexeme, "")) {
         for (int i = 0; i < dfa->finals_count; i++) {
             if (set_equals(&actual_state, &(dfa->finals[i]))) {
-                match->matched = 1;
-
-                strcpy(actual_token->token, dfa->finals[i].tokens[0]);
+                actual_token->matches = dfa->finals[i].matches;
+                for (int k = 0; k < dfa->finals[i].matches; k++) {
+                    strcpy(actual_token->token[k], dfa->finals[i].tokens[k]);
+                }
                 tokens[count++] = *actual_token;
                 break;
             }
