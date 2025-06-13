@@ -2,7 +2,8 @@
 #include "dfa.h"
 #include <string.h>
 
-is_final_state(DFA* dfa, State* state) {
+// verify if a State of NFA is a final State
+int is_final_state(DFA* dfa, State* state) {
     for (int i = 0; i < dfa->finals_count; i++) {
         if (set_equals(&dfa->finals[i], state)) {
             return 1;
@@ -12,6 +13,7 @@ is_final_state(DFA* dfa, State* state) {
     return 0;
 }
 
+// generate list of tokens
 String_Match* match(DFA* dfa, char* str) {
     String_Match* match = (String_Match*)malloc(sizeof(String_Match));
     match->matched = 0;
@@ -28,7 +30,6 @@ String_Match* match(DFA* dfa, char* str) {
     Lexer_Token* actual_token = (Lexer_Token*)malloc(sizeof(Lexer_Token));
 
     for (int i = 0; i < length; i++) {
-        // printf("str[i]: %c\n", str[i]);
         if (!change) {
             if (strcmp(actual_token->lexeme, "")) {
                 strcpy(token.lexeme, actual_token->lexeme);

@@ -7,6 +7,7 @@
 
 FILE *file;
 
+// read content from file
 char* read_entire_file(const char* filename) {
     FILE* file = fopen(filename, "r");
     if (!file) return NULL;
@@ -31,6 +32,7 @@ char* read_entire_file(const char* filename) {
     return content;
 }
 
+// main function
 int main() {
     Regex* regex_semicolon = converTo_regex(";", "SEMICOLON");
     Regex* regex_comma = converTo_regex(",", "COMMA");
