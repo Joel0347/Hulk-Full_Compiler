@@ -130,7 +130,68 @@ la compilación:
 \label{fig:errores_yacc}
 \end{figure}
 
-\subsection{Lexer manual. NFA y DFA}
+\subsection{Generador de lexer propio. NFA y DFA}
+
+Como un \textit{lexer} clásico recibe una cadena de caracteres y genera una lista de tokens definidos
+por las expresiones regulares que describen el lenguaje. El flujo general se basa en:
+
+\begin{enumerate}
+    \item Crear los autómatas finitos no deterministas (NFA) de cada expresión regular.
+    \item Construir el autómata de la unión de todos los NFAs para definir el lenguaje que reconocerá el lexer.
+    \item Convertir el NFA de la unión a un DFA (autómata finito determinista).
+    \item Generar la secuencia de tokens a partir del DFA construido.
+\end{enumerate}
+
+\subsubsection{Intérprete de expresiones regulares} 
+
+\
+
+\
+
+El objetivo de este intérprete es construir un NFA a partir de una expresión regular. Cuenta con un 
+\textit{parser} específico que, a partir de los tokens resultantes de tokenizar la expresión regular,
+construye un árbol de sintaxis abstracta (AST). Este AST es la entrada del método para generar el NFA
+correspondiente. Reconoce la siguiente sintaxis de expresiones regulares:
+
+\begin{itemize}
+    \item \textbf{ $|$ }: Unión.
+    \item \textbf{ * }: Clausura.
+    \item \textbf{ + }: Clausura positiva.
+    \item \textbf{[ ]}: Conjunto.
+    \item \textbf{[ $^{\wedge}$ ]}: Conjunto negado.
+    \item \textbf{[ - ]}: Conjunto expandido.
+    \item \textbf{ . }: Cualquier caracter.
+\end{itemize}
+
+\subsubsection{Algoritmo para transformar un NFA a un DFA} 
+
+\ 
+
+\
+
+El algoritmo utiliza un método auxiliar para computar la $\epsilon$-clausura (estados alcanzables por
+$\epsilon$-transiciones) de un conjunto de estados del NFA. 
+El DFA tendrá en cada estado, subconjuntos de los estados del NFA.
+
+El algoritmo comienza calculando la $\epsilon$-clausura del estado inicial del NFA y esa será 
+el estado inicial del DFA. Luego, por cada símbolo del alfabeto, por cada estado del NFA en el estado actual del DFA, se crea un conjunto de 
+estados nuevo, que serán el resultado de aplicar la función de transición del NFA al estado y símbolo dados. Entonces el siguiente estado del DFA 
+será la $\epsilon$-clausura de dicho conjunto recién construido, y sus estados finales serán los que contengan al menos
+un estado que era final en el NFA.
+
+\subsubsection{Generación de tokens} 
+
+\ 
+
+\
+
+Los estados finales del DFA contienen los posibles tokens con que puede coincidir la cadena.
+En el proceso de construcción de un token se transita por el DFA mientras sea posible y, si se llega a un estado final,
+se guarda el lexema que se está construyendo y la lista de tokens correspondiente al estado en cuestión. La construcción de un 
+token se puede detener por dos razones: no hay ninguna transición disponible en el autómata o se encuentra un espacio en blanco. En ambos casos, se guarda el (los) último (s) 
+que coincidió (coincidieron) y se reinicia el recorrido por el DFA, comenzando por el caracter que detuvo la máquina. Finalmente, se retorna el token que más prioridad tenga (en caso de 
+tener varios tokens, sino se retorna el único que se tiene). 
+
 
 \vspace{10pt}
 \section{Análisis semántico}
