@@ -1,5 +1,6 @@
 #include "nfa.h"
 
+// auxiliar method for creating a NFA state
 NFA_State* create_state(int state) {
     NFA_State* nfa_state = (NFA_State*)malloc(sizeof(NFA_State));
     nfa_state->state = state;
@@ -7,6 +8,7 @@ NFA_State* create_state(int state) {
     return nfa_state;
 }
 
+// create a symbol NFA
 NFA nfa_symbol(char symbol) {
     NFA nfa = {0};
     nfa.states = 2;
@@ -21,6 +23,7 @@ NFA nfa_symbol(char symbol) {
     return nfa;
 }
 
+// create an epsilon NFA
 NFA nfa_epsilon() {
     NFA nfa = {0};
     nfa.states = 2;
@@ -35,6 +38,7 @@ NFA nfa_epsilon() {
     return nfa;
 }
 
+// create an union NFA
 NFA nfa_union(NFA a, NFA b) {
     NFA nfa = {0};
     int offset = a.states + 1;
@@ -68,6 +72,7 @@ NFA nfa_union(NFA a, NFA b) {
     return nfa;
 }
 
+// create a concat NFA
 NFA nfa_concat(NFA a, NFA b) {
     NFA nfa = {0};
     int offset = a.states;
@@ -99,6 +104,7 @@ NFA nfa_concat(NFA a, NFA b) {
     return nfa;
 }
 
+// create a closure NFA
 NFA nfa_closure(NFA a) {
     NFA nfa = {0};
     nfa.states = a.states + 2;
@@ -126,6 +132,7 @@ NFA nfa_closure(NFA a) {
     return nfa;
 }
 
+// create an any char NFA
 NFA nfa_any() {
     NFA nfa = nfa_epsilon();
     for (char c = 32; c <= 126; ++c) {
@@ -149,6 +156,7 @@ NFA eval(Node *node) {
     return nfa_epsilon();
 }
 
+// create an union NFA for all NFAs
 NFA nfa_union_BIG(NFA a, NFA b) {
     NFA nfa = {0};
     int offset = a.states + 1;
@@ -212,6 +220,7 @@ NFA nfa_union_BIG(NFA a, NFA b) {
     return nfa;
 }
 
+// verify if a string matches with a NFA
 int match_nfa(NFA* nfa, NFA_State* actual_state, char* str, int pos) {
     for (int i = 0; i < nfa->transitions_count; i++) {
         Transition t = nfa->transitions[i];

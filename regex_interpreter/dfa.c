@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+// compute epsilon-closure of a set of NFA states
 State epsilon_clousure(NFA* nfa, int* states, int count) {
     State* set = (State*)malloc(sizeof(State));
     int queue[nfa->states];
@@ -60,6 +61,7 @@ State epsilon_clousure(NFA* nfa, int* states, int count) {
     return *set;
 }
 
+// verify if a certain state contains a token
 int state_contains_token(State* state, char* token) {
     if (!strcmp("error", token)) return 1;
     
@@ -72,6 +74,7 @@ int state_contains_token(State* state, char* token) {
     return 0;
 }
 
+// make a copy of a certain state
 void copy_state_set(State* dest, State* src) {
     dest->count = src->count;
     dest->set = (int*)malloc(sizeof(int) * dest->count);
@@ -86,6 +89,7 @@ void copy_state_set(State* dest, State* src) {
     }
 }
 
+// verify if two States are equal
 int set_equals(State* x, State* y) {
     for (int i = 0; i < x->count; i++) {
         if (!state_contains_element(y, x->set[i])) {
@@ -102,6 +106,7 @@ int set_equals(State* x, State* y) {
     return 1;
 }
 
+// verify if a DFA contains a State
 int dfa_contains_state(DFA* dfa, State* state) {
     if (!dfa)
         return 0;
@@ -121,6 +126,7 @@ int dfa_contains_state(DFA* dfa, State* state) {
     return 0;
 }
 
+// verify if a DFA state contains a NFA state
 int state_contains_element(State* state, int element) {
     for (int i = 0; i < state->count; i++) {
         if (state->set[i] == element) {
@@ -131,6 +137,7 @@ int state_contains_element(State* state, int element) {
     return 0;
 }
 
+// convert a NFA to DFA
 DFA* nfa_to_dfa(NFA* nfa) {
     DFA* dfa = (DFA*)malloc(sizeof(DFA));
     dfa->finals_count = 0;

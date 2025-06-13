@@ -1,5 +1,6 @@
 #include "interpreter.h"
 
+// operator [ - ]
 char* expand_set(const char *set, bool is_negated) {
     char *expanded = malloc(MAX_SET_LENGTH * 2);
     int pos = 0;
@@ -44,6 +45,7 @@ char* expand_set(const char *set, bool is_negated) {
     return expanded;
 }
 
+// tokenize a regular expression
 void tokenize(const char *input, Token *tokens, int *count) {
     int i = 0, j = 0;
     while (input[i]) {
@@ -121,12 +123,24 @@ void tokenize(const char *input, Token *tokens, int *count) {
     *count = j + 1;
 }
 
+/*
+    Recursive Descent Parser for regex grammar
+    E -> T X
+    X -> | T X | ε
+    T -> F Y
+    Y -> F Y | ε
+    F -> A Z
+    Z -> * Z | + Z | . Z | ε
+    A -> ( E ) | [ E ] | symbol | ε
+*/
+
 Node *parse_E(ParserState *ps) {
     Node *t = parse_T(ps);
     return parse_X(ps, t);
 }
+
 Node *parse_X(ParserState *ps, Node *left) {
-    if (ps->tokens[ps->pos].type == 1) {
+    if (ps->tokens[ps->pos].type == 1) { // |
         ps->pos++;
         Node *t = parse_T(ps);
         Node *u = parse_X(ps, t);
@@ -136,10 +150,12 @@ Node *parse_X(ParserState *ps, Node *left) {
     }
     return left;
 }
+
 Node *parse_T(ParserState *ps) {
     Node *f = parse_F(ps);
     return parse_Y(ps, f);
 }
+
 Node *parse_Y(ParserState *ps, Node *left) {
     if (ps->tokens[ps->pos].type == 0 ||
         ps->tokens[ps->pos].type == 3 ||
@@ -156,10 +172,12 @@ Node *parse_Y(ParserState *ps, Node *left) {
     
     return left;
 }
+
 Node *parse_F(ParserState *ps) {
     Node *a = parse_A(ps);
     return parse_Z(ps, a);
 }
+
 Node *parse_Z(ParserState *ps, Node *left) {
     if (ps->tokens[ps->pos].type == 2) { // '*'
         ps->pos++;
@@ -189,6 +207,7 @@ Node *parse_Z(ParserState *ps, Node *left) {
 
     return left;
 }
+
 Node *parse_A(ParserState *ps) {
     if (ps->tokens[ps->pos].type == 3) { // '('
         ps->pos++;

@@ -1,6 +1,7 @@
 #include <string.h>
 #include "lexer.h"
 
+// convert to Regex*
 Regex* converTo_regex(char* regex, char* token) {
     Regex* _regex = (Regex*)malloc(sizeof(Regex));
     strcpy(_regex->token, token);
@@ -30,6 +31,7 @@ Regex* converTo_regex(char* regex, char* token) {
     return _regex;
 }
 
+// find Regex* by name
 Regex* find_regex_by_token(Regex** list, char* token, int len) {
     for (int i = 0; i < len; i++) {
         if (!strcmp(list[i]->token, token)) {
