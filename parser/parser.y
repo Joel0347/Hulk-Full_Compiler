@@ -426,6 +426,16 @@ compound_operator:
             ),
             "", NODE_D_ASSIGNMENT
         );
+    } | expression DOT ID PLUSEQUAL expression { 
+        $$ = create_attr_setter_node(
+            $1, create_variable_node($3, "", 0), create_binary_op_node(
+                OP_ADD, "+", 
+                create_attr_getter_node(
+                    $1, create_variable_node($3, "", 0)
+                ), 
+                $5, &TYPE_NUMBER
+            )
+        );
     }
     | ID MINUSEQUAL expression {
         $$ = create_assignment_node(
@@ -433,6 +443,16 @@ compound_operator:
                 OP_SUB, "-", create_variable_node($1, "", 0), $3, &TYPE_NUMBER
             ),
             "", NODE_D_ASSIGNMENT
+        );
+    } | expression DOT ID MINUSEQUAL expression { 
+        $$ = create_attr_setter_node(
+            $1, create_variable_node($3, "", 0), create_binary_op_node(
+                OP_SUB, "-", 
+                create_attr_getter_node(
+                    $1, create_variable_node($3, "", 0)
+                ), 
+                $5, &TYPE_NUMBER
+            )
         );
     }
     | ID TIMESEQUAL expression {
@@ -442,6 +462,16 @@ compound_operator:
             ),
             "", NODE_D_ASSIGNMENT
         );
+    } | expression DOT ID TIMESEQUAL expression { 
+        $$ = create_attr_setter_node(
+            $1, create_variable_node($3, "", 0), create_binary_op_node(
+                OP_MUL, "*", 
+                create_attr_getter_node(
+                    $1, create_variable_node($3, "", 0)
+                ), 
+                $5, &TYPE_NUMBER
+            )
+        );
     }
     | ID DIVEQUAL expression {
         $$ = create_assignment_node(
@@ -449,6 +479,16 @@ compound_operator:
                 OP_DIV, "/", create_variable_node($1, "", 0), $3, &TYPE_NUMBER
             ),
             "", NODE_D_ASSIGNMENT
+        );
+    } | expression DOT ID DIVEQUAL expression { 
+        $$ = create_attr_setter_node(
+            $1, create_variable_node($3, "", 0), create_binary_op_node(
+                OP_DIV, "/", 
+                create_attr_getter_node(
+                    $1, create_variable_node($3, "", 0)
+                ), 
+                $5, &TYPE_NUMBER
+            )
         );
     }
     | ID MODEQUAL expression {
@@ -458,6 +498,16 @@ compound_operator:
             ),
             "", NODE_D_ASSIGNMENT
         );
+    } | expression DOT ID MODEQUAL expression { 
+        $$ = create_attr_setter_node(
+            $1, create_variable_node($3, "", 0), create_binary_op_node(
+                OP_MOD, "%", 
+                create_attr_getter_node(
+                    $1, create_variable_node($3, "", 0)
+                ), 
+                $5, &TYPE_NUMBER
+            )
+        );
     }
     | ID POWEQUAL expression {
         $$ = create_assignment_node(
@@ -465,6 +515,16 @@ compound_operator:
                 OP_POW, "^", create_variable_node($1, "", 0), $3, &TYPE_NUMBER
             ),
             "", NODE_D_ASSIGNMENT
+        );
+    } | expression DOT ID POWEQUAL expression { 
+        $$ = create_attr_setter_node(
+            $1, create_variable_node($3, "", 0), create_binary_op_node(
+                OP_POW, "^", 
+                create_attr_getter_node(
+                    $1, create_variable_node($3, "", 0)
+                ), 
+                $5, &TYPE_NUMBER
+            )
         );
     }
     | ID CONCATEQUAL expression {
@@ -474,6 +534,16 @@ compound_operator:
             ),
             "", NODE_D_ASSIGNMENT
         );
+    } | expression DOT ID CONCATEQUAL expression { 
+        $$ = create_attr_setter_node(
+            $1, create_variable_node($3, "", 0), create_binary_op_node(
+                OP_CONCAT, "@", 
+                create_attr_getter_node(
+                    $1, create_variable_node($3, "", 0)
+                ), 
+                $5, &TYPE_STRING
+            )
+        );
     }
     | ID ANDEQUAL expression {
         $$ = create_assignment_node(
@@ -482,6 +552,16 @@ compound_operator:
             ),
             "", NODE_D_ASSIGNMENT
         );
+    } | expression DOT ID ANDEQUAL expression { 
+        $$ = create_attr_setter_node(
+            $1, create_variable_node($3, "", 0), create_binary_op_node(
+                OP_AND, "&", 
+                create_attr_getter_node(
+                    $1, create_variable_node($3, "", 0)
+                ), 
+                $5, &TYPE_BOOLEAN
+            )
+        );
     }
     | ID OREQUAL expression {
         $$ = create_assignment_node(
@@ -489,6 +569,16 @@ compound_operator:
                 OP_OR, "|", create_variable_node($1, "", 0), $3, &TYPE_BOOLEAN
             ),
             "", NODE_D_ASSIGNMENT
+        );
+    } | expression DOT ID OREQUAL expression { 
+        $$ = create_attr_setter_node(
+            $1, create_variable_node($3, "", 0), create_binary_op_node(
+                OP_OR, "|", 
+                create_attr_getter_node(
+                    $1, create_variable_node($3, "", 0)
+                ), 
+                $5, &TYPE_BOOLEAN
+            )
         );
     }
 ;

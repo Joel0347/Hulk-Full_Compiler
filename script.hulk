@@ -340,7 +340,6 @@ type Knight inherits Person {
 let p: Person = new Knight("Phil", "Collins") in
     print(p.name()); // imprime: Sir Phil Collins
 
-
 // function l(y, x:p) {
 //     x.getX(y);
 // 	y.getY();
