@@ -286,10 +286,17 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
     // declaring the type
 
     if (parent_type && !is_builtin_type(parent_type)) {
-        node->data.type_node.parent_instance = create_type_instance_node(
-            parent_type->name, parent_type->dec->data.type_node.args,
-            parent_type->dec->data.type_node.arg_count
-        );
+        if (!node->data.type_node.p_arg_count) {
+            node->data.type_node.parent_instance = create_type_instance_node(
+                parent_type->name, node->data.type_node.args,
+                node->data.type_node.arg_count
+            );
+        } else {
+            node->data.type_node.parent_instance = create_type_instance_node(
+                parent_type->name, node->data.type_node.p_args,
+                node->data.type_node.p_arg_count
+            );
+        }
     }
 
     node->data.type_node.id = ++v->type_id;
