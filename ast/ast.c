@@ -256,8 +256,8 @@ ASTNode* create_test_casting_type_node(ASTNode* exp, char* type_name, int test) 
 
 // method to create type declaration node
 ASTNode* create_type_dec_node(
-    char* name, ASTNode** params, int param_count,
-    char* parent_name, ASTNode** p_params, int p_param_count, ASTNode* body_block
+    char* name, ASTNode** params, int param_count, char* parent_name, 
+    ASTNode** p_params, int p_param_count, ASTNode* body_block, int p_constructor
 ) {
     ASTNode* node = malloc(sizeof(ASTNode));
     node->line = line_num;
@@ -287,6 +287,7 @@ ASTNode* create_type_dec_node(
     node->data.type_node.parent_instance = NULL;
     node->data.type_node.def_count = count;
     node->data.type_node.id = 0;
+    node->data.type_node.p_constructor = p_constructor;
     return node;
 }
 

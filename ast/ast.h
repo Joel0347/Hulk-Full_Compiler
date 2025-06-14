@@ -79,6 +79,7 @@ typedef struct ASTNode {
             int def_count;
             struct ASTNode* parent_instance;
             int id;
+            int p_constructor;
         } type_node;
         struct {
             char* type_name;
@@ -105,8 +106,8 @@ ASTNode* create_loop_node(ASTNode* condition, ASTNode* body);
 ASTNode* create_for_loop_node(char* var_name, ASTNode** params, ASTNode* body, int count);
 ASTNode* create_test_casting_type_node(ASTNode* exp, char* type_name, int test);
 ASTNode* create_type_dec_node(
-    char* name, ASTNode** params, int param_count,
-    char* parent_name, ASTNode** p_params, int p_param_count, ASTNode* body_block
+    char* name, ASTNode** params, int param_count, char* parent_name,
+    ASTNode** p_params, int p_param_count, ASTNode* body_block, int p_constructor
 );
 ASTNode* create_type_instance_node(char* name, ASTNode** args, int arg_count);
 ASTNode* create_attr_getter_node(ASTNode* instance, ASTNode* member);

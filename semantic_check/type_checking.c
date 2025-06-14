@@ -158,7 +158,7 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
     }
 
     // Taking parent parameters if it doesn't have any
-    if (!is_builtin_type(parent_type) && !node->data.type_node.arg_count) {
+    if (!is_builtin_type(parent_type) && !node->data.type_node.p_constructor) {
         node->data.type_node.arg_count = parent_type->arg_count;
         node->data.type_node.args = malloc(sizeof(ASTNode*) * parent_type->arg_count);
 
@@ -286,17 +286,20 @@ void visit_type_dec(Visitor* v, ASTNode* node) {
     // declaring the type
 
     if (parent_type && !is_builtin_type(parent_type)) {
-        if (!node->data.type_node.p_arg_count) {
-            node->data.type_node.parent_instance = create_type_instance_node(
-                parent_type->name, node->data.type_node.args,
-                node->data.type_node.arg_count
-            );
-        } else {
-            node->data.type_node.parent_instance = create_type_instance_node(
-                parent_type->name, node->data.type_node.p_args,
-                node->data.type_node.p_arg_count
-            );
-        }
+        ASTNode* parent_instance = !node->data.type_node.p_constructor? 
+        create_type_instance_node(
+            parent_type->name, node->data.type_node.args,
+            node->data.type_node.arg_count
+        ) :
+        create_type_instance_node(
+            parent_type->name, node->data.type_node.p_args,
+            node->data.type_node.p_arg_count
+        );
+
+        parent_instance->data.type_node.parent_instance 
+            = parent_type->dec->data.type_node.parent_instance;
+        parent_instance->return_type = parent_type;
+        node->data.type_node.parent_instance = parent_instance; 
     }
 
     node->data.type_node.id = ++v->type_id;
@@ -419,7 +422,6 @@ void visit_type_instance(Visitor* v, ASTNode* node) {
         }
     }
 
-    if(node->data.type_node.parent_instance) printf("%s\n", node->data.type_node.parent_instance->data.type_node.name);
     free_tuple(funcData->state);
     free(args_types);
     free(f);

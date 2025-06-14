@@ -404,16 +404,16 @@ type_body_expr_list:
 
 type_declaration:
     TYPE ID LPAREN param_list RPAREN type_body { 
-        $$ = create_type_dec_node($2, $4->args, $4->arg_count, "", NULL, 0, $6); 
+        $$ = create_type_dec_node($2, $4->args, $4->arg_count, "", NULL, 0, $6, 0); 
     }
     | TYPE ID type_body {
-        $$ = create_type_dec_node($2, NULL, 0, "", NULL, 0, $3);
+        $$ = create_type_dec_node($2, NULL, 0, "", NULL, 0, $3, 0);
     }
     | TYPE ID LPAREN param_list RPAREN INHERITS ID LPAREN list_args RPAREN type_body {
-        $$ = create_type_dec_node($2, $4->args, $4->arg_count, $7, $9->args, $9->arg_count, $11);
+        $$ = create_type_dec_node($2, $4->args, $4->arg_count, $7, $9->args, $9->arg_count, $11, 1);
     }
     | TYPE ID INHERITS ID type_body {
-        $$ = create_type_dec_node($2, NULL, 0, $4, NULL, 0, $5);
+        $$ = create_type_dec_node($2, NULL, 0, $4, NULL, 0, $5, 0);
     }
 
 ;

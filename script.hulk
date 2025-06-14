@@ -354,7 +354,8 @@ let p: Person = new Knight("Phil", "Collins") in
 // 	getX() => 2;
 // }
 
-type c(x:Number) {c = x;}
+type p {}
+type c(x:Number) inherits p() {c = x;}
 type b inherits c {
 	getX() => 1;
 	getY() => 2;
@@ -365,7 +366,6 @@ type A() {
 let a = new A() in {
     a.print();
 };
-
 // type a(x) inherits c(x+1) {getX() => 1;}
 
 
