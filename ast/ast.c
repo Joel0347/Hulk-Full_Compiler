@@ -15,6 +15,7 @@ ASTNode* create_program_node(ASTNode** statements, int count, NodeType type) {
         node->data.program_node.statements[i] = statements[i];
     }
     node->data.program_node.count = count;
+    node->derivations = NULL;
     return node;
 }
 
@@ -27,6 +28,7 @@ ASTNode* create_number_node(double value) {
     node->context = create_context(NULL);
     node->return_type = &TYPE_NUMBER;
     node->data.number_value = value;
+    node->derivations = NULL;
     return node;
 }
 
@@ -39,6 +41,7 @@ ASTNode* create_string_node(char* value) {
     node->context = create_context(NULL);
     node->return_type = &TYPE_STRING;
     node->data.string_value = value;
+    node->derivations = NULL;
     return node;
 }
 
@@ -51,6 +54,7 @@ ASTNode* create_boolean_node(char* value) {
     node->context = create_context(NULL);
     node->return_type = &TYPE_BOOLEAN;
     node->data.string_value = value;
+    node->derivations = NULL;
     return node;
 }
 
@@ -64,6 +68,7 @@ ASTNode* create_variable_node(char* name, char* type, int is_param) {
     node->context = create_context(NULL);
     node->return_type = &TYPE_OBJECT;
     node->data.variable_name = name;
+    node->derivations = NULL;
 
     if (type)
         node->static_type = type;
@@ -83,6 +88,7 @@ ASTNode* create_binary_op_node(Operator op, char* op_name, ASTNode* left, ASTNod
     node->data.op_node.op = op;
     node->data.op_node.left = left;
     node->data.op_node.right = right;
+    node->derivations = NULL;
     return node;
 }
 
@@ -98,6 +104,7 @@ ASTNode* create_unary_op_node(Operator op, char* op_name, ASTNode* operand, Type
     node->data.op_node.op = op;
     node->data.op_node.left = operand;
     node->data.op_node.right = NULL;
+    node->derivations = NULL;
     return node;
 }
 
@@ -132,6 +139,7 @@ ASTNode* create_func_call_node(char* name, ASTNode** args, int arg_count) {
         node->data.func_node.args[i] = args[i];
     }
     node->data.func_node.arg_count = arg_count;
+    node->derivations = NULL;
     return node;
 }
 
@@ -152,6 +160,7 @@ ASTNode* create_func_dec_node(char* name, ASTNode** args, int arg_count, ASTNode
     }
     node->data.func_node.arg_count = arg_count;
     node->data.func_node.body = body;
+    node->derivations = NULL;
     return node;
 }
 
@@ -238,6 +247,7 @@ ASTNode* create_for_loop_node(char* var_name, ASTNode** params, ASTNode* body, i
     }
     node->data.func_node.arg_count = count;
     node->data.func_node.body = body;
+    node->derivations = NULL;
     return node;
 }
 
@@ -251,6 +261,7 @@ ASTNode* create_test_casting_type_node(ASTNode* exp, char* type_name, int test) 
     node->scope = create_scope(NULL);
     node->context = create_context(NULL);
     node->data.cast_test.exp = exp;
+    node->derivations = NULL;
     return node;
 }
 
@@ -288,6 +299,7 @@ ASTNode* create_type_dec_node(
     node->data.type_node.def_count = count;
     node->data.type_node.id = 0;
     node->data.type_node.p_constructor = p_constructor;
+    node->derivations = NULL;
     return node;
 }
 
@@ -305,6 +317,7 @@ ASTNode* create_type_instance_node(char* name, ASTNode** args, int arg_count) {
     }
     node->data.type_node.parent_instance = NULL;
     node->data.type_node.arg_count = arg_count;
+    node->derivations = NULL;
 
     return node;
 }
@@ -318,6 +331,7 @@ ASTNode* create_attr_getter_node(ASTNode* instance, ASTNode* member) {
     node->context = create_context(NULL);
     node->data.op_node.left = instance;
     node->data.op_node.right = member;
+    node->derivations = NULL;
     return node;
 }
 
@@ -332,6 +346,7 @@ ASTNode* create_attr_setter_node(ASTNode* instance, ASTNode* member, ASTNode* va
     node->data.cond_node.cond = instance;
     node->data.cond_node.body_true = member;
     node->data.cond_node.body_false = value;
+    node->derivations = NULL;
     return node;
 }
 
@@ -349,6 +364,7 @@ ASTNode* create_base_func_node(ASTNode** args, int arg_count) {
         node->data.func_node.args[i] = args[i];
     }
     node->data.func_node.arg_count = arg_count;
+    node->derivations = NULL;
     return node;
 }
 

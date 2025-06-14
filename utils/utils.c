@@ -179,9 +179,11 @@ struct ASTNode* at(int index, NodeList* list) {
 // method to free a node list element
 void free_node_list_element(NodeElement* element) {
     if (element) {
-        free(element->value);
+        element->value = NULL;
         free_node_list_element(element->next);
     }
+
+    free(element);
 }
 
 // method to free a node list
