@@ -359,6 +359,12 @@ type b inherits c {
 	getX() => 1;
 	getY() => 2;
 }
+type A() {
+    print() => "hello from A!";
+}
+let a = new A() in {
+    a.print();
+};
 
 // type a(x) inherits c(x+1) {getX() => 1;}
 

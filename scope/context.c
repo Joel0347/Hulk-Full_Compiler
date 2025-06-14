@@ -30,10 +30,12 @@ int save_context_item(Context* context, struct ASTNode* item) {
     ContextItem* new = (ContextItem*)malloc(sizeof(ContextItem));
     new->declaration = item;
 
-    Symbol* defined_type = find_defined_type(item->scope, item->static_type);
+    if (!type) {
+        Symbol* defined_type = find_defined_type(item->scope, item->static_type);
 
-    if (defined_type)
-        new->return_type = defined_type->type;
+        if (defined_type)
+            new->return_type = defined_type->type;
+    }
 
     new->next = context->first;
     context->first = new;
@@ -45,6 +47,7 @@ int save_context_item(Context* context, struct ASTNode* item) {
 // method to save a context of a specific type
 int save_context_for_type(Context* context, struct ASTNode* item, char* type_name) {
     int func_dec = item->type == NODE_FUNC_DEC;
+    char* static_type = func_dec? item->static_type : item->data.op_node.left->static_type;
     char* name = func_dec ? 
         item->data.func_node.name : item->data.op_node.left->data.variable_name;
 
@@ -64,7 +67,7 @@ int save_context_for_type(Context* context, struct ASTNode* item, char* type_nam
     else
         new->declaration->data.op_node.left->data.variable_name = new_name;
 
-    Symbol* defined_type = find_defined_type(item->scope, item->static_type);
+    Symbol* defined_type = find_defined_type(item->scope, static_type);
 
     if (defined_type)
         new->return_type = defined_type->type;
