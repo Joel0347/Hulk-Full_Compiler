@@ -929,10 +929,9 @@ void generate_type_methods(LLVM_Visitor* visitor, const char* type_name, LLVMTyp
     LLVMDisposeBuilder(builder);
     builder = saved_builder;
 }
-
 LLVMValueRef generate_type_declaration(LLVM_Visitor* v, ASTNode* node) {
     const char* type_name = node->data.type_node.name;
-     // Assign type ID
+    // Assign type ID
     int type_id = next_type_id++;
     node->data.type_node.id = type_id;
     register_type_id(type_name, type_id);
@@ -949,15 +948,74 @@ LLVMValueRef generate_type_declaration(LLVM_Visitor* v, ASTNode* node) {
         LLVMValueRef param_alloca = LLVMBuildAlloca(builder, param_type, param->data.variable_name);
         declare_variable(param->data.variable_name, param_alloca);
     }
-    // Create the struct type for this class
-    LLVMTypeRef struct_type = generate_struct_type(type_name, node);
+
+    // Create the struct type for this class (or use existing forward declaration)
+    LLVMTypeRef struct_type = LLVMGetTypeByName(module, type_name);
+    if (!struct_type) {
+        // Create a new struct type if it doesn't exist
+        struct_type = LLVMStructCreateNamed(context, type_name);
+        printf("Debug: Created new struct type %s\n", type_name);
+    } else {
+        printf("Debug: Using existing forward declaration for %s\n", type_name);
+    }
+    
+    // Count fields to allocate
+    int field_count = 0;
+    for (int i = 0; i < node->data.type_node.def_count; i++) {
+        ASTNode* def = node->data.type_node.definitions[i];
+        if (def->type == NODE_ASSIGNMENT) {
+            field_count++;
+        }
+    }
+
+    // Create array for field types - add 3 for type id, vtable pointer and parent pointer
+    int extra_fields = node->data.type_node.parent_name[0] != '\0' ? 3 : 2;
+    LLVMTypeRef* field_types = malloc((field_count + extra_fields) * sizeof(LLVMTypeRef));
+    int field_idx = 0;
+
+    // Add type ID as first field (32-bit integer)
+    field_types[field_idx++] = LLVMInt32Type();
+
+    // Add vtable pointer as second field
+    char vtable_type_name[256];
+    snprintf(vtable_type_name, sizeof(vtable_type_name), "%s_vtable", type_name);
+    // Get or create vtable type (forward declaration if needed)
+    LLVMTypeRef vtable_type = LLVMGetTypeByName(module, vtable_type_name);
+    if (!vtable_type) {
+        vtable_type = LLVMStructCreateNamed(context, vtable_type_name);
+    }
+    field_types[field_idx++] = LLVMPointerType(vtable_type, 0);
+
+    // Add parent pointer if inheriting
+    if (node->data.type_node.parent_name[0] != '\0') {
+        // Get or create parent type (forward declaration if needed)
+        LLVMTypeRef parent_struct_type = LLVMGetTypeByName(module, node->data.type_node.parent_name);
+        if (!parent_struct_type) {
+            parent_struct_type = LLVMStructCreateNamed(context, node->data.type_node.parent_name);
+        }
+        field_types[field_idx++] = LLVMPointerType(parent_struct_type, 0);
+    }
+
+    // Add this type's fields
+    for (int i = 0; i < node->data.type_node.def_count; i++) {
+        ASTNode* def = node->data.type_node.definitions[i];
+        if (def->type == NODE_ASSIGNMENT) {
+            Type* field_type = def->data.op_node.right->return_type;
+            field_types[field_idx++] = get_llvm_type(field_type);
+        }
+    }
+    
+    // Set the body of the struct (even if it was a forward declaration)
+    LLVMStructSetBody(struct_type, field_types, field_idx, 0);
+    free(field_types);
+    
     // Generate methods for this type
     generate_type_methods(v, type_name, struct_type, node);
     printf("Debug: Generated struct type %s\n", type_name);
+    
     pop_scope();
     return NULL;
 }
-
 LLVMValueRef generate_type_instance(LLVM_Visitor* v, ASTNode* node) {
     printf("Debug: Generating instance for type %s\n", node->data.type_node.name);
     const char* type_name = node->data.type_node.name;
