@@ -1017,6 +1017,7 @@ LLVMValueRef generate_type_declaration(LLVM_Visitor* v, ASTNode* node) {
     return NULL;
 }
 LLVMValueRef generate_type_instance(LLVM_Visitor* v, ASTNode* node) {
+    push_scope();
     printf("Debug: Generating instance for type %s\n", node->data.type_node.name);
     const char* type_name = node->data.type_node.name;
     printf("Debug: Type name: %s\n", type_name);
@@ -1068,9 +1069,16 @@ LLVMValueRef generate_type_instance(LLVM_Visitor* v, ASTNode* node) {
     printf("Debug: Initialized parent instance if exists\n");
     // Initialize constructor parameters and fields
     for (int i = 0; i < node->data.type_node.arg_count; i++) {
-        LLVMValueRef arg_value = accept_gen(v, node->data.type_node.args[i]);
-        
         const char* param_name = type_def->data.type_node.args[i]->data.variable_name;
+
+        /* obtén el alloca que creaste antes */
+        LLVMValueRef param_alloca = lookup_variable(param_name);   // o como lo llames
+
+        /* usa su valor tal cual, sin volver a generar código */
+        LLVMValueRef arg_value = LLVMBuildLoad(builder, param_alloca, "param_val");
+
+        // LLVMValueRef arg_value = accept_gen(v, node->data.type_node.args[i]);
+        
         int field_index = -1;
         
         for (int j = 0; j < type_def->data.type_node.def_count; j++) {
@@ -1110,6 +1118,7 @@ LLVMValueRef generate_type_instance(LLVM_Visitor* v, ASTNode* node) {
             }
         }
     }
+    pop_scope();
     return instance;
 }
 
