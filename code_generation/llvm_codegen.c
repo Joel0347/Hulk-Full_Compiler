@@ -9,6 +9,34 @@
 #include <string.h>
 #include <stdlib.h>
 
+// Funciones helper para el mapeo de tipos
+static int get_type_id(const char* type_name) {
+    TypeIDMap* curr = type_id_map;
+    while (curr) {
+        if (strcmp(curr->type_name, type_name) == 0) {
+            return curr->id;
+        }
+        curr = curr->next;
+    }
+    return -1;
+}
+
+static void register_type_id(const char* type_name, int id) {
+    TypeIDMap* new_entry = (TypeIDMap*)malloc(sizeof(TypeIDMap));
+    new_entry->type_name = strdup(type_name);
+    new_entry->id = id;
+    new_entry->next = type_id_map;
+    type_id_map = new_entry;
+    printf("Debug: Registered type %s with ID %d\n", type_name, id);
+}
+
+static LLVMValueRef get_dynamic_type_id(LLVMValueRef instance) {
+    // Load type ID from instance (first field, index 0)
+    LLVMValueRef id_ptr = LLVMBuildStructGEP2(builder, LLVMGetElementType(LLVMTypeOf(instance)), 
+                                             instance, 0, "type_id_ptr");
+    return LLVMBuildLoad2(builder, LLVMInt32Type(), id_ptr, "type_id");
+}
+
 LLVMTypeRef get_llvm_type(Type* type) {
     if (type->sub_type) {
         return get_llvm_type(type->sub_type);
@@ -725,20 +753,26 @@ LLVMTypeRef generate_struct_type(const char* type_name, ASTNode* type_node) {
         }
     }
 
-    // Create array for field types 
-    LLVMTypeRef* field_types = malloc(field_count * sizeof(LLVMTypeRef));
+    // Create array for field types - add 3 for type id, vtable pointer and parent pointer
+    int extra_fields = type_node->data.type_node.parent_name[0] != '\0' ? 3 : 2;
+    LLVMTypeRef* field_types = malloc((field_count + extra_fields) * sizeof(LLVMTypeRef));
     int field_idx = 0;
 
-    // Add fields from parent first if inheriting
+    // Add type ID as first field (32-bit integer)
+    field_types[field_idx++] = LLVMInt32Type();
+
+    // Add vtable pointer as second field - just create an opaque type for now
+    char vtable_type_name[256];
+    snprintf(vtable_type_name, sizeof(vtable_type_name), "%s_vtable", type_name);
+    // Don't create the vtable type here, just get a reference to it
+    LLVMTypeRef vtable_type = LLVMStructCreateNamed(context, vtable_type_name);
+    field_types[field_idx++] = LLVMPointerType(vtable_type, 0);
+
+    // Add parent pointer if inheriting
     if (type_node->data.type_node.parent_name[0] != '\0') {
-        LLVMTypeRef parent_type = LLVMGetTypeByName(module, type_node->data.type_node.parent_name);
-        if (parent_type) {
-            // Add parent fields
-            unsigned parent_field_count = LLVMCountStructElementTypes(parent_type);
-            for (unsigned i = 0; i < parent_field_count; i++) {
-                LLVMTypeRef field_type = LLVMStructGetTypeAtIndex(parent_type, i);
-                field_types[field_idx++] = field_type;
-            }
+        LLVMTypeRef parent_struct_type = LLVMGetTypeByName(module, type_node->data.type_node.parent_name);
+        if (parent_struct_type) {
+            field_types[field_idx++] = LLVMPointerType(parent_struct_type, 0);
         }
     }
 
@@ -746,64 +780,80 @@ LLVMTypeRef generate_struct_type(const char* type_name, ASTNode* type_node) {
     for (int i = 0; i < type_node->data.type_node.def_count; i++) {
         ASTNode* def = type_node->data.type_node.definitions[i];
         if (def->type == NODE_ASSIGNMENT) {
-            field_types[field_idx++] = get_llvm_type(def->data.op_node.right->return_type);
+            Type* field_type = def->data.op_node.right->return_type;
+            field_types[field_idx++] = get_llvm_type(field_type);
         }
     }
     
-    LLVMStructSetBody(struct_type, field_types, field_count, 0);
+    LLVMStructSetBody(struct_type, field_types, field_idx, 0);
     free(field_types);
     
     return struct_type;
 }
 
 void generate_type_methods(LLVM_Visitor* visitor, const char* type_name, LLVMTypeRef struct_type, ASTNode* type_node) {
+    printf("\nDebug: Generating methods for type %s\n", type_name);
+    
     // First generate vtable type
-    // Guardar builder actual
     LLVMBuilderRef saved_builder = builder;
     builder = LLVMCreateBuilder();
+    
+    // Count methods first
     int method_count = 0;
     for (int i = 0; i < type_node->data.type_node.def_count; i++) {
         if (type_node->data.type_node.definitions[i]->type == NODE_FUNC_DEC) {
             method_count++;
         }
     }
+    printf("Debug: Found %d methods to generate\n", method_count);
     
-    LLVMTypeRef* method_types = malloc(method_count * sizeof(LLVMTypeRef));
+    if (method_count == 0) {
+        printf("Debug: No methods to generate for type %s\n", type_name);
+        LLVMDisposeBuilder(builder);
+        builder = saved_builder;
+        printf("Debug: Exiting method generation for type %s\n", type_name);
+        return;
+    }
+
+    // Arrays for storing method information
+    LLVMTypeRef* vtable_fn_types = malloc(method_count * sizeof(LLVMTypeRef));
+    LLVMValueRef* method_ptrs = malloc(method_count * sizeof(LLVMValueRef));
     char** method_names = malloc(method_count * sizeof(char*));
     int method_idx = 0;
 
-    // Generate methods and collect their types
+    // First pass: Generate all method declarations and bodies
     for(int i = 0; i < type_node->data.type_node.def_count; i++) {
         ASTNode* def = type_node->data.type_node.definitions[i];
         if(def->type == NODE_FUNC_DEC) {
-            char* method_name = strdup(def->data.func_node.name);
-            // Generate method name
-            // char* method_name = malloc(strlen(type_name) + strlen(def->data.func_node.name) + 3);
-            // sprintf(method_name, "%s__%s", type_name, def->data.func_node.name);
-            printf("Generating method %s for type %s\n", def->data.func_node.name, type_name);
-            method_names[method_idx] = method_name;
+            // Use the method name as is, it's already properly formatted
+            method_names[method_idx] = strdup(def->data.func_node.name);
+            printf("Debug: Using method name: %s\n", method_names[method_idx]);
             
-            // Create function type that takes struct pointer as first arg
-            LLVMTypeRef* param_types = malloc((def->data.func_node.arg_count + 1) * sizeof(LLVMTypeRef));
+            printf("Debug: Generating method %s (#%d)\n", def->data.func_node.name, method_idx);
+            
+            // Create function type with 'this' pointer as first argument
+            int param_count = def->data.func_node.arg_count + 1;
+            LLVMTypeRef* param_types = malloc(param_count * sizeof(LLVMTypeRef));
             param_types[0] = LLVMPointerType(struct_type, 0); // 'this' pointer
             
             for(int j = 0; j < def->data.func_node.arg_count; j++) {
-                param_types[j+1] = get_llvm_type(def->data.func_node.args[j]->return_type);
+                param_types[j + 1] = get_llvm_type(def->data.func_node.args[j]->return_type);
             }
             
-            // Use the correct return type from the method declaration
-            LLVMTypeRef return_type = get_llvm_type(def->data.func_node.body->return_type);
+            // Get return type
+            LLVMTypeRef return_type = get_llvm_type(def->return_type);
+            if (!return_type) return_type = LLVMVoidType();
             
-            LLVMTypeRef func_type = LLVMFunctionType(
-                return_type,
-                param_types,
-                def->data.func_node.arg_count + 1,
-                0
-            );
-            method_types[method_idx] = func_type;
+            // Create function type and store it for vtable
+            LLVMTypeRef func_type = LLVMFunctionType(return_type, param_types, param_count, 0);
+            vtable_fn_types[method_idx] = LLVMPointerType(func_type, 0);
+            
+            printf("Debug: Created function type for method %s: %s\n", 
+                   def->data.func_node.name, LLVMPrintTypeToString(func_type));
 
-            // Add function declaration
-            LLVMValueRef func = LLVMAddFunction(module, method_name, func_type);
+            // Add function declaration with original name
+            LLVMValueRef func = LLVMAddFunction(module, def->data.func_node.name, func_type);
+            method_ptrs[method_idx] = func;
             
             // Generate method body
             LLVMBasicBlockRef entry = LLVMAppendBasicBlock(func, "entry");
@@ -822,59 +872,71 @@ void generate_type_methods(LLVM_Visitor* visitor, const char* type_name, LLVMTyp
                 declare_variable(def->data.func_node.args[j]->data.variable_name, param);
             }
             
-            // Generate body and return value
+            // Generate body
             LLVMValueRef result = accept_gen(visitor, def->data.func_node.body);
-            // Para funciones void, ignorar el valor de retorno de las llamadas
-            if (type_equals(def->data.func_node.body->return_type, &TYPE_VOID)) {
+            
+            if (LLVMGetTypeKind(return_type) == LLVMVoidTypeKind) {
                 LLVMBuildRetVoid(builder);
-                result = NULL;
             } else {
                 LLVMBuildRet(builder, result);
             }
             
             pop_scope();
-            method_idx++;
             free(param_types);
+            method_idx++;
+            
+            printf("Debug: Generated method body for %s\n", def->data.func_node.name);
         }
     }
 
-    // Create vtable with correctly typed function pointers
-    char vtable_name[256];
-    sprintf(vtable_name, "%s_vtable", type_name);
+    // Get the existing vtable type and set its body
+    char vtable_type_name[256];
+    snprintf(vtable_type_name, sizeof(vtable_type_name), "%s_vtable", type_name);
+    printf("Debug: Setting vtable type %s body with %d methods\n", vtable_type_name, method_count);
     
-    // Create vtable type using the actual method types
-    LLVMTypeRef* vtable_fn_types = malloc(method_count * sizeof(LLVMTypeRef));
-    for(int i = 0; i < method_count; i++) {
-        vtable_fn_types[i] = LLVMPointerType(method_types[i], 0);
+    LLVMTypeRef vtable_type = LLVMGetTypeByName(module, vtable_type_name);
+    if (!vtable_type) {
+        printf("Error: Could not find vtable type %s\n", vtable_type_name);
+        return;
     }
+    LLVMStructSetBody(vtable_type, vtable_fn_types, method_count, 0);
     
-    LLVMTypeRef vtable_type = LLVMStructType(vtable_fn_types, method_count, 0);
+    // Create vtable global
+    char vtable_name[256];
+    snprintf(vtable_name, sizeof(vtable_name), "%s_vtable_instance", type_name);
+    printf("Debug: Creating vtable global %s\n", vtable_name);
+    
     LLVMValueRef vtable = LLVMAddGlobal(module, vtable_type, vtable_name);
-    LLVMSetLinkage(vtable, LLVMPrivateLinkage);
     
     // Initialize vtable with method pointers
-    LLVMValueRef* method_ptrs = malloc(method_count * sizeof(LLVMValueRef));
-    for(int i = 0; i < method_count; i++) {
-        method_ptrs[i] = LLVMGetNamedFunction(module, method_names[i]);
-    }
-    
     LLVMValueRef vtable_init = LLVMConstStruct(method_ptrs, method_count, 0);
     LLVMSetInitializer(vtable, vtable_init);
+    
+    printf("Debug: Vtable initialization complete. Contents:\n");
+    for(int i = 0; i < method_count; i++) {
+        printf("  Slot %d: %s -> %s\n", i, method_names[i], 
+               LLVMPrintValueToString(method_ptrs[i]));
+    }
 
     // Cleanup
-    free(vtable_fn_types);
     for(int i = 0; i < method_count; i++) {
         free(method_names[i]);
     }
     free(method_names);
-    free(method_types);
+    free(vtable_fn_types);
     free(method_ptrs);
+    
     LLVMDisposeBuilder(builder);
     builder = saved_builder;
 }
 
 LLVMValueRef generate_type_declaration(LLVM_Visitor* v, ASTNode* node) {
     const char* type_name = node->data.type_node.name;
+     // Assign type ID
+    int type_id = next_type_id++;
+    node->data.type_node.id = type_id;
+    register_type_id(type_name, type_id);
+    printf("Debug: Assigned ID %d to type %s\n", type_id, type_name);
     
     // Store type parameters in scope for use in field initializations
     push_scope();
@@ -891,19 +953,62 @@ LLVMValueRef generate_type_declaration(LLVM_Visitor* v, ASTNode* node) {
     LLVMTypeRef struct_type = generate_struct_type(type_name, node);
     // Generate methods for this type
     generate_type_methods(v, type_name, struct_type, node);
+    printf("Debug: Generated struct type %s\n", type_name);
     pop_scope();
     return NULL;
 }
 
 LLVMValueRef generate_type_instance(LLVM_Visitor* v, ASTNode* node) {
+    printf("Debug: Generating instance for type %s\n", node->data.type_node.name);
     const char* type_name = node->data.type_node.name;
+    printf("Debug: Type name: %s\n", type_name);
     LLVMTypeRef struct_type = LLVMGetTypeByName(module, type_name);
-    
+    printf("Debug: Struct type: %s\n", LLVMPrintTypeToString(struct_type));
     LLVMValueRef instance = LLVMBuildMalloc(builder, struct_type, "instance");
-    
+    printf("Debug: Allocated instance: %s\n", LLVMPrintValueToString(instance));
     Type* type = node->return_type;
     ASTNode* type_def = type->dec;
-    
+    printf("Debug: Type definition found for %s\n", type_name);
+
+    // Almacenamos los parámetros del constructor en el scope antes de cualquier inicialización
+    for (int i = 0; i < node->data.type_node.arg_count; i++) {
+        LLVMValueRef arg_value = accept_gen(v, node->data.type_node.args[i]);
+        const char* param_name = type_def->data.type_node.args[i]->data.variable_name;
+        
+        // Crear alloca para el parámetro y almacenarlo en el scope
+        LLVMValueRef param_alloca = LLVMBuildAlloca(builder, LLVMTypeOf(arg_value), "param_alloca");
+        LLVMBuildStore(builder, arg_value, param_alloca);
+        declare_variable(param_name, param_alloca);
+        printf("Debug: Declared constructor parameter '%s' in scope\n", param_name);
+    }
+    // Initialize type ID field (index 0)
+    LLVMValueRef id_ptr = LLVMBuildStructGEP2(builder, struct_type, instance, 0, "type_id_ptr");
+    printf("Debug: Type ID pointer: %s\n", LLVMPrintValueToString(id_ptr));
+    LLVMBuildStore(builder, LLVMConstInt(LLVMInt32Type(), type_def->data.type_node.id, 0), id_ptr);
+    printf("Debug: Set type ID to %d\n", type_def->data.type_node.id);
+    // Initialize vtable pointer (index 1)
+    char vtable_name[256];
+    snprintf(vtable_name, sizeof(vtable_name), "%s_vtable_instance", type_name);
+    LLVMValueRef vtable_ptr = LLVMGetNamedGlobal(module, vtable_name);
+    if (vtable_ptr) {
+        LLVMValueRef vtable_field_ptr = LLVMBuildStructGEP2(builder, struct_type, instance, 1, "vtable_ptr");
+        LLVMBuildStore(builder, vtable_ptr, vtable_field_ptr);
+    }
+    printf("Debug: Set vtable pointer for %s\n", vtable_name);
+    // Initialize parent instance if it exists (index 2)
+    if (type_def->data.type_node.parent_name[0] != '\0' && type_def->data.type_node.parent_instance) {
+        printf("Debug: Creating parent instance of type %s\n", type_def->data.type_node.parent_name);
+        
+        // Generar la instancia del padre - los parámetros ya están en el scope actual
+        LLVMValueRef parent_instance = accept_gen(v, type_def->data.type_node.parent_instance);
+        if (parent_instance) {
+            LLVMValueRef parent_ptr = LLVMBuildStructGEP2(builder, struct_type, instance, 2, "parent_ptr");
+            LLVMBuildStore(builder, parent_instance, parent_ptr);
+            printf("Debug: Parent instance created and stored in child\n");
+        }
+    }
+    printf("Debug: Initialized parent instance if exists\n");
+    // Initialize constructor parameters and fields
     for (int i = 0; i < node->data.type_node.arg_count; i++) {
         LLVMValueRef arg_value = accept_gen(v, node->data.type_node.args[i]);
         
@@ -920,14 +1025,17 @@ LLVMValueRef generate_type_instance(LLVM_Visitor* v, ASTNode* node) {
                 }
             }
         }
-        
+    printf("Debug: Parameter '%s' maps to field index %d\n", param_name, field_index);
         if (field_index >= 0) {
             LLVMValueRef field_ptr = LLVMBuildStructGEP2(
                 builder, struct_type, instance, field_index, "field_ptr");
+            printf("Debug: Field pointer for '%s': %s\n", param_name, LLVMPrintValueToString(field_ptr));
             LLVMBuildStore(builder, arg_value, field_ptr);
         }
+    printf("Debug: Set field '%s' to value %s\n", param_name, LLVMPrintValueToString(arg_value));
     }
     
+    // Initialize default field values for non-parameter fields
     if (node->data.type_node.arg_count == 0) {
         for (int j = 0; j < type_def->data.type_node.def_count; j++) {
             ASTNode* def = type_def->data.type_node.definitions[j];
@@ -944,8 +1052,54 @@ LLVMValueRef generate_type_instance(LLVM_Visitor* v, ASTNode* node) {
             }
         }
     }
-    
     return instance;
+}
+
+static Type* find_type_by_method(const char* method_name, Type* type){
+    char* name = strdup(method_name);
+    while (type && !is_builtin_type(type)) {
+        printf("full_name: %s\n", name);
+
+        if (LLVMGetNamedFunction(module, name)) {
+            return type;
+        }
+        
+        name = delete_underscore_from_str(name,type->name);
+        type = type->parent;
+        printf("type: %s\n", type ? type->name : "NULL");
+        name = concat_str_with_underscore(type->name,name);
+    }
+    return NULL;
+}
+
+static int find_vtable_index(Type* type, const char* method_name) {
+    if (!type || !type->dec) {
+        return -1;
+    }
+
+    int method_idx = 0;
+    ASTNode* type_node = type->dec;
+
+    // Search through parent types first to maintain vtable order
+    if (type->parent && !is_builtin_type(type->parent)) {
+        method_idx = find_vtable_index(type->parent, method_name);
+        if (method_idx >= 0) {
+            return method_idx;
+        }
+    }
+
+    // Search through current type's methods
+    for (int i = 0; i < type_node->data.type_node.def_count; i++) {
+        ASTNode* def = type_node->data.type_node.definitions[i];
+        if (def->type == NODE_FUNC_DEC) {
+            if (strcmp(def->data.func_node.name, method_name) == 0) {
+                return method_idx;
+            }
+            method_idx++;
+        }
+    }
+
+    return -1;
 }
 
 static char* find_method_in_hierarchy(const char* method_name, Type* type) {
@@ -968,26 +1122,22 @@ static char* find_method_in_hierarchy(const char* method_name, Type* type) {
 static int find_field_index(Type* type, const char* field_name) {
     int current_index = 0;
     
-    Type* parent = type->parent;
-    while(parent && !is_builtin_type(parent)) {
-        ASTNode* parent_node = parent->dec;
-        if (parent_node) {
-            for(int i = 0; i < parent_node->data.type_node.def_count; i++) {
-                ASTNode* def = parent_node->data.type_node.definitions[i];
-                if (def->type == NODE_ASSIGNMENT) {
-                    current_index++;
-                }
-            }
-        }
-        parent = parent->parent;
+    // Add base offsets for type ID and vtable pointer
+    current_index = 2;
+    
+    // If this type has a parent, then it has a parent pointer at index 2
+    // and its fields start after that
+    if (type->parent && !is_builtin_type(type->parent)) {
+        current_index++;
     }
     
+    // First look in the current type's fields
     ASTNode* type_node = type->dec;
     if (type_node) {
         for(int i = 0; i < type_node->data.type_node.def_count; i++) {
             ASTNode* def = type_node->data.type_node.definitions[i];
             if (def->type == NODE_ASSIGNMENT) {
-                if (!strcmp(def->data.op_node.left->data.variable_name, field_name)) {
+                if (strcmp(def->data.op_node.left->data.variable_name, field_name) == 0) {
                     return current_index;
                 }
                 current_index++;
@@ -995,17 +1145,12 @@ static int find_field_index(Type* type, const char* field_name) {
         }
     }
     
-    parent = type->parent;
-    int parent_fields = current_index;
-    while(parent && !is_builtin_type(parent)) {
-        current_index = find_field_index(parent, field_name);
-        if (current_index >= 0) {
-            return current_index;
-        }
-        parent = parent->parent;
+    // If not found and we have a parent, look in parent fields
+    if (type->parent && !is_builtin_type(type->parent)) {
+        return find_field_index(type->parent, field_name);
     }
     
-    return -1;
+    return -1; // Field not found
 }
 
 LLVMValueRef generate_field_access(LLVM_Visitor* v, ASTNode* node) {
@@ -1031,17 +1176,44 @@ LLVMValueRef generate_field_access(LLVM_Visitor* v, ASTNode* node) {
         name
     );
 }
+char* extract_type_from_method_name(const char* method_full_name) {
+    // 1. Verificar formato básico
+    if (!method_full_name || method_full_name[0] != '_') 
+        return NULL;
+
+    // 2. Encontrar el segundo '_' que separa tipo y nombre
+    const char* first_underscore = method_full_name;
+    const char* second_underscore = strchr(first_underscore + 1, '_');
+    
+    if (!second_underscore || second_underscore == first_underscore + 1)
+        return NULL;
+
+    // 3. Calcular longitud del tipo
+    size_t type_length = second_underscore - first_underscore - 1;  // -1 para excluir el primer '_'
+    
+    // 4. Reservar memoria y copiar
+    char* type = (char*)malloc(type_length + 1);
+    if (!type) return NULL;
+    
+    strncpy(type, first_underscore + 1, type_length);
+    type[type_length] = '\0';  // Terminar cadena
+
+    return type;
+}
 
 LLVMValueRef generate_method_call(LLVM_Visitor* v, ASTNode* node) {
-    LLVMTypeRef int32_type = LLVMInt32Type();
-    LLVMValueRef depth_val = LLVMBuildLoad2(builder, int32_type, current_stack_depth_var, "load_depth_call");
-    LLVMValueRef new_depth = LLVMBuildAdd(builder, depth_val, LLVMConstInt(int32_type, 1, 0), "inc_depth_call");
+    // Stack depth tracking
+    LLVMValueRef current_stack_depth_var = LLVMGetNamedGlobal(module, "current_stack_depth");
+    LLVMValueRef current_depth = LLVMBuildLoad2(builder, LLVMInt32Type(), current_stack_depth_var, "current_depth");
+    LLVMValueRef new_depth = LLVMBuildAdd(builder, current_depth, LLVMConstInt(LLVMInt32Type(), 1, 0), "new_depth");
     LLVMBuildStore(builder, new_depth, current_stack_depth_var);
 
+    // Stack overflow check
     LLVMValueRef cmp = LLVMBuildICmp(builder, LLVMIntSGT,
-                                     new_depth, LLVMConstInt(int32_type, MAX_STACK_DEPTH, 0),
+                                     new_depth, LLVMConstInt(LLVMInt32Type(), MAX_STACK_DEPTH, 0),
                                      "cmp_overflow_call");
 
+    // Create basic blocks for overflow handling
     LLVMBasicBlockRef current_bb = LLVMGetInsertBlock(builder);
     LLVMValueRef current_func = LLVMGetBasicBlockParent(current_bb);
     LLVMBasicBlockRef error_block = LLVMAppendBasicBlock(current_func, "stack_overflow_call");
@@ -1054,58 +1226,259 @@ LLVMValueRef generate_method_call(LLVM_Visitor* v, ASTNode* node) {
         builder, module, current_stack_depth_var, node->line,
         node->data.op_node.right->data.func_node.name
     );
-    LLVMPositionBuilderAtEnd(builder, call_block);
     
-    LLVMValueRef instance = accept_gen(v, node->data.op_node.left);
+    LLVMPositionBuilderAtEnd(builder, call_block);
+
+    // Get instance and method info
+    LLVMValueRef instance_ptr = accept_gen(v, node->data.op_node.left);
     const char* method_name = node->data.op_node.right->data.func_node.name;
     ASTNode** args = node->data.op_node.right->data.func_node.args;
     int arg_count = node->data.op_node.right->data.func_node.arg_count;
-    
-    LLVMValueRef method;
-
-    LLVMTypeRef lhs_type = LLVMTypeOf(instance);
-    if (LLVMGetTypeKind(lhs_type) == LLVMStructTypeKind &&
-        LLVMCountStructElementTypes(lhs_type) == 2) {
-        LLVMValueRef method_ptr = LLVMBuildExtractValue(builder, instance, 0, "extracted_method");
-        LLVMValueRef self_ptr = LLVMBuildExtractValue(builder, instance, 1, "extracted_self");
-        method = method_ptr;
-        instance = self_ptr;
-    } else { 
-        Type* instance_type = node->data.op_node.left->return_type;
-        char* full_method_name = find_method_in_hierarchy(method_name, instance_type);
-        method = LLVMGetNamedFunction(module, full_method_name);
-        free(full_method_name);
+    printf("Debug: Generating method call for %s with %d args\n", method_name, arg_count);
+    // Get instance type and target type for the method
+    Type* instance_type = node->data.op_node.left->return_type;
+    if (!instance_type) {
+        printf("Error: NULL instance type\n");
+        return NULL;
     }
+    printf("Debug: Looking for method %s in type %s\n", method_name, instance_type->name);
+
+    // First try to find the method directly in the current type
+    Type* method_class = NULL;
+    // snprintf(mangled_name, sizeof(mangled_name), "_%s_%s", instance_type->name, method_name);
     
-    LLVMTypeRef instanceType = LLVMTypeOf(instance);
-    if (LLVMGetTypeKind(instanceType) == LLVMPointerTypeKind) {
-        LLVMTypeRef elementType = LLVMGetElementType(instanceType);
-        if (LLVMGetTypeKind(elementType) == LLVMPointerTypeKind) {
-            instance = LLVMBuildLoad(builder, instance, "loaded_instance");
+    if (LLVMGetNamedFunction(module, method_name)) {
+        method_class = instance_type;
+        printf("Debug: Found method %s directly in type %s\n", method_name, instance_type->name);
+    } else {
+        // If not found in current type, search up the hierarchy
+        Type* current_type = instance_type->parent;
+        while (current_type && !is_builtin_type(current_type)) {
+            printf("Debug: Searching in parent type %s\n", current_type->name);
+            // snprintf(method_name, sizeof(method_name), "_%s_%s", current_type->name, method_name);
+            // Construct the method name for the current parent type
+            char parent_method[256];
+            const char* base_method = strrchr(method_name, '_');
+            if (base_method) {
+                base_method++; // Skip the underscore
+                snprintf(parent_method, sizeof(parent_method), "_%s_%s", current_type->name, base_method);
+                printf("Debug: Looking for method %s in parent type %s\n", parent_method, current_type->name);
+                
+                if (LLVMGetNamedFunction(module, parent_method)) {
+                    method_class = current_type;
+                    method_name = strdup(parent_method);
+                    printf("Debug: Found method %s in parent type %s\n", method_name, current_type->name);
+                    break;
+                }
+            }
+            current_type = current_type->parent;
         }
     }
+
+    if (!method_class) {
+        printf("Error: Method %s not found in type hierarchy starting from %s\n", 
+               method_name, instance_type->name);
+        return NULL;
+    }
+
+    // Get parent instance if method is in a parent class
+    LLVMValueRef target_instance = instance_ptr;
+    LLVMTypeRef source_struct = LLVMGetTypeByName(module, method_class->name);
+    if (!source_struct) {
+        printf("Error: Could not find struct type for %s\n", method_class->name);
+        return NULL;
+    }
+
+    // If the method is in a different class than the instance type, we need to get the parent instance
+    if (method_class != instance_type) {
+        printf("Debug: Method is in parent class %s, getting parent instance\n", method_class->name);
+        // First get the current instance
+        LLVMValueRef current_instance;
+        if (LLVMGetTypeKind(LLVMTypeOf(target_instance)) == LLVMPointerTypeKind &&
+            LLVMGetTypeKind(LLVMGetElementType(LLVMTypeOf(target_instance))) == LLVMPointerTypeKind) {
+            current_instance = LLVMBuildLoad2(builder, LLVMGetElementType(LLVMTypeOf(target_instance)), target_instance, "loaded_instance");
+        } else {
+            current_instance = target_instance;
+        }
+
+        // Get the parent instance pointer (at index 2)
+        LLVMTypeRef current_struct = LLVMGetTypeByName(module, instance_type->name);
+        LLVMValueRef parent_ptr = LLVMBuildStructGEP2(builder, current_struct, current_instance, 2, "parent_ptr");
+        target_instance = LLVMBuildLoad2(builder, LLVMPointerType(source_struct, 0), parent_ptr, "parent_instance");
+        printf("Debug: Got parent instance of type %s\n", method_class->name);
+    }
     
+    // Use the target instance (either original or parent)
+    LLVMValueRef instance = target_instance;
+    
+    // Ensure we have a properly dereferenced instance pointer
+    if (LLVMGetTypeKind(LLVMTypeOf(instance)) == LLVMPointerTypeKind &&
+        LLVMGetTypeKind(LLVMGetElementType(LLVMTypeOf(instance))) == LLVMPointerTypeKind) {
+        instance = LLVMBuildLoad2(builder, LLVMGetElementType(LLVMTypeOf(instance)), instance, "dereferenced_instance");
+    }
+    
+    printf("Debug: Instance type after dereference = %s\n", LLVMPrintTypeToString(LLVMTypeOf(instance)));
+
+    // Create vtable type name using the type that defines the method
+    char vtable_type_name[256];
+    snprintf(vtable_type_name, sizeof(vtable_type_name), "%s_vtable", method_class->name);
+    printf("Debug: Looking for vtable type: %s\n", vtable_type_name);
+    
+    LLVMTypeRef vtable_type = LLVMGetTypeByName(module, vtable_type_name);
+    if (!vtable_type) {
+        printf("Error: Could not find vtable type %s\n", vtable_type_name);
+        return NULL;
+    }
+    
+    // Print struct layout
+    printf("Debug: Source struct type: %s\n", LLVMPrintTypeToString(source_struct));
+    
+    // Get vtable pointer from instance (using the correct type's vtable)
+    LLVMValueRef vtable_ptr_ptr = LLVMBuildStructGEP2(builder, 
+                                                      source_struct,
+                                                      instance,
+                                                      1,  // vtable pointer is at index 1
+                                                      "vtable_ptr_ptr");
+    printf("Debug: vtable_ptr_ptr: %s\n", LLVMPrintValueToString(vtable_ptr_ptr));
+    
+    // Get the actual vtable global (using the method class's vtable)
+    char vtable_instance_name[256];
+    snprintf(vtable_instance_name, sizeof(vtable_instance_name), "%s_vtable_instance", method_class->name);
+    LLVMValueRef vtable_global = LLVMGetNamedGlobal(module, vtable_instance_name);
+    if (!vtable_global) {
+        printf("Error: Could not find vtable instance %s\n", vtable_instance_name);
+        return NULL;
+    }
+    printf("Debug: Found vtable global: %s\n", LLVMPrintValueToString(vtable_global));
+    
+    // Load vtable pointer
+    LLVMValueRef vtable_ptr = LLVMBuildLoad2(builder, LLVMTypeOf(vtable_global), vtable_ptr_ptr, "vtable_ptr");
+    printf("Debug: vtable_ptr loaded: %s\n", LLVMPrintValueToString(vtable_ptr));
+
+    // Get method from vtable
+    LLVMValueRef method;
+    char method_mangled_name[256];
+    snprintf(method_mangled_name, sizeof(method_mangled_name), "%s_%s", method_class->name, method_name);
+    printf("Debug: Looking for method: %s\n", method_mangled_name);
+    
+    // Find method index in vtable
+    int method_index = -1;
+    int current_method_index = 0;  // Solo contar métodos, no campos
+    ASTNode* class_def = method_class->dec;
+    for (int i = 0; i < class_def->data.type_node.def_count; i++) {
+        ASTNode* def = class_def->data.type_node.definitions[i];
+        if (def->type == NODE_FUNC_DEC) {
+            if (strcmp(def->data.func_node.name, method_name) == 0) {
+                method_index = current_method_index;
+                printf("Debug: Found method %s at index %d in vtable\n", method_name, method_index);
+                break;
+            }
+            current_method_index++;  // Incrementar solo cuando encontramos un método
+        }
+    }
+
+    if (method_index >= 0) {
+        printf("Debug: Accessing method at index %d in vtable\n", method_index);
+        printf("Debug: vtable_ptr type = %s\n", LLVMPrintTypeToString(LLVMTypeOf(vtable_ptr)));
+        
+        // Get method pointer from vtable
+        LLVMValueRef func_ptr_ptr = LLVMBuildStructGEP2(
+            builder,
+            LLVMGetElementType(LLVMTypeOf(vtable_ptr)),  // Use actual vtable type
+            vtable_ptr,
+            method_index,
+            "method_ptr_ptr"
+        );
+        
+        if (!func_ptr_ptr) {
+            printf("Error: Failed to get method pointer from vtable at index %d\n", method_index);
+            return NULL;
+        }
+        printf("Debug: Got function pointer pointer: %s\n", LLVMPrintValueToString(func_ptr_ptr));
+
+        // Create the function type for method
+        ASTNode* method_def = NULL;
+        for (int i = 0; i < class_def->data.type_node.def_count; i++) {
+            ASTNode* def = class_def->data.type_node.definitions[i];
+            if (def->type == NODE_FUNC_DEC && strcmp(def->data.func_node.name, method_name) == 0) {
+                method_def = def;
+                break;
+            }
+        }
+        
+        if (!method_def) {
+            printf("Error: Could not find method definition for %s\n", method_name);
+            return NULL;
+        }
+        
+        // Create function type with proper parameters
+        int param_count = method_def->data.func_node.arg_count + 1; // +1 for this pointer
+        LLVMTypeRef* param_types = malloc(param_count * sizeof(LLVMTypeRef));
+        param_types[0] = LLVMPointerType(source_struct, 0); // this pointer
+        
+        for (int i = 0; i < method_def->data.func_node.arg_count; i++) {
+            param_types[i + 1] = get_llvm_type(method_def->data.func_node.args[i]->return_type);
+        }
+        
+        LLVMTypeRef return_type = get_llvm_type(method_def->return_type);
+        if (!return_type) return_type = LLVMVoidType();
+        
+        LLVMTypeRef func_type = LLVMFunctionType(return_type, param_types, param_count, 0);
+        LLVMTypeRef func_ptr_type = LLVMPointerType(func_type, 0);
+        
+        printf("Debug: Function type created: %s\n", LLVMPrintTypeToString(func_ptr_type));
+        
+        method = LLVMBuildLoad2(builder, func_ptr_type, func_ptr_ptr, "method_ptr");
+        free(param_types);
+        printf("Debug: method ptr loaded: %s\n", LLVMPrintValueToString(method));
+    } else {
+        // Direct method call if not virtual
+        method = LLVMGetNamedFunction(module, method_mangled_name);
+        printf("Debug: Using direct method call: %s\n", method_mangled_name);
+    }
+
+    if (!method) {
+        printf("Error: Could not find method %s\n", method_mangled_name);
+        return NULL;
+    }
+
+    // Create argument list with instance as first argument
     LLVMValueRef* call_args = malloc((arg_count + 1) * sizeof(LLVMValueRef));
     call_args[0] = instance;
+    
+    // Add remaining arguments
     for (int i = 0; i < arg_count; i++) {
         call_args[i + 1] = accept_gen(v, args[i]);
     }
+
+    // Make the call
+    LLVMTypeRef func_type = LLVMTypeOf(method);
+    LLVMValueRef result;
+    printf("Debug: Function type for call: %s\n", LLVMPrintTypeToString(func_type));
     
-    LLVMValueRef result = LLVMBuildCall2(
-        builder,
-        LLVMGetElementType(LLVMTypeOf(method)),
-        method,
-        call_args,
-        arg_count + 1,
-        type_equals(node->return_type, &TYPE_VOID) ? "" : "method_call"
-    );
+    // First get the actual function type from the function pointer type if needed
+    LLVMTypeRef actual_func_type = func_type;
+    if (LLVMGetTypeKind(func_type) == LLVMPointerTypeKind) {
+        actual_func_type = LLVMGetElementType(func_type);
+    }
     
+    // Check if the function return type is void
+    LLVMTypeRef return_type = LLVMGetReturnType(actual_func_type);
+    printf("Debug: Function return type for call: %s\n", LLVMPrintTypeToString(return_type));
+    if (LLVMGetTypeKind(return_type) == LLVMVoidTypeKind) {
+        // For void methods, use LLVMBuildCall and completely ignore the result
+        LLVMBuildCall(builder, method, call_args, arg_count + 1, "");
+        result = NULL;
+    } else {
+        // For methods that return a value, use LLVMBuildCall2 and assign a name
+        result = LLVMBuildCall2(builder, func_type, method, call_args, arg_count + 1, "call_result");
+    }
     free(call_args);
-    LLVMValueRef final_depth = LLVMBuildLoad2(builder, int32_type, current_stack_depth_var, "load_depth_final_call");
-    LLVMValueRef dec_depth = LLVMBuildSub(builder, final_depth, LLVMConstInt(int32_type, 1, 0), "dec_depth_call");
-    LLVMBuildStore(builder, dec_depth, current_stack_depth_var);
     
-    return type_equals(node->return_type, &TYPE_VOID) ? NULL : result;
+    // Restore stack depth
+    LLVMBuildStore(builder, current_depth, current_stack_depth_var);
+
+    return result;
 }
 
 LLVMValueRef generate_set_attr(LLVM_Visitor* v, ASTNode* node) {
@@ -1188,11 +1561,12 @@ LLVMValueRef generate_cast_type(LLVM_Visitor* v, ASTNode* node) {
 
         LLVMValueRef error_msg_global = LLVMBuildGlobalStringPtr(builder, error_msg, "error_msg");
         LLVMValueRef puts_func = LLVMGetNamedFunction(module, "puts");
-        LLVMBuildCall(builder, puts_func, &error_msg_global, 1, "");
+        LLVMTypeRef puts_type = LLVMFunctionType(LLVMInt32Type(), (LLVMTypeRef[]){LLVMPointerType(LLVMInt8Type(), 0)}, 1, 0);
+        LLVMBuildCall2(builder, puts_type, puts_func, &error_msg_global, 1, "");
 
         LLVMValueRef exit_func = LLVMGetNamedFunction(module, "exit");
         LLVMValueRef exit_code = LLVMConstInt(LLVMInt32Type(), 1, 0);
-        LLVMBuildCall(builder, exit_func, &exit_code, 1, "");
+        LLVMBuildCall(builder, exit_func, &exit_code, 1, 0);
 
         LLVMBuildUnreachable(builder);
 

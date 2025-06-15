@@ -4,6 +4,14 @@
 #include <llvm-c/Core.h>
 #include "../ast/ast.h"
 #include "../visitor/llvm_visitor.h"
+typedef struct TypeIDMap {
+    char* type_name;
+    int id;
+    struct TypeIDMap* next;
+} TypeIDMap;
+
+static TypeIDMap* type_id_map = NULL;
+static int next_type_id = 1;  // Empezamos desde 1, 0 reservado para Object
 
 LLVMTypeRef get_llvm_type(Type* type);
 LLVMValueRef get_default(LLVM_Visitor* v, Type* type);
